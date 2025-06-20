@@ -1,5 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Plus, BookOpen, Edit, Save, X } from 'lucide-react';
+import MDEditor from '@uiw/react-md-editor';
+import '@uiw/react-md-editor/markdown-editor.css';
+import '@uiw/react-markdown-preview/markdown.css';
 import { DiaryEntry } from '../types';
 
 interface DiaryViewProps {
@@ -18,17 +21,24 @@ const DiaryView: React.FC<DiaryViewProps> = ({
   const [currentEntry, setCurrentEntry] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editContent, setEditContent] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [showNewEntryEditor, setShowNewEntryEditor] = useState(false);
 
-  const handleSaveEntry = () => {
+  const handleSaveEntry = useCallback(() => {
     if (currentEntry.trim()) {
       onNewEntry(currentEntry.trim());
       setCurrentEntry('');
-      // Clear and refocus the textarea
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-      }
+      setShowNewEntryEditor(false); // Hide editor after saving
     }
+  }, [currentEntry, onNewEntry]);
+
+  const handleShowEditor = () => {
+    setShowNewEntryEditor(true);
+    setCurrentEntry('');
+  };
+
+  const handleCancelNewEntry = () => {
+    setShowNewEntryEditor(false);
+    setCurrentEntry('');
   };
 
   const handleEditEntry = (entry: DiaryEntry) => {
@@ -52,7 +62,9 @@ const DiaryView: React.FC<DiaryViewProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
-      handleSaveEntry();
+      if (showNewEntryEditor) {
+        handleSaveEntry();
+      }
     }
   };
 
@@ -77,130 +89,256 @@ const DiaryView: React.FC<DiaryViewProps> = ({
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Daily Journal</h2>
+    <>
+      <style>{`
+        .diary-editor .w-md-editor {
+          background-color: white;
+          border-radius: 0.375rem;
+        }
         
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-gray-900">
-              {new Date().toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
-            </h3>
+        .diary-editor .w-md-editor-text-pre,
+        .diary-editor .w-md-editor-text-input {
+          color: #374151 !important;
+          font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif !important;
+          line-height: 1.6 !important;
+          font-size: 14px !important;
+        }
+        
+        .diary-editor .w-md-editor-text {
+          border-radius: 0 0 0.375rem 0.375rem;
+        }
+        
+        .diary-editor .w-md-editor-bar {
+          border-radius: 0.375rem 0.375rem 0 0;
+          background-color: #f9fafb;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .diary-content .wmde-markdown {
+          background-color: transparent !important;
+          color: #374151 !important;
+        }
+        
+        .diary-content .wmde-markdown h1, 
+        .diary-content .wmde-markdown h2, 
+        .diary-content .wmde-markdown h3 {
+          margin-top: 1em;
+          margin-bottom: 0.5em;
+          color: #1f2937;
+        }
+        
+        .diary-content .wmde-markdown p {
+          margin-bottom: 0.75em;
+          line-height: 1.6;
+        }
+        
+        .diary-content .wmde-markdown ul, 
+        .diary-content .wmde-markdown ol {
+          margin-bottom: 0.75em;
+        }
+        
+        .diary-content .wmde-markdown blockquote {
+          border-left: 4px solid #e5e7eb;
+          padding-left: 1em;
+          margin: 1em 0;
+          font-style: italic;
+          color: #6b7280;
+          background-color: #f9fafb;
+          padding: 1em;
+          border-radius: 0 0.375rem 0.375rem 0;
+        }
+        
+        .diary-content .wmde-markdown code {
+          background-color: #f3f4f6;
+          padding: 0.125em 0.25em;
+          border-radius: 0.25rem;
+          font-size: 0.875em;
+          color: #1f2937;
+        }
+        
+        .diary-content .wmde-markdown pre {
+          background-color: #f3f4f6;
+          padding: 1em;
+          border-radius: 0.375rem;
+          border: 1px solid #e5e7eb;
+        }
+      `}</style>
+      
+      <div className="max-w-4xl mx-auto">
+        {/* Header with Add Entry Button */}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Daily Journal</h2>
+          {!showNewEntryEditor && (
             <button
-              onClick={handleSaveEntry}
-              disabled={!currentEntry.trim()}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              onClick={handleShowEditor}
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2"
             >
               <Plus className="w-4 h-4" />
-              <span>Save Entry</span>
+              <span>New Entry</span>
             </button>
-          </div>
-          
-          <textarea
-            ref={textareaRef}
-            value={currentEntry}
-            onChange={(e) => setCurrentEntry(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="What's on your mind today? (Ctrl+Enter to save)"
-            className="w-full h-32 border border-gray-300 rounded-md px-4 py-3 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-            autoFocus
-          />
-          
-          <div className="mt-2 text-xs text-gray-500">
-            Press Ctrl+Enter to save your entry
-          </div>
+          )}
         </div>
-      </div>
 
-      <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Previous Entries</h3>
-        
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        {/* New Entry Editor (shown only when showNewEntryEditor is true) */}
+        {showNewEntryEditor && (
+          <div className="mb-8">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  {new Date().toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </h3>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={handleCancelNewEntry}
+                    className="px-3 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveEntry}
+                    disabled={!currentEntry.trim()}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>Save Entry</span>
+                  </button>
+                </div>
+              </div>
+              
+              <div className="diary-editor" onKeyDown={handleKeyDown}>
+                <MDEditor
+                  value={currentEntry}
+                  onChange={(val) => setCurrentEntry(val || '')}
+                  preview="edit"
+                  hideToolbar={false}
+                  height={250}
+                  data-color-mode="light"
+                />
+              </div>
+              
+              <div className="mt-2 text-xs text-gray-500 flex items-center justify-between">
+                <span>Use Markdown for formatting. Press Ctrl+Enter to save your entry</span>
+                <button
+                  onClick={() => setCurrentEntry(currentEntry + '\n\n---\n\n')}
+                  className="text-blue-600 hover:text-blue-800 text-xs"
+                  title="Add separator"
+                >
+                  Add separator
+                </button>
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {diaryEntries.map((entry) => (
-              <div key={entry.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm font-medium text-gray-900">
-                        {formatDate(entry.entry_date)}
-                      </h4>
-                      <div className="flex items-center space-x-2">
+        )}
+
+        {/* Previous Entries Section */}
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            {diaryEntries.length > 0 ? `Previous Entries (${diaryEntries.length})` : 'Entries'}
+          </h3>
+          
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {diaryEntries.length > 0 ? (
+                diaryEntries.map((entry) => (
+                  <div key={entry.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-medium text-gray-900">
+                            {formatDate(entry.entry_date)}
+                          </h4>
+                          <div className="flex items-center space-x-2">
+                            {editingId === entry.id ? (
+                              <>
+                                <button
+                                  onClick={() => handleSaveEdit(entry.id)}
+                                  disabled={!editContent.trim()}
+                                  className="p-1 text-green-600 hover:text-green-800 disabled:opacity-50"
+                                  title="Save changes"
+                                >
+                                  <Save className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={handleCancelEdit}
+                                  className="p-1 text-gray-400 hover:text-gray-600"
+                                  title="Cancel editing"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={() => handleEditEntry(entry)}
+                                className="p-1 text-gray-400 hover:text-gray-600"
+                                title="Edit entry"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        
                         {editingId === entry.id ? (
-                          <>
-                            <button
-                              onClick={() => handleSaveEdit(entry.id)}
-                              disabled={!editContent.trim()}
-                              className="p-1 text-green-600 hover:text-green-800 disabled:opacity-50"
-                              title="Save changes"
-                            >
-                              <Save className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={handleCancelEdit}
-                              className="p-1 text-gray-400 hover:text-gray-600"
-                              title="Cancel editing"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </>
+                          <div className="diary-editor">
+                            <MDEditor
+                              value={editContent}
+                              onChange={(val) => setEditContent(val || '')}
+                              preview="edit"
+                              height={200}
+                              data-color-mode="light"
+                            />
+                          </div>
                         ) : (
-                          <button
-                            onClick={() => handleEditEntry(entry)}
-                            className="p-1 text-gray-400 hover:text-gray-600"
-                            title="Edit entry"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
+                          <div className="diary-content prose prose-sm max-w-none text-gray-700 leading-relaxed">
+                            <MDEditor.Markdown 
+                              source={entry.content}
+                            />
+                          </div>
                         )}
                       </div>
                     </div>
                     
-                    {editingId === entry.id ? (
-                      <textarea
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        className="w-full h-24 border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                        autoFocus
-                      />
-                    ) : (
-                      <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-                        {entry.content}
-                      </div>
-                    )}
+                    <div className="text-xs text-gray-400 mt-4">
+                      Created: {new Date(entry.created_at).toLocaleString('en-US', { 
+                        hour: 'numeric', 
+                        minute: '2-digit',
+                        hour12: true,
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12">
+                  <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">No entries yet</p>
+                  <p className="text-sm text-gray-400 mt-1">Click "New Entry" to start writing your first journal entry</p>
+                  <div className="mt-4 text-xs text-gray-400 max-w-md mx-auto">
+                    <p className="font-medium mb-2">Markdown formatting tips:</p>
+                    <div className="text-left space-y-1">
+                      <p><code className="bg-gray-100 px-1 rounded">**bold**</code> for <strong>bold text</strong></p>
+                      <p><code className="bg-gray-100 px-1 rounded">*italic*</code> for <em>italic text</em></p>
+                      <p><code className="bg-gray-100 px-1 rounded"># Heading</code> for headings</p>
+                      <p><code className="bg-gray-100 px-1 rounded">- item</code> for bullet lists</p>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="text-xs text-gray-400 mt-4">
-                  {new Date(entry.created_at).toLocaleTimeString('en-US', { 
-                    hour: 'numeric', 
-                    minute: '2-digit',
-                    hour12: true 
-                  })}
-                </div>
-              </div>
-            ))}
-            
-            {diaryEntries.length === 0 && (
-              <div className="text-center py-12">
-                <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No entries yet</p>
-                <p className="text-sm text-gray-400 mt-1">Start writing your first journal entry above</p>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
