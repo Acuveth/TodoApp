@@ -59,4 +59,12 @@ export const api = {
     });
     return response.json();
   },
+  updateDiaryEntry: async (entryId: number, updates: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/diary/${entryId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+    return response.json();
+  },
 };

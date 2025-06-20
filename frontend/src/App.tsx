@@ -17,8 +17,7 @@ import {
   FolderType, 
   DiaryEntry, 
   NewTask, 
-  NewFolder, 
-  NewDiaryEntry 
+  NewFolder
 } from './types';
 import { api } from './utils';
 
@@ -33,7 +32,6 @@ function TodoApp() {
   const [backendStatus, setBackendStatus] = useState('checking');
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
-  const [showNewDiaryModal, setShowNewDiaryModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   // Form states
@@ -47,13 +45,6 @@ function TodoApp() {
   const [newFolder, setNewFolder] = useState<NewFolder>({ 
     name: '', 
     color: '#3B82F6' 
-  });
-  const [newDiaryEntry, setNewDiaryEntry] = useState<NewDiaryEntry>({
-    entry_date: new Date().toISOString().split('T')[0],
-    title: '',
-    content: '',
-    mood: 3,
-    weather: ''
   });
 
   // Data loading functions
@@ -120,53 +111,32 @@ function TodoApp() {
 
   // Task handlers
   const handleTaskTitleChange = useCallback((value: string) => {
-    setNewTask(prev => ({ ...prev, title: value }));
+    setNewTask((prev: NewTask) => ({ ...prev, title: value }));
   }, []);
 
   const handleTaskDescriptionChange = useCallback((value: string) => {
-    setNewTask(prev => ({ ...prev, description: value }));
+    setNewTask((prev: NewTask) => ({ ...prev, description: value }));
   }, []);
 
   const handleTaskPriorityChange = useCallback((value: number) => {
-    setNewTask(prev => ({ ...prev, priority: value }));
+    setNewTask((prev: NewTask) => ({ ...prev, priority: value }));
   }, []);
 
   const handleTaskDueDateChange = useCallback((value: string) => {
-    setNewTask(prev => ({ ...prev, due_date: value }));
+    setNewTask((prev: NewTask) => ({ ...prev, due_date: value }));
   }, []);
 
   const handleTaskCalendarEventChange = useCallback((value: boolean) => {
-    setNewTask(prev => ({ ...prev, is_calendar_event: value }));
+    setNewTask((prev: NewTask) => ({ ...prev, is_calendar_event: value }));
   }, []);
 
   // Folder handlers
   const handleFolderNameChange = useCallback((value: string) => {
-    setNewFolder(prev => ({ ...prev, name: value }));
+    setNewFolder((prev: NewFolder) => ({ ...prev, name: value }));
   }, []);
 
   const handleFolderColorChange = useCallback((value: string) => {
-    setNewFolder(prev => ({ ...prev, color: value }));
-  }, []);
-
-  // Diary handlers
-  const handleDiaryDateChange = useCallback((value: string) => {
-    setNewDiaryEntry(prev => ({ ...prev, entry_date: value }));
-  }, []);
-
-  const handleDiaryTitleChange = useCallback((value: string) => {
-    setNewDiaryEntry(prev => ({ ...prev, title: value }));
-  }, []);
-
-  const handleDiaryContentChange = useCallback((value: string) => {
-    setNewDiaryEntry(prev => ({ ...prev, content: value }));
-  }, []);
-
-  const handleDiaryMoodChange = useCallback((value: number) => {
-    setNewDiaryEntry(prev => ({ ...prev, mood: value }));
-  }, []);
-
-  const handleDiaryWeatherChange = useCallback((value: string) => {
-    setNewDiaryEntry(prev => ({ ...prev, weather: value }));
+    setNewFolder((prev: NewFolder) => ({ ...prev, color: value }));
   }, []);
 
   // Create handlers
@@ -197,23 +167,30 @@ function TodoApp() {
     }
   };
 
-  const handleCreateDiaryEntry = async () => {
+  const handleCreateDiaryEntry = async (content: string) => {
     try {
-      await api.createDiaryEntry({
-        ...newDiaryEntry,
+      const entryData = {
+        entry_date: new Date().toISOString().split('T')[0], // Today's date
+        title: '', // No title needed
+        content: content,
+        mood: undefined, // No mood
+        weather: '', // No weather
         folder_id: selectedFolder?.id || null
-      });
-      setNewDiaryEntry({
-        entry_date: new Date().toISOString().split('T')[0],
-        title: '',
-        content: '',
-        mood: 3,
-        weather: ''
-      });
-      setShowNewDiaryModal(false);
+      };
+      await api.createDiaryEntry(entryData);
       loadDiaryEntries();
     } catch (error) {
       console.error('Error creating diary entry:', error);
+    }
+  };
+
+  const handleUpdateDiaryEntry = async (id: number, content: string) => {
+    try {
+      // You'll need to add this API endpoint
+      await api.updateDiaryEntry(id, { content });
+      loadDiaryEntries();
+    } catch (error) {
+      console.error('Error updating diary entry:', error);
     }
   };
 
@@ -226,7 +203,7 @@ function TodoApp() {
     } catch (error) {
       console.error('Error updating task status:', error);
       // For now, update locally if API fails
-      setTasks(prev => prev.map(t => 
+      setTasks((prev: Task[]) => prev.map((t: Task) => 
         t.id === task.id ? { ...t, status: task.status === 'completed' ? 'pending' : 'completed' } : t
       ));
     }
@@ -338,7 +315,7 @@ function TodoApp() {
               <span>All</span>
             </button>
             
-            {folders.map(folder => (
+            {folders.map((folder: FolderType) => (
               <button
                 key={folder.id}
                 onClick={() => setSelectedFolder(folder)}
@@ -369,7 +346,8 @@ function TodoApp() {
           <DiaryView 
             diaryEntries={diaryEntries}
             loading={loading}
-            onNewEntry={() => setShowNewDiaryModal(true)}
+            onNewEntry={handleCreateDiaryEntry}
+            onUpdateEntry={handleUpdateDiaryEntry}
           />
         );
       default:
@@ -397,7 +375,7 @@ function TodoApp() {
               </div>
             ) : (
               <div className="space-y-3">
-                {tasks.map(task => (
+                {tasks.map((task: Task) => (
                   <TaskCard 
                     key={task.id} 
                     task={task}
@@ -548,77 +526,6 @@ function TodoApp() {
               className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
             >
               Create Folder
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Diary Modal */}
-      <Modal 
-        isOpen={showNewDiaryModal} 
-        onClose={() => setShowNewDiaryModal(false)}
-        title="New Diary Entry"
-      >
-        <div className="space-y-4">
-          <input
-            type="date"
-            value={newDiaryEntry.entry_date}
-            onChange={(e) => handleDiaryDateChange(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2"
-          />
-          <input
-            type="text"
-            placeholder="Title (optional)"
-            value={newDiaryEntry.title}
-            onChange={(e) => handleDiaryTitleChange(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2"
-          />
-          <textarea
-            placeholder="What's on your mind?"
-            value={newDiaryEntry.content}
-            onChange={(e) => handleDiaryContentChange(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 h-32"
-            required
-          />
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Mood</label>
-              <select
-                value={newDiaryEntry.mood}
-                onChange={(e) => handleDiaryMoodChange(parseInt(e.target.value))}
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
-              >
-                <option value={1}>😢 Very Sad</option>
-                <option value={2}>😕 Sad</option>
-                <option value={3}>😐 Neutral</option>
-                <option value={4}>😊 Happy</option>
-                <option value={5}>😄 Very Happy</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Weather</label>
-              <input
-                type="text"
-                placeholder="e.g., Sunny, Rainy"
-                value={newDiaryEntry.weather}
-                onChange={(e) => handleDiaryWeatherChange(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
-              />
-            </div>
-          </div>
-          <div className="flex space-x-3">
-            <button 
-              onClick={() => setShowNewDiaryModal(false)}
-              className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button 
-              onClick={handleCreateDiaryEntry}
-              disabled={!newDiaryEntry.content}
-              className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
-            >
-              Save Entry
             </button>
           </div>
         </div>

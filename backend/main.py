@@ -452,6 +452,23 @@ def update_task(task_id: int, updates: dict, current_user: User = Depends(get_cu
     db.refresh(task)
     return task
 
+@app.put("/api/diary/{entry_id}")
+def update_diary_entry(entry_id: int, updates: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Verify diary entry belongs to user
+    entry = db.query(DiaryEntry).filter(DiaryEntry.id == entry_id, DiaryEntry.user_id == current_user.id).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Diary entry not found")
+    
+    # Update entry fields
+    for field, value in updates.items():
+        if hasattr(entry, field):
+            setattr(entry, field, value)
+    
+    entry.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(entry)
+    return entry
+
 # Startup event to create tables
 @app.on_event("startup")
 async def startup_event():

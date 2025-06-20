@@ -7,7 +7,7 @@ import {
   CheckCircle2,
   Flag
 } from 'lucide-react';
-import { Task } from '../types';
+import { Task, TaskSubstep } from '../types';
 
 interface TaskCardProps {
   task: Task;
@@ -22,7 +22,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   onToggleExpansion, 
   onToggleStatus 
 }) => {
-  const completedSubsteps = task.substeps?.filter(s => s.is_completed).length || 0;
+  const completedSubsteps = task.substeps?.filter((s: TaskSubstep) => s.is_completed).length || 0;
   const totalSubsteps = task.substeps?.length || 0;
 
   const getPriorityColor = (priority: number) => {
@@ -115,7 +115,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
         <div className="border-t border-gray-100 p-4 bg-gray-50">
           <h4 className="font-medium text-gray-900 mb-2">Subtasks</h4>
           <div className="space-y-2">
-            {task.substeps.map(substep => (
+            {task.substeps.map((substep: TaskSubstep) => (
               <div key={substep.id} className="flex items-center space-x-2">
                 <input 
                   type="checkbox" 
