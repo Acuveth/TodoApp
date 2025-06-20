@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Calendar, 
   CheckSquare, 
@@ -52,16 +52,6 @@ interface FolderType {
   created_at: string;
 }
 
-interface DiaryEntry {
-  id: number;
-  entry_date: string;
-  title?: string;
-  content: string;
-  mood?: number;
-  weather?: string;
-  created_at: string;
-}
-
 // API configuration
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -104,7 +94,6 @@ function TodoApp() {
   const [selectedFolder, setSelectedFolder] = useState<FolderType | null>(null);
   const [folders, setFolders] = useState<FolderType[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [expandedTasks, setExpandedTasks] = useState(new Set<number>());
   const [loading, setLoading] = useState(false);
   const [backendStatus, setBackendStatus] = useState('checking');
@@ -112,6 +101,27 @@ function TodoApp() {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [newTask, setNewTask] = useState({ title: '', description: '', priority: 1 });
   const [newFolder, setNewFolder] = useState({ name: '', color: '#3B82F6' });
+
+  const loadFolders = useCallback(async () => {
+    try {
+      const foldersData = await api.getFolders();
+      setFolders(foldersData);
+    } catch (error) {
+      console.error('Error loading folders:', error);
+    }
+  }, []);
+
+  const loadTasks = useCallback(async () => {
+    setLoading(true);
+    try {
+      const tasksData = await api.getTasks(selectedFolder?.id || null);
+      setTasks(tasksData);
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedFolder?.id]);
 
   useEffect(() => {
     const testConnection = async () => {
@@ -125,7 +135,7 @@ function TodoApp() {
       }
     };
     testConnection();
-  }, []);
+  }, [loadFolders]);
 
   useEffect(() => {
     if (backendStatus === 'connected') {
@@ -133,28 +143,7 @@ function TodoApp() {
         loadTasks();
       }
     }
-  }, [currentView, selectedFolder, backendStatus]);
-
-  const loadFolders = async () => {
-    try {
-      const foldersData = await api.getFolders();
-      setFolders(foldersData);
-    } catch (error) {
-      console.error('Error loading folders:', error);
-    }
-  };
-
-  const loadTasks = async () => {
-    setLoading(true);
-    try {
-      const tasksData = await api.getTasks(selectedFolder?.id || null);
-      setTasks(tasksData);
-    } catch (error) {
-      console.error('Error loading tasks:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [currentView, selectedFolder, backendStatus, loadTasks]);
 
   const handleCreateTask = async () => {
     try {
