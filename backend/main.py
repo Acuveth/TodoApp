@@ -124,8 +124,6 @@ class DiaryEntry(Base):
     entry_date = Column(Date, nullable=False)
     title = Column(String(500))
     content = Column(Text, nullable=False)
-    mood = Column(Integer)  # 1-5 scale
-    weather = Column(String(50))
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -452,6 +450,16 @@ def update_task(task_id: int, updates: dict, current_user: User = Depends(get_cu
     db.refresh(task)
     return task
 
+@app.post("/api/diary")
+def create_diary_entry(entry: DiaryEntryCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Always create a new entry - no more overwriting!
+    db_entry = DiaryEntry(**entry.dict(), user_id=current_user.id)
+    db.add(db_entry)
+    db.commit()
+    db.refresh(db_entry)
+    return db_entry
+
+# Optional: Add a separate endpoint for updating specific entries
 @app.put("/api/diary/{entry_id}")
 def update_diary_entry(entry_id: int, updates: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     # Verify diary entry belongs to user

@@ -169,12 +169,17 @@ function TodoApp() {
 
   const handleCreateDiaryEntry = async (content: string) => {
     try {
+      const now = new Date();
       const entryData = {
-        entry_date: new Date().toISOString().split('T')[0], // Today's date
-        title: '', // No title needed
+        entry_date: now.toISOString().split('T')[0], // Today's date
+        title: `Entry ${now.toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: true 
+        })}`, // Add timestamp as title for uniqueness
         content: content,
-        mood: undefined, // No mood
-        weather: '', // No weather
+        mood: undefined,
+        weather: '',
         folder_id: selectedFolder?.id || null
       };
       await api.createDiaryEntry(entryData);
@@ -183,7 +188,7 @@ function TodoApp() {
       console.error('Error creating diary entry:', error);
     }
   };
-
+  
   const handleUpdateDiaryEntry = async (id: number, content: string) => {
     try {
       // You'll need to add this API endpoint

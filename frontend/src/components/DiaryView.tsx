@@ -67,26 +67,37 @@ const DiaryView: React.FC<DiaryViewProps> = ({
       }
     }
   };
-
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string, createdAt: string) => {
     const date = new Date(dateString);
+    const created = new Date(createdAt);
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-
+  
+    let dateLabel = '';
     if (date.toDateString() === today.toDateString()) {
-      return 'Today';
+      dateLabel = 'Today';
     } else if (date.toDateString() === yesterday.toDateString()) {
-      return 'Yesterday';
+      dateLabel = 'Yesterday';
     } else {
-      return date.toLocaleDateString('en-US', { 
+      dateLabel = date.toLocaleDateString('en-US', { 
         weekday: 'long', 
         year: 'numeric', 
         month: 'long', 
         day: 'numeric' 
       });
     }
+  
+    // Add time when entry was created
+    const timeLabel = created.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  
+    return `${dateLabel} at ${timeLabel}`;
   };
+  
 
   return (
     <>
@@ -253,9 +264,14 @@ const DiaryView: React.FC<DiaryViewProps> = ({
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-sm font-medium text-gray-900">
-                            {formatDate(entry.entry_date)}
-                          </h4>
+                        <h4 className="text-sm font-medium text-gray-900 flex items-center justify-between">
+                            <span>{formatDate(entry.entry_date, entry.created_at)}</span>
+                            {entry.title && (
+                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                {entry.title}
+                                </span>
+                            )}
+                        </h4>
                           <div className="flex items-center space-x-2">
                             {editingId === entry.id ? (
                               <>
