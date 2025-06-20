@@ -1,107 +1,62 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  Calendar, 
+  Calendar as CalendarIcon, 
   CheckSquare, 
   Plus, 
   Folder, 
   BookOpen, 
-  Clock, 
-  ChevronRight,
-  ChevronDown,
-  Circle,
-  CheckCircle2,
-  Flag,
-  AlertCircle,
-  X
+  AlertCircle
 } from 'lucide-react';
 
-// Type definitions
-interface Task {
-  id: number;
-  title: string;
-  description?: string;
-  priority: number;
-  status: string;
-  due_date?: string;
-  is_calendar_event: boolean;
-  created_at: string;
-  substeps?: TaskSubstep[];
-  notes?: TaskNote[];
-}
+// Component imports
+import { Modal, TaskCard, CalendarView, DiaryView } from './components';
 
-interface TaskSubstep {
-  id: number;
-  title: string;
-  description?: string;
-  is_completed: boolean;
-  order_index: number;
-  created_at: string;
-}
-
-interface TaskNote {
-  id: number;
-  content: string;
-  created_at: string;
-}
-
-interface FolderType {
-  id: number;
-  name: string;
-  color: string;
-  parent_folder_id?: number;
-  created_at: string;
-}
-
-// API configuration
-const API_BASE_URL = 'http://localhost:8000';
-
-const api = {
-  healthCheck: async () => {
-    const response = await fetch(`${API_BASE_URL}/health`);
-    return response.json();
-  },
-  getTasks: async (folderId: number | null = null) => {
-    const url = folderId 
-      ? `${API_BASE_URL}/api/tasks?folder_id=${folderId}`
-      : `${API_BASE_URL}/api/tasks`;
-    const response = await fetch(url);
-    return response.json();
-  },
-  createTask: async (taskData: any) => {
-    const response = await fetch(`${API_BASE_URL}/api/tasks`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(taskData),
-    });
-    return response.json();
-  },
-  getFolders: async () => {
-    const response = await fetch(`${API_BASE_URL}/api/folders`);
-    return response.json();
-  },
-  createFolder: async (folderData: any) => {
-    const response = await fetch(`${API_BASE_URL}/api/folders`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(folderData),
-    });
-    return response.json();
-  },
-};
+// Type and API imports
+import { 
+  Task, 
+  FolderType, 
+  DiaryEntry, 
+  NewTask, 
+  NewFolder, 
+  NewDiaryEntry 
+} from './types';
+import { api } from './utils';
 
 function TodoApp() {
   const [currentView, setCurrentView] = useState('tasks');
   const [selectedFolder, setSelectedFolder] = useState<FolderType | null>(null);
   const [folders, setFolders] = useState<FolderType[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([]);
   const [expandedTasks, setExpandedTasks] = useState(new Set<number>());
   const [loading, setLoading] = useState(false);
   const [backendStatus, setBackendStatus] = useState('checking');
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
-  const [newTask, setNewTask] = useState({ title: '', description: '', priority: 1 });
-  const [newFolder, setNewFolder] = useState({ name: '', color: '#3B82F6' });
+  const [showNewDiaryModal, setShowNewDiaryModal] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
+  // Form states
+  const [newTask, setNewTask] = useState<NewTask>({ 
+    title: '', 
+    description: '', 
+    priority: 1, 
+    due_date: '',
+    is_calendar_event: false 
+  });
+  const [newFolder, setNewFolder] = useState<NewFolder>({ 
+    name: '', 
+    color: '#3B82F6' 
+  });
+  const [newDiaryEntry, setNewDiaryEntry] = useState<NewDiaryEntry>({
+    entry_date: new Date().toISOString().split('T')[0],
+    title: '',
+    content: '',
+    mood: 3,
+    weather: ''
+  });
+
+  // Data loading functions
   const loadFolders = useCallback(async () => {
     try {
       const foldersData = await api.getFolders();
@@ -123,6 +78,22 @@ function TodoApp() {
     }
   }, [selectedFolder?.id]);
 
+  const loadDiaryEntries = useCallback(async () => {
+    setLoading(true);
+    try {
+      const entriesData = await api.getDiaryEntries(
+        selectedDate ? selectedDate.toISOString().split('T')[0] : undefined,
+        selectedFolder?.id
+      );
+      setDiaryEntries(entriesData);
+    } catch (error) {
+      console.error('Error loading diary entries:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedDate, selectedFolder?.id]);
+
+  // Initial connection and data loading
   useEffect(() => {
     const testConnection = async () => {
       try {
@@ -141,17 +112,73 @@ function TodoApp() {
     if (backendStatus === 'connected') {
       if (currentView === 'tasks') {
         loadTasks();
+      } else if (currentView === 'diary') {
+        loadDiaryEntries();
       }
     }
-  }, [currentView, selectedFolder, backendStatus, loadTasks]);
+  }, [currentView, selectedFolder, selectedDate, backendStatus, loadTasks, loadDiaryEntries]);
 
+  // Task handlers
+  const handleTaskTitleChange = useCallback((value: string) => {
+    setNewTask(prev => ({ ...prev, title: value }));
+  }, []);
+
+  const handleTaskDescriptionChange = useCallback((value: string) => {
+    setNewTask(prev => ({ ...prev, description: value }));
+  }, []);
+
+  const handleTaskPriorityChange = useCallback((value: number) => {
+    setNewTask(prev => ({ ...prev, priority: value }));
+  }, []);
+
+  const handleTaskDueDateChange = useCallback((value: string) => {
+    setNewTask(prev => ({ ...prev, due_date: value }));
+  }, []);
+
+  const handleTaskCalendarEventChange = useCallback((value: boolean) => {
+    setNewTask(prev => ({ ...prev, is_calendar_event: value }));
+  }, []);
+
+  // Folder handlers
+  const handleFolderNameChange = useCallback((value: string) => {
+    setNewFolder(prev => ({ ...prev, name: value }));
+  }, []);
+
+  const handleFolderColorChange = useCallback((value: string) => {
+    setNewFolder(prev => ({ ...prev, color: value }));
+  }, []);
+
+  // Diary handlers
+  const handleDiaryDateChange = useCallback((value: string) => {
+    setNewDiaryEntry(prev => ({ ...prev, entry_date: value }));
+  }, []);
+
+  const handleDiaryTitleChange = useCallback((value: string) => {
+    setNewDiaryEntry(prev => ({ ...prev, title: value }));
+  }, []);
+
+  const handleDiaryContentChange = useCallback((value: string) => {
+    setNewDiaryEntry(prev => ({ ...prev, content: value }));
+  }, []);
+
+  const handleDiaryMoodChange = useCallback((value: number) => {
+    setNewDiaryEntry(prev => ({ ...prev, mood: value }));
+  }, []);
+
+  const handleDiaryWeatherChange = useCallback((value: string) => {
+    setNewDiaryEntry(prev => ({ ...prev, weather: value }));
+  }, []);
+
+  // Create handlers
   const handleCreateTask = async () => {
     try {
-      await api.createTask({
+      const taskData = {
         ...newTask,
-        folder_id: selectedFolder?.id || null
-      });
-      setNewTask({ title: '', description: '', priority: 1 });
+        folder_id: selectedFolder?.id || null,
+        due_date: newTask.due_date ? new Date(newTask.due_date).toISOString() : null
+      };
+      await api.createTask(taskData);
+      setNewTask({ title: '', description: '', priority: 1, due_date: '', is_calendar_event: false });
       setShowNewTaskModal(false);
       loadTasks();
     } catch (error) {
@@ -170,7 +197,42 @@ function TodoApp() {
     }
   };
 
-  const toggleTaskExpansion = (taskId: number) => {
+  const handleCreateDiaryEntry = async () => {
+    try {
+      await api.createDiaryEntry({
+        ...newDiaryEntry,
+        folder_id: selectedFolder?.id || null
+      });
+      setNewDiaryEntry({
+        entry_date: new Date().toISOString().split('T')[0],
+        title: '',
+        content: '',
+        mood: 3,
+        weather: ''
+      });
+      setShowNewDiaryModal(false);
+      loadDiaryEntries();
+    } catch (error) {
+      console.error('Error creating diary entry:', error);
+    }
+  };
+
+  // Task actions
+  const toggleTaskStatus = async (task: Task) => {
+    try {
+      const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+      await api.updateTask(task.id, { status: newStatus });
+      loadTasks();
+    } catch (error) {
+      console.error('Error updating task status:', error);
+      // For now, update locally if API fails
+      setTasks(prev => prev.map(t => 
+        t.id === task.id ? { ...t, status: task.status === 'completed' ? 'pending' : 'completed' } : t
+      ));
+    }
+  };
+
+  const toggleTaskExpansion = useCallback((taskId: number) => {
     const newExpanded = new Set(expandedTasks);
     if (newExpanded.has(taskId)) {
       newExpanded.delete(taskId);
@@ -178,25 +240,9 @@ function TodoApp() {
       newExpanded.add(taskId);
     }
     setExpandedTasks(newExpanded);
-  };
+  }, [expandedTasks]);
 
-  const getPriorityColor = (priority: number) => {
-    switch (priority) {
-      case 3: return 'text-red-500';
-      case 2: return 'text-yellow-500';
-      case 1: return 'text-green-500';
-      default: return 'text-gray-500';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed': return <CheckCircle2 className="w-5 h-5 text-green-500" />;
-      case 'in_progress': return <Circle className="w-5 h-5 text-blue-500" />;
-      default: return <Circle className="w-5 h-5 text-gray-400" />;
-    }
-  };
-
+  // Connection status component
   const ConnectionStatus = () => {
     if (backendStatus === 'checking') {
       return (
@@ -230,110 +276,7 @@ function TodoApp() {
     );
   };
 
-  const TaskCard = ({ task }: { task: Task }) => {
-    const isExpanded = expandedTasks.has(task.id);
-    const completedSubsteps = task.substeps?.filter(s => s.is_completed).length || 0;
-    const totalSubsteps = task.substeps?.length || 0;
-    
-    return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-3 hover:shadow-md transition-shadow">
-        <div 
-          className="p-4 cursor-pointer"
-          onClick={() => toggleTaskExpansion(task.id)}
-        >
-          <div className="flex items-start justify-between">
-            <div className="flex items-start space-x-3 flex-1">
-              {getStatusIcon(task.status)}
-              <div className="flex-1">
-                <div className="flex items-center space-x-2">
-                  <h3 className={`font-medium ${task.status === 'completed' ? 'line-through text-gray-500' : 'text-gray-900'}`}>
-                    {task.title}
-                  </h3>
-                  <Flag className={`w-4 h-4 ${getPriorityColor(task.priority)}`} />
-                </div>
-                
-                {task.description && (
-                  <p className="text-gray-600 text-sm mt-1">{task.description}</p>
-                )}
-                
-                {totalSubsteps > 0 && (
-                  <div className="mt-2">
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <div className="bg-gray-200 rounded-full h-2 flex-1">
-                        <div 
-                          className="bg-blue-500 h-2 rounded-full transition-all"
-                          style={{ width: `${(completedSubsteps / totalSubsteps) * 100}%` }}
-                        />
-                      </div>
-                      <span>{completedSubsteps}/{totalSubsteps}</span>
-                    </div>
-                  </div>
-                )}
-                
-                {task.due_date && (
-                  <div className="flex items-center space-x-1 mt-2 text-sm text-gray-500">
-                    <Clock className="w-4 h-4" />
-                    <span>{new Date(task.due_date).toLocaleDateString()}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              {totalSubsteps > 0 && (
-                isExpanded ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />
-              )}
-            </div>
-          </div>
-        </div>
-        
-        {isExpanded && task.substeps && task.substeps.length > 0 && (
-          <div className="border-t border-gray-100 p-4 bg-gray-50">
-            <h4 className="font-medium text-gray-900 mb-2">Subtasks</h4>
-            <div className="space-y-2">
-              {task.substeps.map(substep => (
-                <div key={substep.id} className="flex items-center space-x-2">
-                  <input 
-                    type="checkbox" 
-                    checked={substep.is_completed}
-                    className="rounded border-gray-300"
-                    readOnly
-                  />
-                  <span className={substep.is_completed ? 'line-through text-gray-500' : 'text-gray-700'}>
-                    {substep.title}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const Modal = ({ isOpen, onClose, title, children }: {
-    isOpen: boolean;
-    onClose: () => void;
-    title: string;
-    children: React.ReactNode;
-  }) => {
-    if (!isOpen) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">{title}</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-          {children}
-        </div>
-      </div>
-    );
-  };
-
+  // Sidebar component
   const Sidebar = () => (
     <div className="w-64 bg-white border-r border-gray-200 flex flex-col h-full">
       <div className="p-4 border-b border-gray-200">
@@ -358,7 +301,7 @@ function TodoApp() {
               currentView === 'calendar' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
             }`}
           >
-            <Calendar className="w-5 h-5" />
+            <CalendarIcon className="w-5 h-5" />
             <span>Calendar</span>
           </button>
           
@@ -416,24 +359,21 @@ function TodoApp() {
     </div>
   );
 
-  if (backendStatus === 'checking') {
-    return (
-      <div className="h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Connecting to backend...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="h-screen bg-gray-50 flex">
-      <Sidebar />
-      <div className="flex-1 p-6">
-        <ConnectionStatus />
-        
-        {backendStatus === 'connected' ? (
+  // Render different views
+  const renderCurrentView = () => {
+    switch (currentView) {
+      case 'calendar':
+        return <CalendarView tasks={tasks} />;
+      case 'diary':
+        return (
+          <DiaryView 
+            diaryEntries={diaryEntries}
+            loading={loading}
+            onNewEntry={() => setShowNewDiaryModal(true)}
+          />
+        );
+      default:
+        return (
           <>
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -458,7 +398,13 @@ function TodoApp() {
             ) : (
               <div className="space-y-3">
                 {tasks.map(task => (
-                  <TaskCard key={task.id} task={task} />
+                  <TaskCard 
+                    key={task.id} 
+                    task={task}
+                    isExpanded={expandedTasks.has(task.id)}
+                    onToggleExpansion={toggleTaskExpansion}
+                    onToggleStatus={toggleTaskStatus}
+                  />
                 ))}
                 
                 {tasks.length === 0 && (
@@ -476,6 +422,29 @@ function TodoApp() {
               </div>
             )}
           </>
+        );
+    }
+  };
+
+  if (backendStatus === 'checking') {
+    return (
+      <div className="h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Connecting to backend...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-screen bg-gray-50 flex">
+      <Sidebar />
+      <div className="flex-1 p-6 overflow-y-auto">
+        <ConnectionStatus />
+        
+        {backendStatus === 'connected' ? (
+          renderCurrentView()
         ) : (
           <div className="text-center py-12">
             <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
@@ -484,6 +453,7 @@ function TodoApp() {
         )}
       </div>
 
+      {/* Task Modal */}
       <Modal 
         isOpen={showNewTaskModal} 
         onClose={() => setShowNewTaskModal(false)}
@@ -494,24 +464,39 @@ function TodoApp() {
             type="text"
             placeholder="Task title"
             value={newTask.title}
-            onChange={(e) => setNewTask({...newTask, title: e.target.value})}
+            onChange={(e) => handleTaskTitleChange(e.target.value)}
             className="w-full border border-gray-300 rounded-md px-3 py-2"
           />
           <textarea
             placeholder="Description (optional)"
             value={newTask.description}
-            onChange={(e) => setNewTask({...newTask, description: e.target.value})}
+            onChange={(e) => handleTaskDescriptionChange(e.target.value)}
             className="w-full border border-gray-300 rounded-md px-3 py-2 h-24"
           />
           <select
             value={newTask.priority}
-            onChange={(e) => setNewTask({...newTask, priority: parseInt(e.target.value)})}
+            onChange={(e) => handleTaskPriorityChange(parseInt(e.target.value))}
             className="w-full border border-gray-300 rounded-md px-3 py-2"
           >
             <option value={1}>Low Priority</option>
             <option value={2}>Medium Priority</option>
             <option value={3}>High Priority</option>
           </select>
+          <input
+            type="datetime-local"
+            value={newTask.due_date}
+            onChange={(e) => handleTaskDueDateChange(e.target.value)}
+            className="w-full border border-gray-300 rounded-md px-3 py-2"
+          />
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={newTask.is_calendar_event}
+              onChange={(e) => handleTaskCalendarEventChange(e.target.checked)}
+              className="rounded border-gray-300"
+            />
+            <span className="text-sm">Add to Google Calendar</span>
+          </label>
           <div className="flex space-x-3">
             <button 
               onClick={() => setShowNewTaskModal(false)}
@@ -530,6 +515,7 @@ function TodoApp() {
         </div>
       </Modal>
 
+      {/* Folder Modal */}
       <Modal 
         isOpen={showNewFolderModal} 
         onClose={() => setShowNewFolderModal(false)}
@@ -540,13 +526,13 @@ function TodoApp() {
             type="text"
             placeholder="Folder name"
             value={newFolder.name}
-            onChange={(e) => setNewFolder({...newFolder, name: e.target.value})}
+            onChange={(e) => handleFolderNameChange(e.target.value)}
             className="w-full border border-gray-300 rounded-md px-3 py-2"
           />
           <input
             type="color"
             value={newFolder.color}
-            onChange={(e) => setNewFolder({...newFolder, color: e.target.value})}
+            onChange={(e) => handleFolderColorChange(e.target.value)}
             className="w-full border border-gray-300 rounded-md px-3 py-2 h-10"
           />
           <div className="flex space-x-3">
@@ -562,6 +548,77 @@ function TodoApp() {
               className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
             >
               Create Folder
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Diary Modal */}
+      <Modal 
+        isOpen={showNewDiaryModal} 
+        onClose={() => setShowNewDiaryModal(false)}
+        title="New Diary Entry"
+      >
+        <div className="space-y-4">
+          <input
+            type="date"
+            value={newDiaryEntry.entry_date}
+            onChange={(e) => handleDiaryDateChange(e.target.value)}
+            className="w-full border border-gray-300 rounded-md px-3 py-2"
+          />
+          <input
+            type="text"
+            placeholder="Title (optional)"
+            value={newDiaryEntry.title}
+            onChange={(e) => handleDiaryTitleChange(e.target.value)}
+            className="w-full border border-gray-300 rounded-md px-3 py-2"
+          />
+          <textarea
+            placeholder="What's on your mind?"
+            value={newDiaryEntry.content}
+            onChange={(e) => handleDiaryContentChange(e.target.value)}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 h-32"
+            required
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Mood</label>
+              <select
+                value={newDiaryEntry.mood}
+                onChange={(e) => handleDiaryMoodChange(parseInt(e.target.value))}
+                className="w-full border border-gray-300 rounded-md px-3 py-2"
+              >
+                <option value={1}>😢 Very Sad</option>
+                <option value={2}>😕 Sad</option>
+                <option value={3}>😐 Neutral</option>
+                <option value={4}>😊 Happy</option>
+                <option value={5}>😄 Very Happy</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Weather</label>
+              <input
+                type="text"
+                placeholder="e.g., Sunny, Rainy"
+                value={newDiaryEntry.weather}
+                onChange={(e) => handleDiaryWeatherChange(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2"
+              />
+            </div>
+          </div>
+          <div className="flex space-x-3">
+            <button 
+              onClick={() => setShowNewDiaryModal(false)}
+              className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={handleCreateDiaryEntry}
+              disabled={!newDiaryEntry.content}
+              className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+            >
+              Save Entry
             </button>
           </div>
         </div>

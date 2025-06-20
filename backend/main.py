@@ -435,6 +435,23 @@ async def create_test_user(db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create test user: {str(e)}")
 
+@app.put("/api/tasks/{task_id}")
+def update_task(task_id: int, updates: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Verify task belongs to user
+    task = db.query(Task).filter(Task.id == task_id, Task.user_id == current_user.id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    # Update task fields
+    for field, value in updates.items():
+        if hasattr(task, field):
+            setattr(task, field, value)
+    
+    task.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(task)
+    return task
+
 # Startup event to create tables
 @app.on_event("startup")
 async def startup_event():
