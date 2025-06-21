@@ -17,7 +17,7 @@ from jose import jwt
 from passlib.context import CryptContext
 
 # Database setup - MySQL configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:pass@127.0.0.1:3306/side_projects")
+DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:root@127.0.0.1:3306/side_projects")
 
 engine = create_engine(
     DATABASE_URL,
@@ -164,8 +164,6 @@ class DiaryEntryCreate(BaseModel):
     title: Optional[str] = None
     content: str
     folder_id: Optional[int] = None
-    mood: Optional[int] = None
-    weather: Optional[str] = None
 
 class FolderCreate(BaseModel):
     name: str
@@ -318,26 +316,12 @@ def create_note(task_id: int, content: str, current_user: User = Depends(get_cur
 
 @app.post("/api/diary")
 def create_diary_entry(entry: DiaryEntryCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    # Check if entry already exists for this date and folder
-    existing = db.query(DiaryEntry).filter(
-        DiaryEntry.user_id == current_user.id,
-        DiaryEntry.entry_date == entry.entry_date,
-        DiaryEntry.folder_id == entry.folder_id
-    ).first()
-    
-    if existing:
-        # Update existing entry
-        for field, value in entry.dict().items():
-            setattr(existing, field, value)
-        db.commit()
-        return existing
-    else:
-        # Create new entry
-        db_entry = DiaryEntry(**entry.dict(), user_id=current_user.id)
-        db.add(db_entry)
-        db.commit()
-        db.refresh(db_entry)
-        return db_entry
+    # ALWAYS create a new entry - no more overwriting!
+    db_entry = DiaryEntry(**entry.dict(), user_id=current_user.id)
+    db.add(db_entry)
+    db.commit()
+    db.refresh(db_entry)
+    return db_entry
 
 @app.get("/api/diary")
 def get_diary_entries(entry_date: Optional[date] = None, folder_id: Optional[int] = None, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

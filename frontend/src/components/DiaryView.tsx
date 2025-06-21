@@ -25,15 +25,15 @@ const DiaryView: React.FC<DiaryViewProps> = ({
 
   const handleSaveEntry = useCallback(() => {
     if (currentEntry.trim()) {
-      onNewEntry(currentEntry.trim());
+      onNewEntry(currentEntry.trim()); // Just pass the full text to parent
       setCurrentEntry('');
-      setShowNewEntryEditor(false); // Hide editor after saving
+      setShowNewEntryEditor(false);
     }
   }, [currentEntry, onNewEntry]);
 
   const handleShowEditor = () => {
     setShowNewEntryEditor(true);
-    setCurrentEntry('');
+    setCurrentEntry('My Diary Title\n\nStart writing your diary entry here...');
   };
 
   const handleCancelNewEntry = () => {
@@ -43,12 +43,14 @@ const DiaryView: React.FC<DiaryViewProps> = ({
 
   const handleEditEntry = (entry: DiaryEntry) => {
     setEditingId(entry.id);
-    setEditContent(entry.content);
+    // Combine title and content for editing
+    const combinedText = entry.title ? `${entry.title}\n${entry.content}` : entry.content;
+    setEditContent(combinedText);
   };
 
   const handleSaveEdit = (id: number) => {
     if (onUpdateEntry && editContent.trim()) {
-      onUpdateEntry(id, editContent.trim());
+      onUpdateEntry(id, editContent.trim()); // Just pass the full text to parent
     }
     setEditingId(null);
     setEditContent('');
@@ -67,13 +69,14 @@ const DiaryView: React.FC<DiaryViewProps> = ({
       }
     }
   };
+
   const formatDate = (dateString: string, createdAt: string) => {
     const date = new Date(dateString);
     const created = new Date(createdAt);
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-  
+
     let dateLabel = '';
     if (date.toDateString() === today.toDateString()) {
       dateLabel = 'Today';
@@ -87,17 +90,15 @@ const DiaryView: React.FC<DiaryViewProps> = ({
         day: 'numeric' 
       });
     }
-  
-    // Add time when entry was created
+
     const timeLabel = created.toLocaleTimeString('en-US', { 
       hour: 'numeric', 
       minute: '2-digit',
       hour12: true 
     });
-  
+
     return `${dateLabel} at ${timeLabel}`;
   };
-  
 
   return (
     <>
@@ -173,6 +174,15 @@ const DiaryView: React.FC<DiaryViewProps> = ({
           border-radius: 0.375rem;
           border: 1px solid #e5e7eb;
         }
+
+        .entry-title {
+          font-size: 1.125rem;
+          font-weight: 600;
+          color: #1f2937;
+          margin-bottom: 0.75rem;
+          padding-bottom: 0.5rem;
+          border-bottom: 2px solid #e5e7eb;
+        }
       `}</style>
       
       <div className="max-w-4xl mx-auto">
@@ -190,7 +200,7 @@ const DiaryView: React.FC<DiaryViewProps> = ({
           )}
         </div>
 
-        {/* New Entry Editor (shown only when showNewEntryEditor is true) */}
+        {/* New Entry Editor */}
         {showNewEntryEditor && (
           <div className="mb-8">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -233,7 +243,7 @@ const DiaryView: React.FC<DiaryViewProps> = ({
               </div>
               
               <div className="mt-2 text-xs text-gray-500 flex items-center justify-between">
-                <span>Use Markdown for formatting. Press Ctrl+Enter to save your entry</span>
+                <span>First line becomes your title. Use Markdown for formatting. Press Ctrl+Enter to save</span>
                 <button
                   onClick={() => setCurrentEntry(currentEntry + '\n\n---\n\n')}
                   className="text-blue-600 hover:text-blue-800 text-xs"
@@ -249,7 +259,7 @@ const DiaryView: React.FC<DiaryViewProps> = ({
         {/* Previous Entries Section */}
         <div>
           <h3 className="text-lg font-medium text-gray-900 mb-4">
-            {diaryEntries.length > 0 ? `Previous Entries (${diaryEntries.length})` : 'Entries'}
+            {diaryEntries.length > 0 ? `Entries (${diaryEntries.length})` : 'Entries'}
           </h3>
           
           {loading ? (
@@ -264,14 +274,13 @@ const DiaryView: React.FC<DiaryViewProps> = ({
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-sm font-medium text-gray-900 flex items-center justify-between">
-                            <span>{formatDate(entry.entry_date, entry.created_at)}</span>
+                          <div className="flex items-center space-x-2">
                             {entry.title && (
-                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                                {entry.title}
-                                </span>
+                              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                {formatDate(entry.entry_date, entry.created_at)}
+                              </span>
                             )}
-                        </h4>
+                          </div>
                           <div className="flex items-center space-x-2">
                             {editingId === entry.id ? (
                               <>
@@ -302,6 +311,13 @@ const DiaryView: React.FC<DiaryViewProps> = ({
                             )}
                           </div>
                         </div>
+                        
+                        {/* Show title separately if it exists */}
+                        {entry.title && !editingId && (
+                          <div className="entry-title">
+                            {entry.title}
+                          </div>
+                        )}
                         
                         {editingId === entry.id ? (
                           <div className="diary-editor">
@@ -340,11 +356,12 @@ const DiaryView: React.FC<DiaryViewProps> = ({
                   <p className="text-gray-500">No entries yet</p>
                   <p className="text-sm text-gray-400 mt-1">Click "New Entry" to start writing your first journal entry</p>
                   <div className="mt-4 text-xs text-gray-400 max-w-md mx-auto">
-                    <p className="font-medium mb-2">Markdown formatting tips:</p>
+                    <p className="font-medium mb-2">How to write entries:</p>
                     <div className="text-left space-y-1">
+                      <p><strong>First line:</strong> Your entry title</p>
+                      <p><strong>Second line onwards:</strong> Your diary content</p>
                       <p><code className="bg-gray-100 px-1 rounded">**bold**</code> for <strong>bold text</strong></p>
                       <p><code className="bg-gray-100 px-1 rounded">*italic*</code> for <em>italic text</em></p>
-                      <p><code className="bg-gray-100 px-1 rounded"># Heading</code> for headings</p>
                       <p><code className="bg-gray-100 px-1 rounded">- item</code> for bullet lists</p>
                     </div>
                   </div>

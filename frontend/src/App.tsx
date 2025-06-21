@@ -167,37 +167,50 @@ function TodoApp() {
     }
   };
 
-  const handleCreateDiaryEntry = async (content: string) => {
-    try {
-      const now = new Date();
-      const entryData = {
-        entry_date: now.toISOString().split('T')[0], // Today's date
-        title: `Entry ${now.toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          hour12: true 
-        })}`, // Add timestamp as title for uniqueness
-        content: content,
-        mood: undefined,
-        weather: '',
-        folder_id: selectedFolder?.id || null
-      };
-      await api.createDiaryEntry(entryData);
-      loadDiaryEntries();
-    } catch (error) {
-      console.error('Error creating diary entry:', error);
-    }
-  };
-  
-  const handleUpdateDiaryEntry = async (id: number, content: string) => {
-    try {
-      // You'll need to add this API endpoint
-      await api.updateDiaryEntry(id, { content });
-      loadDiaryEntries();
-    } catch (error) {
-      console.error('Error updating diary entry:', error);
-    }
-  };
+  const handleCreateDiaryEntry = async (entryText: string) => {
+  try {
+    // Parse the first line as title, rest as content
+    const lines = entryText.split('\n');
+    const title = lines[0]?.trim() || '';
+    const content = lines.slice(1).join('\n').trim();
+    
+    const now = new Date();
+    const entryData = {
+      entry_date: now.toISOString().split('T')[0],
+      title: title || `Entry ${now.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+      })}`, // Use first line as title, or generate timestamp if empty
+      content: content || entryText.trim(), // Use remaining content, or full text if no title
+      folder_id: selectedFolder?.id || null
+    };
+    
+    await api.createDiaryEntry(entryData);
+    loadDiaryEntries();
+  } catch (error) {
+    console.error('Error creating diary entry:', error);
+  }
+};
+
+const handleUpdateDiaryEntry = async (id: number, entryText: string) => {
+  try {
+    // Parse the first line as title, rest as content
+    const lines = entryText.split('\n');
+    const title = lines[0]?.trim() || '';
+    const content = lines.slice(1).join('\n').trim();
+    
+    const updateData = {
+      title: title || undefined,
+      content: content || entryText.trim()
+    };
+    
+    await api.updateDiaryEntry(id, updateData);
+    loadDiaryEntries();
+  } catch (error) {
+    console.error('Error updating diary entry:', error);
+  }
+};
 
   // Task actions
   const toggleTaskStatus = async (task: Task) => {

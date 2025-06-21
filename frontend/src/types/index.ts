@@ -40,8 +40,6 @@ export interface Task {
     entry_date: string;
     title?: string;
     content: string;
-    mood?: number;
-    weather?: string;
     created_at: string;
   }
   
@@ -62,6 +60,4 @@ export interface Task {
     entry_date: string;
     title: string;
     content: string;
-    mood: number;
-    weather: string;
   }
