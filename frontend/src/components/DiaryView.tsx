@@ -33,7 +33,7 @@ const DiaryView: React.FC<DiaryViewProps> = ({
 
   const handleShowEditor = () => {
     setShowNewEntryEditor(true);
-    setCurrentEntry('My Diary Title\n\nStart writing your diary entry here...');
+    setCurrentEntry('Title\n\n');
   };
 
   const handleCancelNewEntry = () => {
@@ -273,15 +273,45 @@ const DiaryView: React.FC<DiaryViewProps> = ({
                   <div key={entry.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center space-x-2">
-                            {entry.title && (
-                              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                                {formatDate(entry.entry_date, entry.created_at)}
-                              </span>
-                            )}
+
+                        
+                        {/* Show title separately if it exists */}
+                        {entry.title && !editingId && (
+                          <div className="entry-title">
+                            {entry.title}
                           </div>
-                          <div className="flex items-center space-x-2">
+                        )}
+                        
+                        {editingId === entry.id ? (
+                          <div className="diary-editor">
+                            <MDEditor
+                              value={editContent}
+                              onChange={(val) => setEditContent(val || '')}
+                              preview="edit"
+                              height={200}
+                              data-color-mode="light"
+                            />
+                          </div>
+                        ) : (
+                          <div className="diary-content prose prose-sm max-w-none text-gray-700 leading-relaxed">
+                            <MDEditor.Markdown 
+                              source={entry.content}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between"> 
+                    <div className="text-xs text-gray-400 mt-4">
+                      Created: {new Date(entry.created_at).toLocaleString('en-US', { 
+                        hour: 'numeric', 
+                        minute: '2-digit',
+                        hour12: true,
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </div>
+                    <div className="flex items-center space-x-2 mt-4">
                             {editingId === entry.id ? (
                               <>
                                 <button
@@ -310,43 +340,6 @@ const DiaryView: React.FC<DiaryViewProps> = ({
                               </button>
                             )}
                           </div>
-                        </div>
-                        
-                        {/* Show title separately if it exists */}
-                        {entry.title && !editingId && (
-                          <div className="entry-title">
-                            {entry.title}
-                          </div>
-                        )}
-                        
-                        {editingId === entry.id ? (
-                          <div className="diary-editor">
-                            <MDEditor
-                              value={editContent}
-                              onChange={(val) => setEditContent(val || '')}
-                              preview="edit"
-                              height={200}
-                              data-color-mode="light"
-                            />
-                          </div>
-                        ) : (
-                          <div className="diary-content prose prose-sm max-w-none text-gray-700 leading-relaxed">
-                            <MDEditor.Markdown 
-                              source={entry.content}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="text-xs text-gray-400 mt-4">
-                      Created: {new Date(entry.created_at).toLocaleString('en-US', { 
-                        hour: 'numeric', 
-                        minute: '2-digit',
-                        hour12: true,
-                        month: 'short',
-                        day: 'numeric'
-                      })}
                     </div>
                   </div>
                 ))
