@@ -30,6 +30,7 @@ const DiaryView: React.FC<DiaryViewProps> = ({
   const [showNewEntryEditor, setShowNewEntryEditor] = useState(false);
   const [showFolderSelect, setShowFolderSelect] = useState<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
+  const [expandedEntry, setExpandedEntry] = useState<DiaryEntry | null>(null);
 
   const handleSaveEntry = useCallback(() => {
     if (currentEntry.trim()) {
@@ -93,6 +94,14 @@ const DiaryView: React.FC<DiaryViewProps> = ({
 
   const getCurrentFolder = (entry: DiaryEntry) => {
     return folders.find(folder => folder.id === (entry as any).folder_id);
+  };
+
+  const handleCardClick = (entry: DiaryEntry, e: React.MouseEvent) => {
+    // Don't expand if clicking on action buttons
+    if ((e.target as HTMLElement).closest('button')) {
+      return;
+    }
+    setExpandedEntry(entry);
   };
 
   return (
@@ -190,12 +199,47 @@ const DiaryView: React.FC<DiaryViewProps> = ({
           box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
           min-width: 200px;
         }
+
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        .line-clamp-3 {
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        .line-clamp-4 {
+          display: -webkit-box;
+          -webkit-line-clamp: 4;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        .line-clamp-5 {
+          display: -webkit-box;
+          -webkit-line-clamp: 5;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        .line-clamp-6 {
+          display: -webkit-box;
+          -webkit-line-clamp: 6;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
       `}</style>
-      
-      <div className="max-w-4xl mx-auto">
-        {/* Header with Add Entry Button */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Daily Journal</h2>
+
+      {/* Header with Add Entry Button */}
+      <div className="w-full px-2">
+        <div className="flex items-center justify-end mb-6">
+
           {!showNewEntryEditor && (
             <button
               onClick={handleShowEditor}
@@ -207,9 +251,8 @@ const DiaryView: React.FC<DiaryViewProps> = ({
           )}
         </div>
 
-        {/* New Entry Editor */}
         {showNewEntryEditor && (
-          <div className="mb-8">
+          <div className="mb-8 max-w-4xl mx-auto px-4">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium text-gray-900">
@@ -265,7 +308,7 @@ const DiaryView: React.FC<DiaryViewProps> = ({
 
         {/* Previous Entries Section */}
         <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-4">
+          <h3 className="text-lg font-medium text-gray-900 mb-4 px-2">
             {diaryEntries.length > 0 ? `Entries (${diaryEntries.length})` : 'Entries'}
           </h3>
           
@@ -274,55 +317,59 @@ const DiaryView: React.FC<DiaryViewProps> = ({
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
               {diaryEntries.length > 0 ? (
                 diaryEntries.map((entry) => (
-                  <div key={entry.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        {/* Show title separately if it exists */}
-                        {entry.title && editingId !== entry.id && (
-                          <div className="entry-title">
-                            {entry.title}
-                          </div>
-                        )}
-                        
-                        {editingId === entry.id ? (
-                          <div className="diary-editor">
-                            <MDEditor
-                              value={editContent}
-                              onChange={(val) => setEditContent(val || '')}
-                              preview="edit"
-                              height={200}
-                              data-color-mode="light"
-                            />
-                          </div>
-                        ) : (
-                          <div className="diary-content prose prose-sm max-w-none text-gray-700 leading-relaxed">
-                            <MDEditor.Markdown 
-                              source={entry.content}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* Folder indicator */}
+                  <div 
+                    key={entry.id} 
+                    className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 hover:shadow-lg transition-all cursor-pointer h-96 flex flex-col"
+                    onClick={(e) => handleCardClick(entry, e)}
+                  >
+                    {/* Folder indicator at top */}
                     {getCurrentFolder(entry) && (
-                      <div className="flex items-center space-x-2 mb-3">
+                      <div className="flex items-center space-x-2 mb-4">
                         <div 
-                          className="w-3 h-3 rounded"
+                          className="w-5 h-5 rounded"
                           style={{ backgroundColor: getCurrentFolder(entry)?.color }}
                         />
-                        <span className="text-xs text-gray-500">
+                        <span className="text-base text-gray-500">
                           {getCurrentFolder(entry)?.name}
                         </span>
                       </div>
                     )}
                     
-                    <div className="flex items-center justify-between"> 
-                      <div className="text-xs text-gray-400">
-                        Created: {new Date(entry.created_at).toLocaleString('en-US', { 
+                    <div className="flex-1 mb-6">
+                      {/* Show title separately if it exists */}
+                      {entry.title && editingId !== entry.id && (
+                        <div className="font-semibold text-gray-900 text-xl mb-6 line-clamp-3">
+                          {entry.title.length > 120 ? `${entry.title.substring(0, 120)}...` : entry.title}
+                        </div>
+                      )}
+                      
+                      {editingId === entry.id ? (
+                        <div className="diary-editor">
+                          <MDEditor
+                            value={editContent}
+                            onChange={(val) => setEditContent(val || '')}
+                            preview="edit"
+                            height={200}
+                            data-color-mode="light"
+                          />
+                        </div>
+                      ) : (
+                        <div className="text-gray-600 text-lg leading-relaxed line-clamp-6">
+                          {/* Truncate content to 500 characters for larger cards */}
+                          {entry.content.length > 500 
+                            ? `${entry.content.substring(0, 500)}...` 
+                            : entry.content
+                          }
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center justify-between border-t pt-4 mt-auto"> 
+                      <div className="text-base text-gray-400">
+                        {new Date(entry.created_at).toLocaleString('en-US', { 
                           hour: 'numeric', 
                           minute: '2-digit',
                           hour12: true,
@@ -336,36 +383,36 @@ const DiaryView: React.FC<DiaryViewProps> = ({
                             <button
                               onClick={() => handleSaveEdit(entry.id)}
                               disabled={!editContent.trim()}
-                              className="p-1 text-green-600 hover:text-green-800 disabled:opacity-50"
+                              className="p-3 text-green-600 hover:text-green-800 disabled:opacity-50 hover:bg-green-50 rounded"
                               title="Save changes"
                             >
-                              <Save className="w-4 h-4" />
+                              <Save className="w-6 h-6" />
                             </button>
                             <button
                               onClick={handleCancelEdit}
-                              className="p-1 text-gray-400 hover:text-gray-600"
+                              className="p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded"
                               title="Cancel editing"
                             >
-                              <X className="w-4 h-4" />
+                              <X className="w-6 h-6" />
                             </button>
                           </>
                         ) : (
                           <>
                             <button
                               onClick={() => handleEditEntry(entry)}
-                              className="p-1 text-gray-400 hover:text-gray-600"
+                              className="p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded"
                               title="Edit entry"
                             >
-                              <Edit className="w-4 h-4" />
+                              <Edit className="w-6 h-6" />
                             </button>
                             
                             <div className="relative">
                               <button
                                 onClick={() => setShowFolderSelect(showFolderSelect === entry.id ? null : entry.id)}
-                                className="p-1 text-gray-400 hover:text-gray-600"
+                                className="p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded"
                                 title="Change folder"
                               >
-                                <FolderPlus className="w-4 h-4" />
+                                <FolderPlus className="w-6 h-6" />
                               </button>
                               
                               {showFolderSelect === entry.id && (
@@ -398,10 +445,10 @@ const DiaryView: React.FC<DiaryViewProps> = ({
                             
                             <button
                               onClick={() => setShowDeleteConfirm(entry.id)}
-                              className="p-1 text-gray-400 hover:text-red-600"
+                              className="p-3 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
                               title="Delete entry"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-6 h-6" />
                             </button>
                           </>
                         )}
@@ -410,7 +457,7 @@ const DiaryView: React.FC<DiaryViewProps> = ({
                   </div>
                 ))
               ) : (
-                <div className="text-center py-12">
+                <div className="col-span-full text-center py-12">
                   <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-500">No entries yet</p>
                   <p className="text-sm text-gray-400 mt-1">Click "New Entry" to start writing your first journal entry</p>
@@ -430,6 +477,142 @@ const DiaryView: React.FC<DiaryViewProps> = ({
           )}
         </div>
       </div>
+
+      {/* Expanded Entry Modal */}
+      {expandedEntry && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
+            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div className="absolute inset-0 bg-gray-500 opacity-75" onClick={() => setExpandedEntry(null)}></div>
+            </div>
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+              <div className="bg-white px-6 pt-6 pb-4">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    {/* Folder indicator */}
+                    {getCurrentFolder(expandedEntry) && (
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div 
+                          className="w-4 h-4 rounded"
+                          style={{ backgroundColor: getCurrentFolder(expandedEntry)?.color }}
+                        />
+                        <span className="text-sm text-gray-500">
+                          {getCurrentFolder(expandedEntry)?.name}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Title */}
+                    {expandedEntry.title && (
+                      <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                        {expandedEntry.title}
+                      </h2>
+                    )}
+                    
+                    {/* Date */}
+                    <div className="text-sm text-gray-500 mb-4">
+                      {new Date(expandedEntry.created_at).toLocaleString('en-US', { 
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: 'numeric', 
+                        minute: '2-digit',
+                        hour12: true
+                      })}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => setExpandedEntry(null)}
+                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded"
+                      title="Close"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Content */}
+                <div className="diary-content prose prose-sm max-w-none text-gray-700 leading-relaxed max-h-96 overflow-y-auto mb-6">
+                  <MDEditor.Markdown 
+                    source={expandedEntry.content}
+                  />
+                </div>
+                
+                {/* Action buttons at bottom */}
+                <div className="flex items-center justify-end space-x-2 border-t pt-4">
+                  <button
+                    onClick={() => {
+                      setExpandedEntry(null);
+                      handleEditEntry(expandedEntry);
+                    }}
+                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded"
+                    title="Edit entry"
+                  >
+                    <Edit className="w-5 h-5" />
+                  </button>
+                  
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowFolderSelect(showFolderSelect === expandedEntry.id ? null : expandedEntry.id)}
+                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded"
+                      title="Change folder"
+                    >
+                      <FolderPlus className="w-5 h-5" />
+                    </button>
+                    
+                    {showFolderSelect === expandedEntry.id && (
+                      <div className="folder-dropdown">
+                        <div className="p-2">
+                          <button
+                            onClick={() => {
+                              handleFolderSelect(expandedEntry.id, null);
+                              setExpandedEntry(null);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded flex items-center space-x-2"
+                          >
+                            <div className="w-3 h-3 rounded bg-gray-300" />
+                            <span>No Folder</span>
+                          </button>
+                          {folders.map((folder) => (
+                            <button
+                              key={folder.id}
+                              onClick={() => {
+                                handleFolderSelect(expandedEntry.id, folder.id);
+                                setExpandedEntry(null);
+                              }}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded flex items-center space-x-2"
+                            >
+                              <div 
+                                className="w-3 h-3 rounded"
+                                style={{ backgroundColor: folder.color }}
+                              />
+                              <span>{folder.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <button
+                    onClick={() => {
+                      setExpandedEntry(null);
+                      setShowDeleteConfirm(expandedEntry.id);
+                    }}
+                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+                    title="Delete entry"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
