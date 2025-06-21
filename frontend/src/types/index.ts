@@ -41,6 +41,7 @@ export interface Task {
     title?: string;
     content: string;
     created_at: string;
+    folder_id?: number;  // Added folder_id field
   }
   
   export interface NewTask {
@@ -60,4 +61,5 @@ export interface Task {
     entry_date: string;
     title: string;
     content: string;
+    folder_id?: number;  // Added folder_id field
   }

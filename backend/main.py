@@ -344,6 +344,20 @@ def create_folder(folder: FolderCreate, current_user: User = Depends(get_current
 def get_folders(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return db.query(Folder).filter(Folder.user_id == current_user.id).all()
 
+@app.delete("/api/diary/{entry_id}")
+def delete_diary_entry(entry_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Verify diary entry belongs to user
+    entry = db.query(DiaryEntry).filter(DiaryEntry.id == entry_id, DiaryEntry.user_id == current_user.id).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Diary entry not found")
+    
+    # Delete the entry
+    db.delete(entry)
+    db.commit()
+    
+    return {"message": "Diary entry deleted successfully", "id": entry_id}
+
+
 # Health check and basic endpoints
 @app.get("/")
 async def root():

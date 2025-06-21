@@ -67,4 +67,13 @@ export const api = {
     });
     return response.json();
   },
+  deleteDiaryEntry: async (entryId: number) => {
+    const response = await fetch(`${API_BASE_URL}/api/diary/${entryId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      throw new Error('Failed to delete diary entry');
+    }
+    return response.json();
+  },
 };
