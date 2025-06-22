@@ -1,4 +1,4 @@
-# FastAPI Backend for Todo App - FIXED VERSION
+# FastAPI Backend for Todo App - FIXED HIERARCHY ISSUES
 # File: main.py
 
 from fastapi import FastAPI, Depends, HTTPException, status
@@ -45,7 +45,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Database Models - MySQL Compatible
+# Database Models - MySQL Compatible with HIERARCHY SUPPORT
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -79,6 +79,7 @@ class Task(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     folder_id = Column(Integer, ForeignKey("folders.id", ondelete="SET NULL"), nullable=True)
+    parent_task_id = Column(Integer, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=True)  # NEW: Hierarchy support
     title = Column(String(500), nullable=False)
     description = Column(Text)
     priority = Column(Integer, default=1)
@@ -86,11 +87,15 @@ class Task(Base):
     due_date = Column(DateTime, nullable=True)
     is_calendar_event = Column(Boolean, default=False)
     google_calendar_event_id = Column(String(255))
+    indent_level = Column(Integer, default=0)  # NEW: Track indentation level
+    order_index = Column(Integer, default=0)  # NEW: Track ordering within same level
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     user = relationship("User", back_populates="tasks")
     folder = relationship("Folder", back_populates="tasks")
+    parent_task = relationship("Task", remote_side="Task.id", back_populates="subtasks")  # NEW: Parent relationship
+    subtasks = relationship("Task", back_populates="parent_task", cascade="all, delete-orphan")  # NEW: Children relationship
     substeps = relationship("TaskSubstep", back_populates="task", cascade="all, delete-orphan")
     notes = relationship("TaskNote", back_populates="task", cascade="all, delete-orphan")
 
@@ -135,15 +140,19 @@ class TaskCreate(BaseModel):
     title: str
     description: Optional[str] = None
     folder_id: Optional[int] = None
+    parent_task_id: Optional[int] = None  # NEW
     priority: int = 1
     due_date: Optional[datetime] = None
     is_calendar_event: bool = False
+    indent_level: int = 0  # NEW
+    order_index: int = 0  # NEW
 
 class TaskSubstepCreate(BaseModel):
     title: str
     description: Optional[str] = None
     order_index: int = 0
 
+# FIXED: Simplified response model to avoid circular references
 class TaskResponse(BaseModel):
     id: int
     title: str
@@ -152,12 +161,17 @@ class TaskResponse(BaseModel):
     status: str
     due_date: Optional[datetime]
     is_calendar_event: bool
+    parent_task_id: Optional[int]  # NEW
+    indent_level: int  # NEW
+    order_index: int  # NEW
     created_at: datetime
-    substeps: List[dict] = []
-    notes: List[dict] = []
     
     class Config:
         from_attributes = True
+
+# FIXED: Separate model for indent updates
+class TaskIndentUpdate(BaseModel):
+    indent_change: int
 
 class DiaryEntryCreate(BaseModel):
     entry_date: date
@@ -239,6 +253,37 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
 def create_tables():
     Base.metadata.create_all(bind=engine)
 
+def migrate_database():
+    """Migrate existing database to add new hierarchy columns"""
+    try:
+        with engine.connect() as connection:
+            # Check if the new columns exist
+            result = connection.execute(text("SHOW COLUMNS FROM tasks LIKE 'parent_task_id'"))
+            if not result.fetchone():
+                print("Adding hierarchy columns to tasks table...")
+                
+                # Add the new columns
+                connection.execute(text("ALTER TABLE tasks ADD COLUMN parent_task_id INTEGER NULL"))
+                connection.execute(text("ALTER TABLE tasks ADD COLUMN indent_level INTEGER DEFAULT 0 NOT NULL"))
+                connection.execute(text("ALTER TABLE tasks ADD COLUMN order_index INTEGER DEFAULT 0 NOT NULL"))
+                
+                # Add foreign key constraint
+                connection.execute(text("""
+                    ALTER TABLE tasks 
+                    ADD CONSTRAINT fk_parent_task 
+                    FOREIGN KEY (parent_task_id) REFERENCES tasks(id) ON DELETE CASCADE
+                """))
+                
+                connection.commit()
+                print("Successfully added hierarchy columns!")
+            else:
+                print("Hierarchy columns already exist, skipping migration.")
+                
+    except Exception as e:
+        print(f"Migration error: {e}")
+        # If migration fails, we'll still try to create tables normally
+        pass
+
 # Google Calendar Integration
 def get_google_calendar_service(user: User):
     if not user.google_calendar_token:
@@ -254,10 +299,101 @@ def get_google_calendar_service(user: User):
     
     return build('calendar', 'v3', credentials=credentials)
 
+# Helper function to convert task to dict with progress info
+def task_to_dict_with_progress(task, all_tasks):
+    """Convert task to dictionary with calculated progress"""
+    # Get subtasks for this task
+    subtasks = [t for t in all_tasks if t.parent_task_id == task.id]
+    completed_subtasks = sum(1 for t in subtasks if t.status == 'completed')
+    total_subtasks = len(subtasks)
+    
+    # Calculate progress
+    progress = completed_subtasks / total_subtasks if total_subtasks > 0 else None
+    
+    # Convert to dict
+    task_dict = {
+        "id": task.id,
+        "title": task.title,
+        "description": task.description,
+        "priority": task.priority,
+        "status": task.status,
+        "due_date": task.due_date,
+        "is_calendar_event": task.is_calendar_event,
+        "parent_task_id": task.parent_task_id,
+        "indent_level": task.indent_level,
+        "order_index": task.order_index,
+        "created_at": task.created_at,
+        "progress": progress,
+        "substeps": [{"id": s.id, "title": s.title, "is_completed": s.is_completed} for s in task.substeps],
+        "notes": [{"id": n.id, "content": n.content, "created_at": n.created_at} for n in task.notes],
+        "subtasks": []  # We'll populate this in the frontend if needed
+    }
+    
+    return task_dict
+
+# NEW: Helper function to order tasks hierarchically
+def get_hierarchical_task_order(tasks):
+    """Return tasks in hierarchical order where children appear after their parents"""
+    # Create a map for quick lookup
+    task_map = {task.id: task for task in tasks}
+    result = []
+    processed = set()
+    
+    def add_task_and_children(task):
+        """Recursively add task and its children to result"""
+        if task.id in processed:
+            return
+            
+        result.append(task)
+        processed.add(task.id)
+        
+        # Get children of this task, sorted by order_index and created_at
+        children = [t for t in tasks if t.parent_task_id == task.id]
+        children.sort(key=lambda x: (x.order_index, x.created_at))
+        
+        # Recursively add each child and their children
+        for child in children:
+            add_task_and_children(child)
+    
+    # Start with root tasks (no parent), sorted by order_index and created_at
+    root_tasks = [t for t in tasks if t.parent_task_id is None]
+    root_tasks.sort(key=lambda x: (x.order_index, x.created_at))
+    
+    # Add each root task and its hierarchy
+    for root_task in root_tasks:
+        add_task_and_children(root_task)
+    
+    return result
+
 # API Routes
 @app.post("/api/tasks", response_model=TaskResponse)
 def create_task(task: TaskCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    db_task = Task(**task.dict(), user_id=current_user.id)
+    # If parent_task_id is provided, verify it exists and belongs to the user
+    if task.parent_task_id:
+        parent_task = db.query(Task).filter(
+            Task.id == task.parent_task_id, 
+            Task.user_id == current_user.id
+        ).first()
+        if not parent_task:
+            raise HTTPException(status_code=404, detail="Parent task not found")
+        
+        # Set indent level based on parent
+        task.indent_level = parent_task.indent_level + 1
+        
+        # FIXED: Set order_index for subtasks
+        existing_siblings = db.query(Task).filter(Task.parent_task_id == task.parent_task_id).all()
+        task.order_index = len(existing_siblings)
+    else:
+        # FIXED: Set order_index for root tasks
+        existing_root_tasks = db.query(Task).filter(
+            Task.user_id == current_user.id,
+            Task.parent_task_id.is_(None),
+            Task.folder_id == task.folder_id
+        ).all()
+        task.order_index = len(existing_root_tasks)
+    
+    # FIXED: Use model_dump instead of dict()
+    db_task = Task(**task.model_dump(), user_id=current_user.id)
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
@@ -281,12 +417,107 @@ def create_task(task: TaskCreate, current_user: User = Depends(get_current_user)
     
     return db_task
 
-@app.get("/api/tasks", response_model=List[TaskResponse])
+@app.get("/api/tasks")
 def get_tasks(folder_id: Optional[int] = None, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     query = db.query(Task).filter(Task.user_id == current_user.id)
     if folder_id:
         query = query.filter(Task.folder_id == folder_id)
-    return query.all()
+    
+    # Get all tasks first
+    all_tasks = query.all()
+    
+    # FIXED: Order tasks hierarchically instead of by indent_level
+    hierarchical_tasks = get_hierarchical_task_order(all_tasks)
+    
+    # Convert to dictionaries with progress info
+    result = []
+    for task in hierarchical_tasks:
+        task_dict = task_to_dict_with_progress(task, all_tasks)
+        result.append(task_dict)
+    
+    return result
+
+@app.post("/api/tasks/{task_id}/subtasks")
+def create_subtask(task_id: int, subtask: TaskCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Verify parent task belongs to user
+    parent_task = db.query(Task).filter(Task.id == task_id, Task.user_id == current_user.id).first()
+    if not parent_task:
+        raise HTTPException(status_code=404, detail="Parent task not found")
+    
+    # Create subtask with parent reference
+    subtask.parent_task_id = task_id
+    subtask.indent_level = parent_task.indent_level + 1
+    
+    # FIXED: Set order_index to appear at the end of parent's children
+    existing_children = db.query(Task).filter(Task.parent_task_id == task_id).all()
+    subtask.order_index = len(existing_children)
+    
+    # FIXED: Use model_dump instead of dict()
+    db_subtask = Task(**subtask.model_dump(), user_id=current_user.id)
+    db.add(db_subtask)
+    db.commit()
+    db.refresh(db_subtask)
+    return db_subtask
+
+# FIXED: Proper endpoint definition with body parsing
+@app.put("/api/tasks/{task_id}/indent")
+def update_task_indent(task_id: int, update: TaskIndentUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Update task indentation level"""
+    task = db.query(Task).filter(Task.id == task_id, Task.user_id == current_user.id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    indent_change = update.indent_change
+    new_indent_level = max(0, task.indent_level + indent_change)
+    
+    # If indenting (moving right), find a potential parent
+    if indent_change > 0 and new_indent_level > 0:
+        # Find the task above this one that could be a parent
+        potential_parent = db.query(Task).filter(
+            Task.user_id == current_user.id,
+            Task.folder_id == task.folder_id,
+            Task.indent_level == new_indent_level - 1,
+            Task.created_at < task.created_at
+        ).order_by(Task.created_at.desc()).first()
+        
+        if potential_parent:
+            task.parent_task_id = potential_parent.id
+        else:
+            # Can't indent without a parent
+            new_indent_level = task.indent_level
+    
+    # If outdenting (moving left), clear parent if moving to level 0
+    elif indent_change < 0:
+        if new_indent_level == 0:
+            task.parent_task_id = None
+        else:
+            # Find new parent at the target level
+            potential_parent = db.query(Task).filter(
+                Task.user_id == current_user.id,
+                Task.folder_id == task.folder_id,
+                Task.indent_level == new_indent_level - 1,
+                Task.created_at < task.created_at
+            ).order_by(Task.created_at.desc()).first()
+            
+            task.parent_task_id = potential_parent.id if potential_parent else None
+    
+    task.indent_level = new_indent_level
+    task.updated_at = datetime.utcnow()
+    
+    # Update all child tasks' indent levels recursively
+    def update_children_indent(parent_id, level_delta):
+        children = db.query(Task).filter(Task.parent_task_id == parent_id).all()
+        for child in children:
+            child.indent_level = max(0, child.indent_level + level_delta)
+            db.commit()
+            update_children_indent(child.id, level_delta)
+    
+    if indent_change != 0:
+        update_children_indent(task.id, indent_change)
+    
+    db.commit()
+    db.refresh(task)
+    return task
 
 @app.post("/api/tasks/{task_id}/substeps")
 def create_substep(task_id: int, substep: TaskSubstepCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -295,7 +526,8 @@ def create_substep(task_id: int, substep: TaskSubstepCreate, current_user: User 
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     
-    db_substep = TaskSubstep(**substep.dict(), task_id=task_id)
+    # FIXED: Use model_dump instead of dict()
+    db_substep = TaskSubstep(**substep.model_dump(), task_id=task_id)
     db.add(db_substep)
     db.commit()
     db.refresh(db_substep)
@@ -317,7 +549,8 @@ def create_note(task_id: int, content: str, current_user: User = Depends(get_cur
 @app.post("/api/diary")
 def create_diary_entry(entry: DiaryEntryCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     # ALWAYS create a new entry - no more overwriting!
-    db_entry = DiaryEntry(**entry.dict(), user_id=current_user.id)
+    # FIXED: Use model_dump instead of dict()
+    db_entry = DiaryEntry(**entry.model_dump(), user_id=current_user.id)
     db.add(db_entry)
     db.commit()
     db.refresh(db_entry)
@@ -334,7 +567,8 @@ def get_diary_entries(entry_date: Optional[date] = None, folder_id: Optional[int
 
 @app.post("/api/folders")
 def create_folder(folder: FolderCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    db_folder = Folder(**folder.dict(), user_id=current_user.id)
+    # FIXED: Use model_dump instead of dict()
+    db_folder = Folder(**folder.model_dump(), user_id=current_user.id)
     db.add(db_folder)
     db.commit()
     db.refresh(db_folder)
@@ -356,7 +590,6 @@ def delete_diary_entry(entry_id: int, current_user: User = Depends(get_current_u
     db.commit()
     
     return {"message": "Diary entry deleted successfully", "id": entry_id}
-
 
 # Health check and basic endpoints
 @app.get("/")
@@ -448,15 +681,6 @@ def update_task(task_id: int, updates: dict, current_user: User = Depends(get_cu
     db.refresh(task)
     return task
 
-@app.post("/api/diary")
-def create_diary_entry(entry: DiaryEntryCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    # Always create a new entry - no more overwriting!
-    db_entry = DiaryEntry(**entry.dict(), user_id=current_user.id)
-    db.add(db_entry)
-    db.commit()
-    db.refresh(db_entry)
-    return db_entry
-
 # Optional: Add a separate endpoint for updating specific entries
 @app.put("/api/diary/{entry_id}")
 def update_diary_entry(entry_id: int, updates: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -479,7 +703,8 @@ def update_diary_entry(entry_id: int, updates: dict, current_user: User = Depend
 @app.on_event("startup")
 async def startup_event():
     create_tables()
-    print("Database tables created successfully!")
+    migrate_database()
+    print("Database tables created and migrated successfully!")
 
 if __name__ == "__main__":
     import uvicorn

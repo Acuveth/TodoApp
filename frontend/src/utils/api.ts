@@ -1,5 +1,5 @@
-// API configuration
-const API_BASE_URL = 'http://localhost:8000';
+// API configuration with HIERARCHY support - FIXED
+const API_BASE_URL = "http://localhost:8000";
 
 export const api = {
   healthCheck: async () => {
@@ -7,7 +7,7 @@ export const api = {
     return response.json();
   },
   getTasks: async (folderId: number | null = null) => {
-    const url = folderId 
+    const url = folderId
       ? `${API_BASE_URL}/api/tasks?folder_id=${folderId}`
       : `${API_BASE_URL}/api/tasks`;
     const response = await fetch(url);
@@ -15,18 +15,47 @@ export const api = {
   },
   createTask: async (taskData: any) => {
     const response = await fetch(`${API_BASE_URL}/api/tasks`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(taskData),
     });
     return response.json();
   },
   updateTask: async (taskId: number, updates: any) => {
     const response = await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updates),
     });
+    return response.json();
+  },
+  // NEW: Create subtask under a parent task
+  createSubtask: async (parentTaskId: number, taskData: any) => {
+    const response = await fetch(
+      `${API_BASE_URL}/api/tasks/${parentTaskId}/subtasks`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(taskData),
+      }
+    );
+    return response.json();
+  },
+  // FIXED: Update task indentation with proper request body
+  updateTaskIndent: async (taskId: number, indentChange: number) => {
+    const response = await fetch(`${API_BASE_URL}/api/tasks/${taskId}/indent`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ indent_change: indentChange }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        `Failed to update task indent: ${
+          errorData.detail || response.statusText
+        }`
+      );
+    }
     return response.json();
   },
   getFolders: async () => {
@@ -35,8 +64,8 @@ export const api = {
   },
   createFolder: async (folderData: any) => {
     const response = await fetch(`${API_BASE_URL}/api/folders`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(folderData),
     });
     return response.json();
@@ -44,35 +73,35 @@ export const api = {
   getDiaryEntries: async (entryDate?: string, folderId?: number) => {
     let url = `${API_BASE_URL}/api/diary`;
     const params = new URLSearchParams();
-    if (entryDate) params.append('entry_date', entryDate);
-    if (folderId) params.append('folder_id', folderId.toString());
+    if (entryDate) params.append("entry_date", entryDate);
+    if (folderId) params.append("folder_id", folderId.toString());
     if (params.toString()) url += `?${params.toString()}`;
-    
+
     const response = await fetch(url);
     return response.json();
   },
   createDiaryEntry: async (entryData: any) => {
     const response = await fetch(`${API_BASE_URL}/api/diary`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(entryData),
     });
     return response.json();
   },
   updateDiaryEntry: async (entryId: number, updates: any) => {
     const response = await fetch(`${API_BASE_URL}/api/diary/${entryId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updates),
     });
     return response.json();
   },
   deleteDiaryEntry: async (entryId: number) => {
     const response = await fetch(`${API_BASE_URL}/api/diary/${entryId}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
     if (!response.ok) {
-      throw new Error('Failed to delete diary entry');
+      throw new Error("Failed to delete diary entry");
     }
     return response.json();
   },
