@@ -1,4 +1,4 @@
-# FastAPI Backend for Todo App - FIXED HIERARCHY ISSUES
+# FastAPI Backend for Todo App - WITH DELETE FUNCTIONALITY
 # File: main.py
 
 from fastapi import FastAPI, Depends, HTTPException, status
@@ -79,7 +79,7 @@ class Task(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     folder_id = Column(Integer, ForeignKey("folders.id", ondelete="SET NULL"), nullable=True)
-    parent_task_id = Column(Integer, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=True)  # NEW: Hierarchy support
+    parent_task_id = Column(Integer, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=True)  # Hierarchy support
     title = Column(String(500), nullable=False)
     description = Column(Text)
     priority = Column(Integer, default=1)
@@ -87,15 +87,15 @@ class Task(Base):
     due_date = Column(DateTime, nullable=True)
     is_calendar_event = Column(Boolean, default=False)
     google_calendar_event_id = Column(String(255))
-    indent_level = Column(Integer, default=0)  # NEW: Track indentation level
-    order_index = Column(Integer, default=0)  # NEW: Track ordering within same level
+    indent_level = Column(Integer, default=0)  # Track indentation level
+    order_index = Column(Integer, default=0)  # Track ordering within same level
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     user = relationship("User", back_populates="tasks")
     folder = relationship("Folder", back_populates="tasks")
-    parent_task = relationship("Task", remote_side="Task.id", back_populates="subtasks")  # NEW: Parent relationship
-    subtasks = relationship("Task", back_populates="parent_task", cascade="all, delete-orphan")  # NEW: Children relationship
+    parent_task = relationship("Task", remote_side="Task.id", back_populates="subtasks")  # Parent relationship
+    subtasks = relationship("Task", back_populates="parent_task", cascade="all, delete-orphan")  # Children relationship
     substeps = relationship("TaskSubstep", back_populates="task", cascade="all, delete-orphan")
     notes = relationship("TaskNote", back_populates="task", cascade="all, delete-orphan")
 
@@ -140,19 +140,18 @@ class TaskCreate(BaseModel):
     title: str
     description: Optional[str] = None
     folder_id: Optional[int] = None
-    parent_task_id: Optional[int] = None  # NEW
+    parent_task_id: Optional[int] = None
     priority: int = 1
     due_date: Optional[datetime] = None
     is_calendar_event: bool = False
-    indent_level: int = 0  # NEW
-    order_index: int = 0  # NEW
+    indent_level: int = 0
+    order_index: int = 0
 
 class TaskSubstepCreate(BaseModel):
     title: str
     description: Optional[str] = None
     order_index: int = 0
 
-# FIXED: Simplified response model to avoid circular references
 class TaskResponse(BaseModel):
     id: int
     title: str
@@ -161,15 +160,14 @@ class TaskResponse(BaseModel):
     status: str
     due_date: Optional[datetime]
     is_calendar_event: bool
-    parent_task_id: Optional[int]  # NEW
-    indent_level: int  # NEW
-    order_index: int  # NEW
+    parent_task_id: Optional[int]
+    indent_level: int
+    order_index: int
     created_at: datetime
     
     class Config:
         from_attributes = True
 
-# FIXED: Separate model for indent updates
 class TaskIndentUpdate(BaseModel):
     indent_change: int
 
@@ -331,7 +329,7 @@ def task_to_dict_with_progress(task, all_tasks):
     
     return task_dict
 
-# NEW: Helper function to order tasks hierarchically
+# Helper function to order tasks hierarchically
 def get_hierarchical_task_order(tasks):
     """Return tasks in hierarchical order where children appear after their parents"""
     # Create a map for quick lookup
@@ -380,11 +378,11 @@ def create_task(task: TaskCreate, current_user: User = Depends(get_current_user)
         # Set indent level based on parent
         task.indent_level = parent_task.indent_level + 1
         
-        # FIXED: Set order_index for subtasks
+        # Set order_index for subtasks
         existing_siblings = db.query(Task).filter(Task.parent_task_id == task.parent_task_id).all()
         task.order_index = len(existing_siblings)
     else:
-        # FIXED: Set order_index for root tasks
+        # Set order_index for root tasks
         existing_root_tasks = db.query(Task).filter(
             Task.user_id == current_user.id,
             Task.parent_task_id.is_(None),
@@ -392,7 +390,7 @@ def create_task(task: TaskCreate, current_user: User = Depends(get_current_user)
         ).all()
         task.order_index = len(existing_root_tasks)
     
-    # FIXED: Use model_dump instead of dict()
+    # Use model_dump instead of dict()
     db_task = Task(**task.model_dump(), user_id=current_user.id)
     db.add(db_task)
     db.commit()
@@ -426,7 +424,7 @@ def get_tasks(folder_id: Optional[int] = None, current_user: User = Depends(get_
     # Get all tasks first
     all_tasks = query.all()
     
-    # FIXED: Order tasks hierarchically instead of by indent_level
+    # Order tasks hierarchically
     hierarchical_tasks = get_hierarchical_task_order(all_tasks)
     
     # Convert to dictionaries with progress info
@@ -448,18 +446,17 @@ def create_subtask(task_id: int, subtask: TaskCreate, current_user: User = Depen
     subtask.parent_task_id = task_id
     subtask.indent_level = parent_task.indent_level + 1
     
-    # FIXED: Set order_index to appear at the end of parent's children
+    # Set order_index to appear at the end of parent's children
     existing_children = db.query(Task).filter(Task.parent_task_id == task_id).all()
     subtask.order_index = len(existing_children)
     
-    # FIXED: Use model_dump instead of dict()
+    # Use model_dump instead of dict()
     db_subtask = Task(**subtask.model_dump(), user_id=current_user.id)
     db.add(db_subtask)
     db.commit()
     db.refresh(db_subtask)
     return db_subtask
 
-# FIXED: Proper endpoint definition with body parsing
 @app.put("/api/tasks/{task_id}/indent")
 def update_task_indent(task_id: int, update: TaskIndentUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Update task indentation level"""
@@ -526,7 +523,7 @@ def create_substep(task_id: int, substep: TaskSubstepCreate, current_user: User 
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     
-    # FIXED: Use model_dump instead of dict()
+    # Use model_dump instead of dict()
     db_substep = TaskSubstep(**substep.model_dump(), task_id=task_id)
     db.add(db_substep)
     db.commit()
@@ -549,7 +546,7 @@ def create_note(task_id: int, content: str, current_user: User = Depends(get_cur
 @app.post("/api/diary")
 def create_diary_entry(entry: DiaryEntryCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     # ALWAYS create a new entry - no more overwriting!
-    # FIXED: Use model_dump instead of dict()
+    # Use model_dump instead of dict()
     db_entry = DiaryEntry(**entry.model_dump(), user_id=current_user.id)
     db.add(db_entry)
     db.commit()
@@ -567,7 +564,7 @@ def get_diary_entries(entry_date: Optional[date] = None, folder_id: Optional[int
 
 @app.post("/api/folders")
 def create_folder(folder: FolderCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    # FIXED: Use model_dump instead of dict()
+    # Use model_dump instead of dict()
     db_folder = Folder(**folder.model_dump(), user_id=current_user.id)
     db.add(db_folder)
     db.commit()
@@ -591,6 +588,25 @@ def delete_diary_entry(entry_id: int, current_user: User = Depends(get_current_u
     
     return {"message": "Diary entry deleted successfully", "id": entry_id}
 
+# NEW: Delete task endpoint with CASCADE DELETE for subtasks
+@app.delete("/api/tasks/{task_id}")
+def delete_task(task_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Delete a task and all its subtasks (CASCADE DELETE)"""
+    # Verify task belongs to user
+    task = db.query(Task).filter(Task.id == task_id, Task.user_id == current_user.id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    # Get the task title for response
+    task_title = task.title
+    
+    # The CASCADE DELETE is handled by SQLAlchemy relationship configuration
+    # All subtasks, substeps, and notes will be automatically deleted
+    db.delete(task)
+    db.commit()
+    
+    return {"message": f"Task '{task_title}' and all subtasks deleted successfully", "id": task_id}
+
 # Health check and basic endpoints
 @app.get("/")
 async def root():
@@ -599,7 +615,7 @@ async def root():
 @app.get("/health")
 async def health_check(db: Session = Depends(get_db)):
     try:
-        # Test database connection - FIXED: Using text() wrapper
+        # Test database connection - Using text() wrapper
         result = db.execute(text("SELECT 1 as test"))
         row = result.fetchone()
         user_count = db.query(User).count()

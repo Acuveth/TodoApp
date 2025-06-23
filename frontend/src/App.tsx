@@ -159,7 +159,12 @@ function TodoApp() {
           ? new Date(newTask.due_date).toISOString()
           : null,
       };
-      await api.createTask(taskData);
+
+      const createdTask = await api.createTask(taskData);
+
+      // Optimistically add to UI without full reload
+      setTasks((prev: Task[]) => [...prev, createdTask]);
+
       setNewTask({
         title: "",
         description: "",
@@ -171,9 +176,10 @@ function TodoApp() {
         order_index: 0,
       });
       setShowNewTaskModal(false);
-      loadTasks();
     } catch (error) {
       console.error("Error creating task:", error);
+      // Only reload on error
+      loadTasks();
     }
   };
 
@@ -204,7 +210,15 @@ function TodoApp() {
           ? new Date(newTask.due_date).toISOString()
           : null,
       };
-      await api.createSubtask(parentTaskForSubtask, taskData);
+
+      const createdSubtask = await api.createSubtask(
+        parentTaskForSubtask,
+        taskData
+      );
+
+      // Optimistically add to UI without full reload
+      setTasks((prev: Task[]) => [...prev, createdSubtask]);
+
       setNewTask({
         title: "",
         description: "",
@@ -217,9 +231,10 @@ function TodoApp() {
       });
       setShowNewSubtaskModal(false);
       setParentTaskForSubtask(null);
-      loadTasks();
     } catch (error) {
       console.error("Error creating subtask:", error);
+      // Only reload on error
+      loadTasks();
     }
   };
 
@@ -304,23 +319,182 @@ function TodoApp() {
 
   // Task actions
   const toggleTaskStatus = async (task: Task) => {
+    const newStatus = task.status === "completed" ? "pending" : "completed";
+
+    // Optimistically update the UI first (no screen refresh)
+    const updateTaskInState = (taskId: number, status: string) => {
+      setTasks((prev: Task[]) =>
+        prev.map((t: Task) => (t.id === taskId ? { ...t, status } : t))
+      );
+    };
+
+    // Update the main task immediately in UI
+    updateTaskInState(task.id, newStatus);
+
+    // If completing, also update all subtasks to completed in UI
+    if (newStatus === "completed") {
+      const getSubtaskIds = (parentId: number): number[] => {
+        const directSubtasks = tasks.filter(
+          (t) => t.parent_task_id === parentId
+        );
+        let allSubtaskIds = directSubtasks.map((t) => t.id);
+
+        directSubtasks.forEach((subtask) => {
+          allSubtaskIds = allSubtaskIds.concat(getSubtaskIds(subtask.id));
+        });
+
+        return allSubtaskIds;
+      };
+
+      const subtaskIds = getSubtaskIds(task.id);
+      subtaskIds.forEach((subtaskId) => {
+        updateTaskInState(subtaskId, "completed");
+      });
+    }
+
+    // If uncompleting, also update all subtasks to pending in UI
+    if (newStatus === "pending") {
+      const getSubtaskIds = (parentId: number): number[] => {
+        const directSubtasks = tasks.filter(
+          (t) => t.parent_task_id === parentId
+        );
+        let allSubtaskIds = directSubtasks.map((t) => t.id);
+
+        directSubtasks.forEach((subtask) => {
+          allSubtaskIds = allSubtaskIds.concat(getSubtaskIds(subtask.id));
+        });
+
+        return allSubtaskIds;
+      };
+
+      const subtaskIds = getSubtaskIds(task.id);
+      subtaskIds.forEach((subtaskId) => {
+        updateTaskInState(subtaskId, "pending");
+      });
+    }
+
     try {
-      const newStatus = task.status === "completed" ? "pending" : "completed";
-      await api.updateTask(task.id, { status: newStatus });
-      loadTasks();
+      // Make API calls in the background
+      if (newStatus === "completed") {
+        await markTaskAndSubtasksComplete(task.id);
+      } else {
+        await markTaskAndSubtasksIncomplete(task.id);
+      }
     } catch (error) {
       console.error("Error updating task status:", error);
-      // For now, update locally if API fails
-      setTasks((prev: Task[]) =>
-        prev.map((t: Task) =>
-          t.id === task.id
-            ? {
-                ...t,
-                status: task.status === "completed" ? "pending" : "completed",
-              }
-            : t
-        )
-      );
+      // Revert the optimistic update on error
+      loadTasks();
+    }
+  };
+
+  // NEW: Cascade completion to all subtasks
+  const markTaskAndSubtasksComplete = async (taskId: number) => {
+    // Update the main task
+    await api.updateTask(taskId, { status: "completed" });
+
+    // Find all subtasks (recursively)
+    const getSubtaskIds = (parentId: number): number[] => {
+      const directSubtasks = tasks.filter((t) => t.parent_task_id === parentId);
+      let allSubtaskIds = directSubtasks.map((t) => t.id);
+
+      // Recursively get nested subtasks
+      directSubtasks.forEach((subtask) => {
+        allSubtaskIds = allSubtaskIds.concat(getSubtaskIds(subtask.id));
+      });
+
+      return allSubtaskIds;
+    };
+
+    const subtaskIds = getSubtaskIds(taskId);
+
+    // Update all subtasks to completed
+    for (const subtaskId of subtaskIds) {
+      try {
+        await api.updateTask(subtaskId, { status: "completed" });
+      } catch (error) {
+        console.error(`Error updating subtask ${subtaskId}:`, error);
+      }
+    }
+  };
+
+  // NEW: Cascade incompletion to all subtasks
+  const markTaskAndSubtasksIncomplete = async (taskId: number) => {
+    // Update the main task
+    await api.updateTask(taskId, { status: "pending" });
+
+    // Find all subtasks (recursively)
+    const getSubtaskIds = (parentId: number): number[] => {
+      const directSubtasks = tasks.filter((t) => t.parent_task_id === parentId);
+      let allSubtaskIds = directSubtasks.map((t) => t.id);
+
+      // Recursively get nested subtasks
+      directSubtasks.forEach((subtask) => {
+        allSubtaskIds = allSubtaskIds.concat(getSubtaskIds(subtask.id));
+      });
+
+      return allSubtaskIds;
+    };
+
+    const subtaskIds = getSubtaskIds(taskId);
+
+    // Update all subtasks to pending
+    for (const subtaskId of subtaskIds) {
+      try {
+        await api.updateTask(subtaskId, { status: "pending" });
+      } catch (error) {
+        console.error(`Error updating subtask ${subtaskId}:`, error);
+      }
+    }
+  };
+
+  // NEW: Handle task deletion with optimistic updates
+  const handleDeleteTask = async (taskId: number) => {
+    // Get all tasks that will be deleted (task + all its subtasks)
+    const getTasksToDelete = (parentId: number): number[] => {
+      const directSubtasks = tasks.filter((t) => t.parent_task_id === parentId);
+      let allTaskIds = [parentId, ...directSubtasks.map((t) => t.id)];
+
+      directSubtasks.forEach((subtask) => {
+        const nestedIds = getTasksToDelete(subtask.id);
+        allTaskIds = allTaskIds.concat(
+          nestedIds.filter((id) => id !== subtask.id)
+        ); // Avoid duplicates
+      });
+
+      return allTaskIds;
+    };
+
+    const tasksToDelete = getTasksToDelete(taskId);
+
+    // Optimistically remove from UI first
+    setTasks((prev: Task[]) =>
+      prev.filter((t: Task) => !tasksToDelete.includes(t.id))
+    );
+
+    try {
+      await api.deleteTask(taskId);
+      // No need to reload - we already updated optimistically
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      // Revert the optimistic update on error
+      loadTasks();
+    }
+  };
+
+  // NEW: Handle task updates (for date/time scheduling) with optimistic updates
+  const handleUpdateTask = async (taskId: number, updates: any) => {
+    // Optimistically update the UI first
+    setTasks((prev: Task[]) =>
+      prev.map((t: Task) => (t.id === taskId ? { ...t, ...updates } : t))
+    );
+
+    try {
+      await api.updateTask(taskId, updates);
+      // No need to reload - we already updated optimistically
+    } catch (error) {
+      console.error("Error updating task:", error);
+      // Revert the optimistic update on error
+      loadTasks();
     }
   };
 
@@ -517,6 +691,8 @@ function TodoApp() {
                       onToggleExpansion={toggleTaskExpansion}
                       onToggleStatus={toggleTaskStatus}
                       onCreateSubtask={handleCreateSubtask}
+                      onUpdateTask={handleUpdateTask} // Pass the update handler
+                      onDeleteTask={handleDeleteTask} // NEW: Pass the delete handler
                       allTasks={tasks}
                     />
                   ))}

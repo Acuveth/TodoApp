@@ -1,4 +1,4 @@
-// API configuration with HIERARCHY support - CLEANED UP
+// API configuration with HIERARCHY support and DELETE functionality
 const API_BASE_URL = "http://localhost:8000";
 
 export const api = {
@@ -27,6 +27,16 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updates),
     });
+    return response.json();
+  },
+  // NEW: Delete task
+  deleteTask: async (taskId: number) => {
+    const response = await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
+      method: "DELETE",
+    });
+    if (!response.ok) {
+      throw new Error("Failed to delete task");
+    }
     return response.json();
   },
   // Create subtask under a parent task
