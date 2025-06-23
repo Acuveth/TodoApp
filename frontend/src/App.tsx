@@ -6,17 +6,24 @@ import {
   Folder,
   BookOpen,
   AlertCircle,
+  Activity,
 } from "lucide-react";
 
 // Component imports
-import { Modal, TaskCard, CalendarView, DiaryView } from "./components";
+import {
+  Modal,
+  TaskCard,
+  CalendarView,
+  DiaryView,
+  FeedView,
+} from "./components";
 
 // Type and API imports
 import { Task, FolderType, DiaryEntry, NewTask, NewFolder } from "./types";
 import { api } from "./utils";
 
 function TodoApp() {
-  const [currentView, setCurrentView] = useState("tasks");
+  const [currentView, setCurrentView] = useState("feed"); // Changed default to feed
   const [selectedFolder, setSelectedFolder] = useState<FolderType | null>(null);
   const [folders, setFolders] = useState<FolderType[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -87,6 +94,23 @@ function TodoApp() {
     }
   }, [selectedDate, selectedFolder?.id]);
 
+  // Load all data for feed view
+  const loadAllData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [tasksData, entriesData] = await Promise.all([
+        api.getTasks(null), // Get all tasks for feed
+        api.getDiaryEntries(undefined, undefined), // Get all diary entries for feed
+      ]);
+      setTasks(tasksData);
+      setDiaryEntries(entriesData);
+    } catch (error) {
+      console.error("Error loading data:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Initial connection and data loading
   useEffect(() => {
     const testConnection = async () => {
@@ -108,6 +132,8 @@ function TodoApp() {
         loadTasks();
       } else if (currentView === "diary") {
         loadDiaryEntries();
+      } else if (currentView === "feed") {
+        loadAllData();
       }
     }
   }, [
@@ -117,6 +143,7 @@ function TodoApp() {
     backendStatus,
     loadTasks,
     loadDiaryEntries,
+    loadAllData,
   ]);
 
   // Task handlers
@@ -150,9 +177,9 @@ function TodoApp() {
   }, []);
 
   // Create handlers
-  const handleCreateTask = async () => {
+  const handleCreateTask = async (taskData?: any) => {
     try {
-      const taskData = {
+      const dataToUse = taskData || {
         ...newTask,
         folder_id: selectedFolder?.id || null,
         due_date: newTask.due_date
@@ -160,26 +187,32 @@ function TodoApp() {
           : null,
       };
 
-      const createdTask = await api.createTask(taskData);
+      const createdTask = await api.createTask(dataToUse);
 
       // Optimistically add to UI without full reload
       setTasks((prev: Task[]) => [...prev, createdTask]);
 
-      setNewTask({
-        title: "",
-        description: "",
-        priority: 1,
-        due_date: "",
-        is_calendar_event: false,
-        parent_task_id: undefined,
-        indent_level: 0,
-        order_index: 0,
-      });
-      setShowNewTaskModal(false);
+      if (!taskData) {
+        setNewTask({
+          title: "",
+          description: "",
+          priority: 1,
+          due_date: "",
+          is_calendar_event: false,
+          parent_task_id: undefined,
+          indent_level: 0,
+          order_index: 0,
+        });
+        setShowNewTaskModal(false);
+      }
     } catch (error) {
       console.error("Error creating task:", error);
       // Only reload on error
-      loadTasks();
+      if (currentView === "tasks") {
+        loadTasks();
+      } else if (currentView === "feed") {
+        loadAllData();
+      }
     }
   };
 
@@ -234,7 +267,11 @@ function TodoApp() {
     } catch (error) {
       console.error("Error creating subtask:", error);
       // Only reload on error
-      loadTasks();
+      if (currentView === "tasks") {
+        loadTasks();
+      } else if (currentView === "feed") {
+        loadAllData();
+      }
     }
   };
 
@@ -270,10 +307,18 @@ function TodoApp() {
         folder_id: selectedFolder?.id || null,
       };
 
-      await api.createDiaryEntry(entryData);
-      loadDiaryEntries();
+      const createdEntry = await api.createDiaryEntry(entryData);
+
+      // Optimistically add to UI
+      setDiaryEntries((prev) => [createdEntry, ...prev]);
     } catch (error) {
       console.error("Error creating diary entry:", error);
+      // Reload on error
+      if (currentView === "diary") {
+        loadDiaryEntries();
+      } else if (currentView === "feed") {
+        loadAllData();
+      }
     }
   };
 
@@ -290,7 +335,13 @@ function TodoApp() {
       };
 
       await api.updateDiaryEntry(id, updateData);
-      loadDiaryEntries();
+
+      // Reload data to get updated entry
+      if (currentView === "diary") {
+        loadDiaryEntries();
+      } else if (currentView === "feed") {
+        loadAllData();
+      }
     } catch (error) {
       console.error("Error updating diary entry:", error);
     }
@@ -299,9 +350,17 @@ function TodoApp() {
   const handleDeleteDiaryEntry = async (id: number) => {
     try {
       await api.deleteDiaryEntry(id);
-      loadDiaryEntries();
+
+      // Optimistically remove from UI
+      setDiaryEntries((prev) => prev.filter((entry) => entry.id !== id));
     } catch (error) {
       console.error("Error deleting diary entry:", error);
+      // Reload on error
+      if (currentView === "diary") {
+        loadDiaryEntries();
+      } else if (currentView === "feed") {
+        loadAllData();
+      }
     }
   };
 
@@ -311,7 +370,13 @@ function TodoApp() {
   ) => {
     try {
       await api.updateDiaryEntry(id, { folder_id: folderId });
-      loadDiaryEntries();
+
+      // Reload data to get updated entry
+      if (currentView === "diary") {
+        loadDiaryEntries();
+      } else if (currentView === "feed") {
+        loadAllData();
+      }
     } catch (error) {
       console.error("Error updating diary entry folder:", error);
     }
@@ -383,7 +448,11 @@ function TodoApp() {
     } catch (error) {
       console.error("Error updating task status:", error);
       // Revert the optimistic update on error
-      loadTasks();
+      if (currentView === "tasks") {
+        loadTasks();
+      } else if (currentView === "feed") {
+        loadAllData();
+      }
     }
   };
 
@@ -477,7 +546,11 @@ function TodoApp() {
     } catch (error) {
       console.error("Error deleting task:", error);
       // Revert the optimistic update on error
-      loadTasks();
+      if (currentView === "tasks") {
+        loadTasks();
+      } else if (currentView === "feed") {
+        loadAllData();
+      }
     }
   };
 
@@ -494,7 +567,11 @@ function TodoApp() {
     } catch (error) {
       console.error("Error updating task:", error);
       // Revert the optimistic update on error
-      loadTasks();
+      if (currentView === "tasks") {
+        loadTasks();
+      } else if (currentView === "feed") {
+        loadAllData();
+      }
     }
   };
 
@@ -555,6 +632,18 @@ function TodoApp() {
 
       <nav className="flex-1 p-4">
         <div className="space-y-2 mb-6">
+          <button
+            onClick={() => setCurrentView("feed")}
+            className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md text-left ${
+              currentView === "feed"
+                ? "bg-purple-100 text-purple-700"
+                : "text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            <Activity className="w-5 h-5" />
+            <span>Feed</span>
+          </button>
+
           <button
             onClick={() => setCurrentView("tasks")}
             className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md text-left ${
@@ -642,6 +731,24 @@ function TodoApp() {
   // Render different views
   const renderCurrentView = () => {
     switch (currentView) {
+      case "feed":
+        return (
+          <FeedView
+            tasks={tasks}
+            diaryEntries={diaryEntries}
+            folders={folders}
+            loading={loading}
+            onCreateTask={handleCreateTask}
+            onCreateDiaryEntry={handleCreateDiaryEntry}
+            onToggleTaskStatus={toggleTaskStatus}
+            onUpdateTask={handleUpdateTask}
+            onDeleteTask={handleDeleteTask}
+            onUpdateDiaryEntry={handleUpdateDiaryEntry}
+            onDeleteDiaryEntry={handleDeleteDiaryEntry}
+            onUpdateDiaryEntryFolder={handleUpdateDiaryEntryFolder}
+            onCreateSubtask={handleCreateSubtask}
+          />
+        );
       case "calendar":
         return <CalendarView tasks={tasks} />;
       case "diary":

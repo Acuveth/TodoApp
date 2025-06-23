@@ -21,9 +21,9 @@ interface TaskCardProps {
   onToggleExpansion: (taskId: number) => void;
   onToggleStatus: (task: Task) => void;
   onCreateSubtask?: (parentTaskId: number) => void;
-  onUpdateTask?: (taskId: number, updates: any) => void; // Add this prop
-  onDeleteTask?: (taskId: number) => void; // NEW: Delete task prop
-  allTasks: Task[]; // All tasks for calculating hierarchy
+  onUpdateTask?: (taskId: number, updates: any) => void;
+  onDeleteTask?: (taskId: number) => void;
+  allTasks: Task[];
 }
 
 // Delete Confirmation Modal Component
@@ -92,6 +92,7 @@ const DeleteConfirmationModal: React.FC<{
     </div>
   );
 };
+
 const DateTimePickerModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -241,7 +242,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
     number | null
   >(null);
 
-  // NEW: Delete confirmation state
+  // Delete confirmation state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
 
@@ -269,6 +270,10 @@ const TaskCard: React.FC<TaskCardProps> = ({
     });
   };
 
+  // Check if a specific subtask is hidden
+  const isSubtaskHidden = (taskId: number) => hiddenSubtasks.has(taskId);
+
+  // Check if all subtasks of the main task are hidden
   const areSubtasksHidden = hiddenSubtasks.has(task.id);
 
   // Handle date/time scheduling
@@ -281,14 +286,14 @@ const TaskCard: React.FC<TaskCardProps> = ({
     if (dateTimePickerTaskId && onUpdateTask) {
       const updates = {
         due_date: dateTime || null,
-        is_calendar_event: !!dateTime, // Set to true if there's a date, false if cleared
+        is_calendar_event: !!dateTime,
       };
       onUpdateTask(dateTimePickerTaskId, updates);
     }
     setDateTimePickerTaskId(null);
   };
 
-  // NEW: Handle task deletion
+  // Handle task deletion
   const handleDeleteTask = (taskId: number) => {
     setDeleteTaskId(taskId);
     setShowDeleteConfirm(true);
@@ -393,7 +398,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
     }
   };
 
-  // Recursive subtask renderer
+  // Recursive subtask renderer with individual hide functionality (limited to level 1)
   const renderSubtasks = (
     parentId: number,
     level: number = 0
@@ -403,16 +408,22 @@ const TaskCard: React.FC<TaskCardProps> = ({
     );
 
     return directSubtasks.map((subtask) => {
+      // Check if this specific subtask is hidden
+      const isThisSubtaskHidden = isSubtaskHidden(subtask.id);
+
       const nestedSubtasks = allTasks.filter(
         (t) => t.parent_task_id === subtask.id
       );
       const hasNested = nestedSubtasks.length > 0;
 
+      // Only allow hide functionality for level 0 subtasks (direct children of main tasks)
+      const canHideSubtasks = level === 0 && hasNested;
+
       return (
         <div key={subtask.id}>
           <div
             className="flex items-start space-x-2 mt-2"
-            style={{ marginLeft: `${24 * (level + 1)}px` }} // Indent based on nesting level
+            style={{ marginLeft: `${24 * (level + 1)}px` }}
           >
             {getStatusIcon(subtask.status, () => onToggleStatus(subtask))}
             <div className="flex-1">
@@ -429,7 +440,6 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 <Flag
                   className={`w-4 h-4 ${getPriorityColor(subtask.priority)}`}
                 />
-                {/* Show calendar icon if task has due date */}
                 {subtask.due_date && (
                   <div className="flex items-center space-x-1">
                     <Calendar className="w-3 h-3 text-blue-500" />
@@ -442,11 +452,16 @@ const TaskCard: React.FC<TaskCardProps> = ({
                     </span>
                   </div>
                 )}
+                {/* Show indicator if subtask has nested children that are hidden (only for level 0) */}
+                {canHideSubtasks && isThisSubtaskHidden && (
+                  <span className="text-xs text-gray-400">(hidden)</span>
+                )}
               </div>
               {subtask.description && (
                 <p className="text-gray-600 mt-1">{subtask.description}</p>
               )}
             </div>
+
             {/* Action buttons for subtasks */}
             <div className="flex items-center space-x-1">
               {/* Schedule button for subtask */}
@@ -457,6 +472,26 @@ const TaskCard: React.FC<TaskCardProps> = ({
               >
                 <Calendar className="w-4 h-4" />
               </button>
+
+              {/* Hide/Show button for subtask - only show for level 0 subtasks with nested children */}
+              {canHideSubtasks && (
+                <button
+                  onClick={() => toggleSubtaskVisibility(subtask.id)}
+                  className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                  title={
+                    isThisSubtaskHidden
+                      ? "Show nested subtasks"
+                      : "Hide nested subtasks"
+                  }
+                >
+                  {isThisSubtaskHidden ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              )}
+
               {/* Add subtask button for nested subtasks */}
               {onCreateSubtask && (
                 <button
@@ -467,6 +502,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                   <Plus className="w-4 h-4" />
                 </button>
               )}
+
               {/* Delete subtask button */}
               {onDeleteTask && (
                 <button
@@ -479,8 +515,11 @@ const TaskCard: React.FC<TaskCardProps> = ({
               )}
             </div>
           </div>
-          {/* Recursively render nested subtasks */}
-          {hasNested && renderSubtasks(subtask.id, level + 1)}
+
+          {/* Recursively render nested subtasks - only if not hidden */}
+          {hasNested &&
+            !isThisSubtaskHidden &&
+            renderSubtasks(subtask.id, level + 1)}
         </div>
       );
     });
