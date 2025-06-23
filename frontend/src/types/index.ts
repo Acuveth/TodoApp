@@ -7,15 +7,15 @@ export interface Task {
   status: string;
   due_date?: string;
   is_calendar_event: boolean;
-  parent_task_id?: number; // NEW: Hierarchy support
-  indent_level: number; // NEW: Indentation level
-  order_index: number; // NEW: Ordering within level
+  parent_task_id?: number; // Hierarchy support
+  indent_level: number; // Indentation level
+  order_index: number; // Ordering within level
   created_at: string;
-  progress?: number; // NEW: Calculated progress from subtasks
-  auto_completed?: boolean; // NEW: Auto-completed based on subtasks
+  progress?: number; // Calculated progress from subtasks
+  auto_completed?: boolean; // Auto-completed based on subtasks
   substeps?: TaskSubstep[];
   notes?: TaskNote[];
-  subtasks?: Task[]; // NEW: Child tasks
+  subtasks?: Task[]; // Child tasks
 }
 
 export interface TaskSubstep {
@@ -56,9 +56,9 @@ export interface NewTask {
   priority: number;
   due_date: string;
   is_calendar_event: boolean;
-  parent_task_id?: number; // NEW: For creating subtasks
-  indent_level?: number; // NEW: Indentation level
-  order_index?: number; // NEW: Ordering
+  parent_task_id?: number; // For creating subtasks
+  indent_level?: number; // Indentation level
+  order_index?: number; // Ordering
 }
 
 export interface NewFolder {
@@ -71,17 +71,4 @@ export interface NewDiaryEntry {
   title: string;
   content: string;
   folder_id?: number;
-}
-
-// NEW: Interface for task hierarchy operations
-export interface TaskIndentUpdate {
-  task_id: number;
-  indent_change: number; // +1 to indent, -1 to outdent
-}
-
-// NEW: Interface for task reordering
-export interface TaskReorder {
-  task_id: number;
-  new_order_index: number;
-  new_parent_id?: number;
 }

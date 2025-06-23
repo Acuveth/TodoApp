@@ -1,4 +1,4 @@
-// API configuration with HIERARCHY support - FIXED
+// API configuration with HIERARCHY support - CLEANED UP
 const API_BASE_URL = "http://localhost:8000";
 
 export const api = {
@@ -29,7 +29,7 @@ export const api = {
     });
     return response.json();
   },
-  // NEW: Create subtask under a parent task
+  // Create subtask under a parent task
   createSubtask: async (parentTaskId: number, taskData: any) => {
     const response = await fetch(
       `${API_BASE_URL}/api/tasks/${parentTaskId}/subtasks`,
@@ -39,23 +39,6 @@ export const api = {
         body: JSON.stringify(taskData),
       }
     );
-    return response.json();
-  },
-  // FIXED: Update task indentation with proper request body
-  updateTaskIndent: async (taskId: number, indentChange: number) => {
-    const response = await fetch(`${API_BASE_URL}/api/tasks/${taskId}/indent`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ indent_change: indentChange }),
-    });
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        `Failed to update task indent: ${
-          errorData.detail || response.statusText
-        }`
-      );
-    }
     return response.json();
   },
   getFolders: async () => {

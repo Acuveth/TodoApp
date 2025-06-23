@@ -6,7 +6,6 @@ import {
   Folder,
   BookOpen,
   AlertCircle,
-  Layers,
 } from "lucide-react";
 
 // Component imports
@@ -221,20 +220,6 @@ function TodoApp() {
       loadTasks();
     } catch (error) {
       console.error("Error creating subtask:", error);
-    }
-  };
-
-  // NEW: Task indentation handlers
-  const handleIndentTask = async (
-    taskId: number,
-    direction: "left" | "right"
-  ) => {
-    try {
-      const indentChange = direction === "right" ? 1 : -1;
-      await api.updateTaskIndent(taskId, indentChange);
-      loadTasks(); // Reload to get updated hierarchy
-    } catch (error) {
-      console.error("Error updating task indent:", error);
     }
   };
 
@@ -516,38 +501,25 @@ function TodoApp() {
               </button>
             </div>
 
-            {/* NEW: Hierarchy instructions */}
-            {tasks.length > 0 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                <div className="flex items-center space-x-2 text-blue-800 text-sm">
-                  <Layers className="w-4 h-4" />
-                  <span>
-                    <strong>Tip:</strong> Use the arrow buttons to
-                    indent/outdent tasks and create hierarchy. Use the + button
-                    to add subtasks.
-                  </span>
-                </div>
-              </div>
-            )}
-
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
             ) : (
-              <div className="space-y-1">
-                {tasks.map((task: Task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    isExpanded={expandedTasks.has(task.id)}
-                    onToggleExpansion={toggleTaskExpansion}
-                    onToggleStatus={toggleTaskStatus}
-                    onCreateSubtask={handleCreateSubtask}
-                    onIndentTask={handleIndentTask}
-                    allTasks={tasks}
-                  />
-                ))}
+              <div className="space-y-2">
+                {tasks
+                  .filter((task) => !task.parent_task_id) // Only render root-level tasks
+                  .map((task: Task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      isExpanded={expandedTasks.has(task.id)}
+                      onToggleExpansion={toggleTaskExpansion}
+                      onToggleStatus={toggleTaskStatus}
+                      onCreateSubtask={handleCreateSubtask}
+                      allTasks={tasks}
+                    />
+                  ))}
 
                 {tasks.length === 0 && (
                   <div className="text-center py-12">
@@ -624,15 +596,46 @@ function TodoApp() {
             onChange={(e) => handleTaskDescriptionChange(e.target.value)}
             className="w-full border border-gray-300 rounded-md px-3 py-2 h-24"
           />
-          <select
-            value={newTask.priority}
-            onChange={(e) => handleTaskPriorityChange(parseInt(e.target.value))}
-            className="w-full border border-gray-300 rounded-md px-3 py-2"
-          >
-            <option value={1}>Low Priority</option>
-            <option value={2}>Medium Priority</option>
-            <option value={3}>High Priority</option>
-          </select>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Priority
+            </label>
+            <div className="flex space-x-2">
+              <button
+                type="button"
+                onClick={() => handleTaskPriorityChange(1)}
+                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
+                  newTask.priority === 1
+                    ? "bg-green-100 border-green-500 text-green-700"
+                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                Low
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTaskPriorityChange(2)}
+                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
+                  newTask.priority === 2
+                    ? "bg-yellow-100 border-yellow-500 text-yellow-700"
+                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                Medium
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTaskPriorityChange(3)}
+                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
+                  newTask.priority === 3
+                    ? "bg-red-100 border-red-500 text-red-700"
+                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                High
+              </button>
+            </div>
+          </div>
           <input
             type="datetime-local"
             value={newTask.due_date}
@@ -689,15 +692,46 @@ function TodoApp() {
             onChange={(e) => handleTaskDescriptionChange(e.target.value)}
             className="w-full border border-gray-300 rounded-md px-3 py-2 h-24"
           />
-          <select
-            value={newTask.priority}
-            onChange={(e) => handleTaskPriorityChange(parseInt(e.target.value))}
-            className="w-full border border-gray-300 rounded-md px-3 py-2"
-          >
-            <option value={1}>Low Priority</option>
-            <option value={2}>Medium Priority</option>
-            <option value={3}>High Priority</option>
-          </select>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Priority
+            </label>
+            <div className="flex space-x-2">
+              <button
+                type="button"
+                onClick={() => handleTaskPriorityChange(1)}
+                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
+                  newTask.priority === 1
+                    ? "bg-green-100 border-green-500 text-green-700"
+                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                Low
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTaskPriorityChange(2)}
+                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
+                  newTask.priority === 2
+                    ? "bg-yellow-100 border-yellow-500 text-yellow-700"
+                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                Medium
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTaskPriorityChange(3)}
+                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
+                  newTask.priority === 3
+                    ? "bg-red-100 border-red-500 text-red-700"
+                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                High
+              </button>
+            </div>
+          </div>
           <input
             type="datetime-local"
             value={newTask.due_date}
