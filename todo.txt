@@ -1,0 +1,8 @@
+floating action button tasks
+today section on the calander - individual day feed controled by arrows so you can navigate between days
+when adding tasks or diaries to folders they should have their specific folder background color in the background
+tomorrow feed
+visual changes - enak design za diary entry in task and feedu
+limit folder name to a few characters, add ability to delete or update folders
+update tasks
+filter for task priority or time created or time scheduled

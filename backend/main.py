@@ -1,4 +1,4 @@
-# FastAPI Backend for Todo App - WITH DELETE FUNCTIONALITY
+# FastAPI Backend for Todo App - WITH DIARY SCHEDULING
 # File: main.py
 
 from fastapi import FastAPI, Depends, HTTPException, status
@@ -129,6 +129,10 @@ class DiaryEntry(Base):
     entry_date = Column(Date, nullable=False)
     title = Column(String(500))
     content = Column(Text, nullable=False)
+    # NEW: Scheduling fields
+    scheduled_date = Column(DateTime, nullable=True)  # When diary entry is scheduled for
+    is_scheduled = Column(Boolean, default=False)  # Whether entry is scheduled
+    google_calendar_event_id = Column(String(255))  # Google Calendar integration
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -176,6 +180,24 @@ class DiaryEntryCreate(BaseModel):
     title: Optional[str] = None
     content: str
     folder_id: Optional[int] = None
+    # NEW: Scheduling fields
+    scheduled_date: Optional[datetime] = None
+    is_scheduled: bool = False
+
+class DiaryEntryResponse(BaseModel):
+    id: int
+    entry_date: date
+    title: Optional[str]
+    content: str
+    folder_id: Optional[int]
+    scheduled_date: Optional[datetime]
+    is_scheduled: bool
+    google_calendar_event_id: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
 
 class FolderCreate(BaseModel):
     name: str
@@ -252,10 +274,10 @@ def create_tables():
     Base.metadata.create_all(bind=engine)
 
 def migrate_database():
-    """Migrate existing database to add new hierarchy columns"""
+    """Migrate existing database to add new hierarchy columns and diary scheduling"""
     try:
         with engine.connect() as connection:
-            # Check if the new columns exist
+            # Check if the new task columns exist
             result = connection.execute(text("SHOW COLUMNS FROM tasks LIKE 'parent_task_id'"))
             if not result.fetchone():
                 print("Adding hierarchy columns to tasks table...")
@@ -276,6 +298,21 @@ def migrate_database():
                 print("Successfully added hierarchy columns!")
             else:
                 print("Hierarchy columns already exist, skipping migration.")
+            
+            # Check if diary scheduling columns exist
+            result = connection.execute(text("SHOW COLUMNS FROM diary_entries LIKE 'scheduled_date'"))
+            if not result.fetchone():
+                print("Adding scheduling columns to diary_entries table...")
+                
+                # Add the new diary scheduling columns
+                connection.execute(text("ALTER TABLE diary_entries ADD COLUMN scheduled_date DATETIME NULL"))
+                connection.execute(text("ALTER TABLE diary_entries ADD COLUMN is_scheduled BOOLEAN DEFAULT FALSE NOT NULL"))
+                connection.execute(text("ALTER TABLE diary_entries ADD COLUMN google_calendar_event_id VARCHAR(255) NULL"))
+                
+                connection.commit()
+                print("Successfully added diary scheduling columns!")
+            else:
+                print("Diary scheduling columns already exist, skipping migration.")
                 
     except Exception as e:
         print(f"Migration error: {e}")
@@ -543,7 +580,7 @@ def create_note(task_id: int, content: str, current_user: User = Depends(get_cur
     db.refresh(db_note)
     return db_note
 
-@app.post("/api/diary")
+@app.post("/api/diary", response_model=DiaryEntryResponse)
 def create_diary_entry(entry: DiaryEntryCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     # ALWAYS create a new entry - no more overwriting!
     # Use model_dump instead of dict()
@@ -551,6 +588,26 @@ def create_diary_entry(entry: DiaryEntryCreate, current_user: User = Depends(get
     db.add(db_entry)
     db.commit()
     db.refresh(db_entry)
+    
+    # NEW: If diary entry is scheduled, add to Google Calendar
+    if db_entry.is_scheduled and db_entry.scheduled_date:
+        calendar_service = get_google_calendar_service(current_user)
+        if calendar_service:
+            try:
+                event_title = f"📖 {db_entry.title or 'Diary Entry'}"
+                event = {
+                    'summary': event_title,
+                    'description': f"Scheduled diary entry\n\n{db_entry.content[:200]}...",
+                    'start': {'dateTime': db_entry.scheduled_date.isoformat()},
+                    'end': {'dateTime': db_entry.scheduled_date.isoformat()},
+                }
+                created_event = calendar_service.events().insert(calendarId='primary', body=event).execute()
+                db_entry.google_calendar_event_id = created_event['id']
+                db.commit()
+                db.refresh(db_entry)
+            except Exception as e:
+                print(f"Calendar integration failed for diary: {e}")
+    
     return db_entry
 
 @app.get("/api/diary")
@@ -560,7 +617,7 @@ def get_diary_entries(entry_date: Optional[date] = None, folder_id: Optional[int
         query = query.filter(DiaryEntry.entry_date == entry_date)
     if folder_id:
         query = query.filter(DiaryEntry.folder_id == folder_id)
-    return query.order_by(DiaryEntry.entry_date.desc()).all()
+    return query.order_by(DiaryEntry.created_at.desc()).all()
 
 @app.post("/api/folders")
 def create_folder(folder: FolderCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -581,6 +638,15 @@ def delete_diary_entry(entry_id: int, current_user: User = Depends(get_current_u
     entry = db.query(DiaryEntry).filter(DiaryEntry.id == entry_id, DiaryEntry.user_id == current_user.id).first()
     if not entry:
         raise HTTPException(status_code=404, detail="Diary entry not found")
+    
+    # NEW: Delete from Google Calendar if it was scheduled
+    if entry.google_calendar_event_id:
+        calendar_service = get_google_calendar_service(current_user)
+        if calendar_service:
+            try:
+                calendar_service.events().delete(calendarId='primary', eventId=entry.google_calendar_event_id).execute()
+            except Exception as e:
+                print(f"Failed to delete calendar event for diary: {e}")
     
     # Delete the entry
     db.delete(entry)
@@ -697,7 +763,7 @@ def update_task(task_id: int, updates: dict, current_user: User = Depends(get_cu
     db.refresh(task)
     return task
 
-# Optional: Add a separate endpoint for updating specific entries
+# NEW: Updated diary entry endpoint with scheduling support
 @app.put("/api/diary/{entry_id}")
 def update_diary_entry(entry_id: int, updates: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     # Verify diary entry belongs to user
@@ -705,12 +771,57 @@ def update_diary_entry(entry_id: int, updates: dict, current_user: User = Depend
     if not entry:
         raise HTTPException(status_code=404, detail="Diary entry not found")
     
+    # Store old calendar event ID for potential cleanup
+    old_calendar_event_id = entry.google_calendar_event_id
+    
     # Update entry fields
     for field, value in updates.items():
         if hasattr(entry, field):
+            if field == 'scheduled_date' and value:
+                # Convert string to datetime if needed
+                if isinstance(value, str):
+                    try:
+                        value = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                    except:
+                        pass
             setattr(entry, field, value)
     
     entry.updated_at = datetime.utcnow()
+    
+    # Handle Google Calendar integration for scheduling
+    calendar_service = get_google_calendar_service(current_user)
+    if calendar_service:
+        try:
+            # If entry is now scheduled and has a date
+            if entry.is_scheduled and entry.scheduled_date:
+                event_title = f"📖 {entry.title or 'Diary Entry'}"
+                event = {
+                    'summary': event_title,
+                    'description': f"Scheduled diary entry\n\n{entry.content[:200]}...",
+                    'start': {'dateTime': entry.scheduled_date.isoformat()},
+                    'end': {'dateTime': entry.scheduled_date.isoformat()},
+                }
+                
+                if old_calendar_event_id:
+                    # Update existing calendar event
+                    calendar_service.events().update(
+                        calendarId='primary', 
+                        eventId=old_calendar_event_id, 
+                        body=event
+                    ).execute()
+                else:
+                    # Create new calendar event
+                    created_event = calendar_service.events().insert(calendarId='primary', body=event).execute()
+                    entry.google_calendar_event_id = created_event['id']
+            
+            # If entry is no longer scheduled, delete the calendar event
+            elif not entry.is_scheduled and old_calendar_event_id:
+                calendar_service.events().delete(calendarId='primary', eventId=old_calendar_event_id).execute()
+                entry.google_calendar_event_id = None
+                
+        except Exception as e:
+            print(f"Calendar integration failed for diary update: {e}")
+    
     db.commit()
     db.refresh(entry)
     return entry

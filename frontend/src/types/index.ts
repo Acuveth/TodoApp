@@ -1,4 +1,4 @@
-// Type definitions with HIERARCHY support
+// Type definitions with HIERARCHY support and DIARY SCHEDULING
 export interface Task {
   id: number;
   title: string;
@@ -47,7 +47,12 @@ export interface DiaryEntry {
   title?: string;
   content: string;
   created_at: string;
+  updated_at: string;
   folder_id?: number;
+  // NEW: Scheduling fields
+  scheduled_date?: string;
+  is_scheduled: boolean;
+  google_calendar_event_id?: string;
 }
 
 export interface NewTask {
@@ -71,4 +76,7 @@ export interface NewDiaryEntry {
   title: string;
   content: string;
   folder_id?: number;
+  // NEW: Scheduling fields
+  scheduled_date?: string;
+  is_scheduled?: boolean;
 }

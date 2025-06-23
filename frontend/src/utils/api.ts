@@ -1,4 +1,4 @@
-// API configuration with HIERARCHY support and DELETE functionality
+// API configuration with HIERARCHY support, DELETE functionality, and DIARY SCHEDULING
 const API_BASE_URL = "http://localhost:8000";
 
 export const api = {
@@ -29,7 +29,7 @@ export const api = {
     });
     return response.json();
   },
-  // NEW: Delete task
+  // Delete task
   deleteTask: async (taskId: number) => {
     const response = await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
       method: "DELETE",
@@ -96,6 +96,30 @@ export const api = {
     if (!response.ok) {
       throw new Error("Failed to delete diary entry");
     }
+    return response.json();
+  },
+  // NEW: Schedule diary entry
+  scheduleDiaryEntry: async (entryId: number, scheduledDate: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/diary/${entryId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        scheduled_date: scheduledDate,
+        is_scheduled: true,
+      }),
+    });
+    return response.json();
+  },
+  // NEW: Unschedule diary entry
+  unscheduleDiaryEntry: async (entryId: number) => {
+    const response = await fetch(`${API_BASE_URL}/api/diary/${entryId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        scheduled_date: null,
+        is_scheduled: false,
+      }),
+    });
     return response.json();
   },
 };

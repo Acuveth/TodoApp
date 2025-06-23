@@ -7,6 +7,7 @@ import {
   BookOpen,
   AlertCircle,
   Activity,
+  AlarmClockCheck,
 } from "lucide-react";
 
 // Component imports
@@ -305,6 +306,9 @@ function TodoApp() {
           })}`,
         content: content || entryText.trim(),
         folder_id: selectedFolder?.id || null,
+        // NEW: Default scheduling to false
+        is_scheduled: false,
+        scheduled_date: null,
       };
 
       const createdEntry = await api.createDiaryEntry(entryData);
@@ -379,6 +383,64 @@ function TodoApp() {
       }
     } catch (error) {
       console.error("Error updating diary entry folder:", error);
+    }
+  };
+
+  // NEW: Diary scheduling handlers
+  const handleScheduleDiaryEntry = async (
+    id: number,
+    scheduledDate: string
+  ) => {
+    try {
+      await api.scheduleDiaryEntry(id, scheduledDate);
+
+      // Optimistically update the UI
+      setDiaryEntries((prev) =>
+        prev.map((entry) =>
+          entry.id === id
+            ? {
+                ...entry,
+                scheduled_date: scheduledDate,
+                is_scheduled: true,
+              }
+            : entry
+        )
+      );
+    } catch (error) {
+      console.error("Error scheduling diary entry:", error);
+      // Reload on error
+      if (currentView === "diary") {
+        loadDiaryEntries();
+      } else if (currentView === "feed") {
+        loadAllData();
+      }
+    }
+  };
+
+  const handleUnscheduleDiaryEntry = async (id: number) => {
+    try {
+      await api.unscheduleDiaryEntry(id);
+
+      // Optimistically update the UI
+      setDiaryEntries((prev) =>
+        prev.map((entry) =>
+          entry.id === id
+            ? {
+                ...entry,
+                scheduled_date: undefined,
+                is_scheduled: false,
+              }
+            : entry
+        )
+      );
+    } catch (error) {
+      console.error("Error unscheduling diary entry:", error);
+      // Reload on error
+      if (currentView === "diary") {
+        loadDiaryEntries();
+      } else if (currentView === "feed") {
+        loadAllData();
+      }
     }
   };
 
@@ -612,24 +674,13 @@ function TodoApp() {
         </div>
       );
     }
-
-    return (
-      <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-        <div className="flex items-center">
-          <CheckSquare className="w-4 h-4 mr-2" />
-          Connected to backend successfully!
-        </div>
-      </div>
-    );
+    console.log("Connected to backend successfully");
+    return null;
   };
 
   // Sidebar component
   const Sidebar = () => (
     <div className="w-64 bg-white border-r border-gray-200 flex flex-col h-full">
-      <div className="p-4 border-b border-gray-200">
-        <h1 className="text-xl font-bold text-gray-900">Todo App</h1>
-      </div>
-
       <nav className="flex-1 p-4">
         <div className="space-y-2 mb-6">
           <button
@@ -645,18 +696,6 @@ function TodoApp() {
           </button>
 
           <button
-            onClick={() => setCurrentView("tasks")}
-            className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md text-left ${
-              currentView === "tasks"
-                ? "bg-blue-100 text-blue-700"
-                : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            <CheckSquare className="w-5 h-5" />
-            <span>Tasks</span>
-          </button>
-
-          <button
             onClick={() => setCurrentView("calendar")}
             className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md text-left ${
               currentView === "calendar"
@@ -666,6 +705,18 @@ function TodoApp() {
           >
             <CalendarIcon className="w-5 h-5" />
             <span>Calendar</span>
+          </button>
+
+          <button
+            onClick={() => setCurrentView("tasks")}
+            className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md text-left ${
+              currentView === "tasks"
+                ? "bg-blue-100 text-blue-700"
+                : "text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            <AlarmClockCheck className="w-5 h-5" />
+            <span>Tasks</span>
           </button>
 
           <button
@@ -747,10 +798,12 @@ function TodoApp() {
             onDeleteDiaryEntry={handleDeleteDiaryEntry}
             onUpdateDiaryEntryFolder={handleUpdateDiaryEntryFolder}
             onCreateSubtask={handleCreateSubtask}
+            onScheduleDiaryEntry={handleScheduleDiaryEntry}
+            onUnscheduleDiaryEntry={handleUnscheduleDiaryEntry}
           />
         );
       case "calendar":
-        return <CalendarView tasks={tasks} />;
+        return <CalendarView tasks={tasks} diaryEntries={diaryEntries} />;
       case "diary":
         return (
           <DiaryView
@@ -761,6 +814,8 @@ function TodoApp() {
             onUpdateEntry={handleUpdateDiaryEntry}
             onDeleteEntry={handleDeleteDiaryEntry}
             onUpdateEntryFolder={handleUpdateDiaryEntryFolder}
+            onScheduleEntry={handleScheduleDiaryEntry}
+            onUnscheduleEntry={handleUnscheduleDiaryEntry}
           />
         );
       default:

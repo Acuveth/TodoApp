@@ -11,10 +11,9 @@ import {
   FolderPlus,
   Eye,
   EyeOff,
+  X,
+  AlarmClockCheck,
 } from "lucide-react";
-import MDEditor from "@uiw/react-md-editor";
-import "@uiw/react-md-editor/markdown-editor.css";
-import "@uiw/react-markdown-preview/markdown.css";
 import { Task, DiaryEntry, FolderType, NewTask, NewDiaryEntry } from "../types";
 import { Modal, TaskCard } from "./";
 
@@ -35,6 +34,9 @@ interface FeedViewProps {
     folderId: number | null
   ) => Promise<void>;
   onCreateSubtask?: (parentTaskId: number) => void;
+  // NEW: Diary scheduling props
+  onScheduleDiaryEntry?: (id: number, scheduledDate: string) => Promise<void>;
+  onUnscheduleDiaryEntry?: (id: number) => Promise<void>;
 }
 
 type FeedItem = {
@@ -43,9 +45,137 @@ type FeedItem = {
   data: Task | DiaryEntry;
   created_at: string;
   due_date?: string;
+  scheduled_date?: string; // NEW: For diary entries
 };
 
 type TabType = "all" | "today" | "diaries" | "tasks";
+
+// NEW: Date/Time Picker Modal for Diary Scheduling
+const DateTimePickerModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (dateTime: string) => void;
+  onClear?: () => void;
+  currentDateTime?: string;
+  entryTitle: string;
+}> = ({ isOpen, onClose, onSave, onClear, currentDateTime, entryTitle }) => {
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedTime, setSelectedTime] = useState("");
+
+  useEffect(() => {
+    if (currentDateTime) {
+      const date = new Date(currentDateTime);
+      setSelectedDate(date.toISOString().split("T")[0]);
+      setSelectedTime(date.toTimeString().slice(0, 5));
+    } else {
+      // Set default to today
+      const now = new Date();
+      setSelectedDate(now.toISOString().split("T")[0]);
+      setSelectedTime("09:00");
+    }
+  }, [currentDateTime, isOpen]);
+
+  const handleSave = () => {
+    if (selectedDate && selectedTime) {
+      const dateTimeString = `${selectedDate}T${selectedTime}:00`;
+      onSave(dateTimeString);
+      onClose();
+    }
+  };
+
+  const handleClear = () => {
+    if (onClear) {
+      onClear();
+      onClose();
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
+        <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+          <div
+            className="absolute inset-0 bg-gray-500 opacity-75"
+            onClick={onClose}
+          ></div>
+        </div>
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">
+                Schedule Diary Entry
+              </h3>
+              <button
+                onClick={onClose}
+                className="rounded-md text-gray-400 hover:text-gray-600 focus:outline-none"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-3">
+                Schedule "{entryTitle}" to appear on the calendar
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Time
+                  </label>
+                  <input
+                    type="time"
+                    value={selectedTime}
+                    onChange={(e) => setSelectedTime(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex space-x-3">
+              {currentDateTime && onClear && (
+                <button
+                  onClick={handleClear}
+                  className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50"
+                >
+                  Unschedule
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={!selectedDate || !selectedTime}
+                className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                Schedule
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const FeedView: React.FC<FeedViewProps> = ({
   tasks,
@@ -61,6 +191,8 @@ const FeedView: React.FC<FeedViewProps> = ({
   onDeleteDiaryEntry,
   onUpdateDiaryEntryFolder,
   onCreateSubtask,
+  onScheduleDiaryEntry,
+  onUnscheduleDiaryEntry,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
@@ -70,6 +202,12 @@ const FeedView: React.FC<FeedViewProps> = ({
   const [editingDiary, setEditingDiary] = useState<DiaryEntry | null>(null);
   const [showEditDiaryModal, setShowEditDiaryModal] = useState(false);
   const [editDiaryContent, setEditDiaryContent] = useState("");
+
+  // NEW: Scheduling state
+  const [showSchedulePicker, setShowSchedulePicker] = useState(false);
+  const [entryToSchedule, setEntryToSchedule] = useState<DiaryEntry | null>(
+    null
+  );
 
   // Task creation state
   const [newTask, setNewTask] = useState<NewTask>({
@@ -113,6 +251,7 @@ const FeedView: React.FC<FeedViewProps> = ({
         type: "diary",
         data: entry,
         created_at: entry.created_at,
+        scheduled_date: entry.scheduled_date, // NEW: Include scheduled date
       });
     });
 
@@ -135,7 +274,13 @@ const FeedView: React.FC<FeedViewProps> = ({
           }
           if (item.type === "diary") {
             const entry = item.data as DiaryEntry;
-            return entry.entry_date === today;
+            // Show entries created today or scheduled for today
+            return (
+              entry.entry_date === today ||
+              (entry.is_scheduled &&
+                entry.scheduled_date &&
+                entry.scheduled_date.startsWith(today))
+            );
           }
           return false;
         });
@@ -247,6 +392,37 @@ const FeedView: React.FC<FeedViewProps> = ({
     }
   };
 
+  // NEW: Diary scheduling handlers
+  const handleScheduleEntry = useCallback((entry: DiaryEntry) => {
+    setEntryToSchedule(entry);
+    setShowSchedulePicker(true);
+  }, []);
+
+  const handleSaveSchedule = useCallback(
+    async (dateTime: string) => {
+      if (entryToSchedule && onScheduleDiaryEntry) {
+        try {
+          await onScheduleDiaryEntry(entryToSchedule.id, dateTime);
+          setEntryToSchedule(null);
+        } catch (error) {
+          console.error("Error scheduling diary entry:", error);
+        }
+      }
+    },
+    [entryToSchedule, onScheduleDiaryEntry]
+  );
+
+  const handleClearSchedule = useCallback(async () => {
+    if (entryToSchedule && onUnscheduleDiaryEntry) {
+      try {
+        await onUnscheduleDiaryEntry(entryToSchedule.id);
+        setEntryToSchedule(null);
+      } catch (error) {
+        console.error("Error unscheduling diary entry:", error);
+      }
+    }
+  }, [entryToSchedule, onUnscheduleDiaryEntry]);
+
   const toggleItemExpansion = (itemId: string) => {
     setExpandedItems((prev) => {
       const newSet = new Set(prev);
@@ -278,6 +454,26 @@ const FeedView: React.FC<FeedViewProps> = ({
       return folders.find((folder) => folder.id === (entry as any).folder_id);
     }
     return null;
+  };
+
+  // NEW: Helper function to format scheduled time
+  const formatScheduledTime = (scheduledDate: string) => {
+    const date = new Date(scheduledDate);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  // Simple markdown-like formatting for display
+  const formatContent = (content: string) => {
+    return content
+      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.*?)\*/g, "<em>$1</em>")
+      .replace(/\n/g, "<br />");
   };
 
   const renderFeedItem = (item: FeedItem) => {
@@ -341,19 +537,31 @@ const FeedView: React.FC<FeedViewProps> = ({
         >
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <div className="flex items-center space-x-2 mb-2">
-                <BookOpen className="w-4 h-4 text-purple-500" />
-                <span className="text-sm font-medium text-purple-700">
-                  Diary Entry
-                </span>
-                {folder && (
-                  <>
-                    <div
-                      className="w-3 h-3 rounded"
-                      style={{ backgroundColor: folder.color }}
-                    />
-                    <span className="text-xs text-gray-500">{folder.name}</span>
-                  </>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2">
+                  <BookOpen className="w-4 h-4 text-purple-500" />
+                  <span className="text-sm font-medium text-purple-700">
+                    Diary Entry
+                  </span>
+                  {folder && (
+                    <>
+                      <div
+                        className="w-3 h-3 rounded"
+                        style={{ backgroundColor: folder.color }}
+                      />
+                      <span className="text-xs text-gray-500">
+                        {folder.name}
+                      </span>
+                    </>
+                  )}
+                </div>
+
+                {/* NEW: Scheduling indicator */}
+                {entry.is_scheduled && entry.scheduled_date && (
+                  <div className="flex items-center space-x-1 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                    <CalendarIcon className="w-3 h-3" />
+                    <span>{formatScheduledTime(entry.scheduled_date)}</span>
+                  </div>
                 )}
               </div>
 
@@ -365,9 +573,12 @@ const FeedView: React.FC<FeedViewProps> = ({
 
               <div className="text-gray-600 mb-2">
                 {isExpanded ? (
-                  <div className="prose prose-sm max-w-none">
-                    <MDEditor.Markdown source={entry.content} />
-                  </div>
+                  <div
+                    className="prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{
+                      __html: formatContent(entry.content),
+                    }}
+                  />
                 ) : (
                   <p className="line-clamp-3">
                     {entry.content.length > 200
@@ -392,6 +603,24 @@ const FeedView: React.FC<FeedViewProps> = ({
             </div>
 
             <div className="flex items-center space-x-2">
+              {/* NEW: Schedule button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleScheduleEntry(entry);
+                }}
+                className={`p-1 rounded transition-colors ${
+                  entry.is_scheduled
+                    ? "text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                    : "text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                }`}
+                title={
+                  entry.is_scheduled ? "Reschedule entry" : "Schedule entry"
+                }
+              >
+                <CalendarIcon className="w-4 h-4" />
+              </button>
+
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -480,13 +709,9 @@ const FeedView: React.FC<FeedViewProps> = ({
         }
       `}</style>
 
-      <div className="max-w-4xl mx-auto">
+      <div className="w-full">
         {/* Header with tabs */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Activity Feed
-          </h1>
-
           {/* Tab Navigation */}
           <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
             {tabs.map((tab) => {
@@ -507,24 +732,6 @@ const FeedView: React.FC<FeedViewProps> = ({
               );
             })}
           </div>
-        </div>
-
-        {/* Action buttons */}
-        <div className="flex space-x-3 mb-6">
-          <button
-            onClick={() => setShowNewTaskModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2"
-          >
-            <Plus className="w-4 h-4" />
-            <span>New Task</span>
-          </button>
-          <button
-            onClick={() => setShowNewDiaryModal(true)}
-            className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 flex items-center space-x-2"
-          >
-            <Plus className="w-4 h-4" />
-            <span>New Diary Entry</span>
-          </button>
         </div>
 
         {/* Feed content */}
@@ -572,7 +779,23 @@ const FeedView: React.FC<FeedViewProps> = ({
           </div>
         )}
       </div>
-
+      {/* Floating action buttons */}
+      <div className="fixed bottom-6 right-6 z-30 flex flex-col space-y-3">
+        <button
+          onClick={() => setShowNewDiaryModal(true)}
+          className="w-14 h-14 rounded-full bg-purple-600 hover:bg-purple-700 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110"
+          title="New Diary Entry"
+        >
+          <BookOpen className="w-6 h-6 text-white" />
+        </button>
+        <button
+          onClick={() => setShowNewTaskModal(true)}
+          className="w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110"
+          title="New Task"
+        >
+          <AlarmClockCheck className="w-6 h-6 text-white" />
+        </button>
+      </div>
       {/* Task Creation Modal */}
       <Modal
         isOpen={showNewTaskModal}
@@ -663,19 +886,18 @@ const FeedView: React.FC<FeedViewProps> = ({
         })}`}
       >
         <div className="space-y-4">
-          <div className="diary-editor">
-            <MDEditor
-              value={newDiaryContent}
-              onChange={(value) => setNewDiaryContent(value || "")}
-              preview="edit"
-              hideToolbar={false}
-              height={350}
-              data-color-mode="light"
-            />
-          </div>
+          <textarea
+            value={newDiaryContent}
+            onChange={(e) => setNewDiaryContent(e.target.value)}
+            placeholder="Title
+
+Write your diary entry here. Use **bold** for bold text and *italic* for italic text."
+            className="w-full border border-gray-300 rounded-md px-3 py-3 h-80 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
 
           <div className="text-xs text-gray-500">
-            First line becomes your title. Use Markdown for formatting.
+            First line becomes your title. Use **bold** and *italic* for
+            formatting.
           </div>
 
           <div className="flex space-x-3">
@@ -711,19 +933,15 @@ const FeedView: React.FC<FeedViewProps> = ({
         }
       >
         <div className="space-y-4">
-          <div className="diary-editor">
-            <MDEditor
-              value={editDiaryContent}
-              onChange={(value) => setEditDiaryContent(value || "")}
-              preview="edit"
-              hideToolbar={false}
-              height={350}
-              data-color-mode="light"
-            />
-          </div>
+          <textarea
+            value={editDiaryContent}
+            onChange={(e) => setEditDiaryContent(e.target.value)}
+            className="w-full border border-gray-300 rounded-md px-3 py-3 h-80 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
 
           <div className="text-xs text-gray-500">
-            First line becomes your title. Use Markdown for formatting.
+            First line becomes your title. Use **bold** and *italic* for
+            formatting.
           </div>
 
           <div className="flex space-x-3">
@@ -747,6 +965,19 @@ const FeedView: React.FC<FeedViewProps> = ({
           </div>
         </div>
       </Modal>
+
+      {/* NEW: Schedule Entry Modal */}
+      <DateTimePickerModal
+        isOpen={showSchedulePicker}
+        onClose={() => {
+          setShowSchedulePicker(false);
+          setEntryToSchedule(null);
+        }}
+        onSave={handleSaveSchedule}
+        onClear={handleClearSchedule}
+        currentDateTime={entryToSchedule?.scheduled_date}
+        entryTitle={entryToSchedule?.title || "Diary Entry"}
+      />
     </>
   );
 };
