@@ -63,6 +63,16 @@ export const api = {
     });
     return response.json();
   },
+
+  deleteFolder: async (folderId: number) => {
+    const response = await fetch(`${API_BASE_URL}/api/folders/${folderId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to delete folder");
+      }
+      return response.json();
+  },
   getDiaryEntries: async (entryDate?: string, folderId?: number) => {
     let url = `${API_BASE_URL}/api/diary`;
     const params = new URLSearchParams();
@@ -98,7 +108,7 @@ export const api = {
     }
     return response.json();
   },
-  // NEW: Schedule diary entry
+
   scheduleDiaryEntry: async (entryId: number, scheduledDate: string) => {
     const response = await fetch(`${API_BASE_URL}/api/diary/${entryId}`, {
       method: "PUT",
@@ -110,7 +120,7 @@ export const api = {
     });
     return response.json();
   },
-  // NEW: Unschedule diary entry
+
   unscheduleDiaryEntry: async (entryId: number) => {
     const response = await fetch(`${API_BASE_URL}/api/diary/${entryId}`, {
       method: "PUT",
