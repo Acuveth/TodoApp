@@ -17,7 +17,11 @@ from jose import jwt
 from passlib.context import CryptContext
 
 # Database setup - MySQL configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:root@127.0.0.1:3306/side_projects")
+# Šiht
+DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:pass@127.0.0.1:3306/side_projects")
+
+# Doma
+#DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:root@127.0.0.1:3306/side_projects")
 
 engine = create_engine(
     DATABASE_URL,
@@ -129,7 +133,6 @@ class DiaryEntry(Base):
     entry_date = Column(Date, nullable=False)
     title = Column(String(500))
     content = Column(Text, nullable=False)
-    # NEW: Scheduling fields
     scheduled_date = Column(DateTime, nullable=True)  # When diary entry is scheduled for
     is_scheduled = Column(Boolean, default=False)  # Whether entry is scheduled
     google_calendar_event_id = Column(String(255))  # Google Calendar integration
@@ -628,6 +631,22 @@ def create_folder(folder: FolderCreate, current_user: User = Depends(get_current
     db.refresh(db_folder)
     return db_folder
 
+@app.delete("/api/folders/{folder_id}")
+def delete_folder(folder_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Verify folder belongs to user
+    folder = db.query(Folder).filter(Folder.id == folder_id, Folder.user_id == current_user.id).first()
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found")
+    
+    # Get the folder name for response
+    folder_name = folder.name
+    
+    # Delete the folder (tasks and diary entries will have their folder_id set to NULL due to SET NULL constraint)
+    db.delete(folder)
+    db.commit()
+    
+    return {"message": f"Folder '{folder_name}' deleted successfully", "id": folder_id}
+
 @app.get("/api/folders")
 def get_folders(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return db.query(Folder).filter(Folder.user_id == current_user.id).all()
@@ -762,6 +781,9 @@ def update_task(task_id: int, updates: dict, current_user: User = Depends(get_cu
     db.commit()
     db.refresh(task)
     return task
+
+
+
 
 # NEW: Updated diary entry endpoint with scheduling support
 @app.put("/api/diary/{entry_id}")
