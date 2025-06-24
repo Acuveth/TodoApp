@@ -1,4 +1,4 @@
-// API configuration with HIERARCHY support, DELETE functionality, and DIARY SCHEDULING
+// API configuration with HIERARCHY support, DELETE functionality, DIARY SCHEDULING, and FOLDER MANAGEMENT
 const API_BASE_URL = "http://localhost:8000";
 
 export const api = {
@@ -63,7 +63,19 @@ export const api = {
     });
     return response.json();
   },
-
+  // Update folder
+  updateFolder: async (folderId: number, updates: any) => {
+    const response = await fetch(`${API_BASE_URL}/api/folders/${folderId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    if (!response.ok) {
+      throw new Error("Failed to update folder");
+    }
+    return response.json();
+  },
+  // Delete folder
   deleteFolder: async (folderId: number) => {
     const response = await fetch(`${API_BASE_URL}/api/folders/${folderId}`, {
         method: "DELETE",

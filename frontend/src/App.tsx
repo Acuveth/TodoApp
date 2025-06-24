@@ -8,6 +8,10 @@ import {
   AlertCircle,
   Activity,
   AlarmClockCheck,
+  Edit,
+  Trash2,
+  X,
+  Save,
 } from "lucide-react";
 
 // Component imports
@@ -23,8 +27,264 @@ import {
 import { Task, FolderType, DiaryEntry, NewTask, NewFolder } from "./types";
 import { api } from "./utils";
 
+// Folder Management Modal Component
+const FolderManagementModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  folders: FolderType[];
+  onCreateFolder: (folder: NewFolder) => Promise<void>;
+  onUpdateFolder: (id: number, folder: Partial<NewFolder>) => Promise<void>;
+  onDeleteFolder: (id: number) => Promise<void>;
+}> = ({ isOpen, onClose, folders, onCreateFolder, onUpdateFolder, onDeleteFolder }) => {
+  const [newFolder, setNewFolder] = useState<NewFolder>({
+    name: "",
+    color: "#3B82F6",
+  });
+  const [editingFolder, setEditingFolder] = useState<FolderType | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
+
+  const handleCreateFolder = async () => {
+    if (newFolder.name.trim() && newFolder.name.length <= 16) {
+      try {
+        await onCreateFolder(newFolder);
+        setNewFolder({ name: "", color: "#3B82F6" });
+      } catch (error) {
+        console.error("Error creating folder:", error);
+      }
+    }
+  };
+
+  const handleUpdateFolder = async () => {
+    if (editingFolder && editingFolder.name.trim() && editingFolder.name.length <= 16) {
+      try {
+        await onUpdateFolder(editingFolder.id, {
+          name: editingFolder.name,
+          color: editingFolder.color,
+        });
+        setEditingFolder(null);
+      } catch (error) {
+        console.error("Error updating folder:", error);
+      }
+    }
+  };
+
+  const handleDeleteFolder = async (id: number) => {
+    try {
+      await onDeleteFolder(id);
+      setShowDeleteConfirm(null);
+    } catch (error) {
+      console.error("Error deleting folder:", error);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
+        <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+          <div
+            className="absolute inset-0 bg-gray-500 opacity-75"
+            onClick={onClose}
+          ></div>
+        </div>
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          <div className="bg-white px-6 pt-6 pb-4">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">
+                Manage Folders
+              </h3>
+              <button
+                onClick={onClose}
+                className="rounded-md text-gray-400 hover:text-gray-600 focus:outline-none"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            {/* Create New Folder */}
+            <div className="space-y-4 mb-6">
+              <h4 className="font-medium text-gray-900">Create New Folder</h4>
+              <div className="space-y-3">
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Folder name (max 12 chars)"
+                    value={newFolder.name}
+                    onChange={(e) => {
+                      const value = e.target.value.slice(0, 16); // Limit to 12 characters
+                      setNewFolder(prev => ({ ...prev, name: value }));
+                    }}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    maxLength={12}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {newFolder.name.length}/16 characters
+                  </p>
+                </div>
+                <input
+                  type="color"
+                  value={newFolder.color}
+                  onChange={(e) => setNewFolder(prev => ({ ...prev, color: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 h-10"
+                />
+                <button
+                  onClick={handleCreateFolder}
+                  disabled={!newFolder.name.trim() || newFolder.name.length > 16}
+                  className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Create Folder
+                </button>
+              </div>
+            </div>
+
+            {/* Existing Folders */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-gray-900">Existing Folders ({folders.length})</h4>
+              <div className="max-h-60 overflow-y-auto space-y-2">
+                {folders.map((folder) => (
+                  <div
+                    key={folder.id}
+                    className="flex items-center justify-between p-3 border border-gray-200 rounded-md hover:bg-gray-50"
+                  >
+                    {editingFolder?.id === folder.id ? (
+                      // Edit mode
+                      <div className="flex-1 flex items-center space-x-2">
+                        <input
+                          type="text"
+                          value={editingFolder.name}
+                          onChange={(e) => {
+                            const value = e.target.value.slice(0, 16);
+                            setEditingFolder(prev => prev ? { ...prev, name: value } : null);
+                          }}
+                          className="flex-1 border border-gray-300 rounded-md px-2 py-1 text-sm"
+                          maxLength={12}
+                        />
+                        <input
+                          type="color"
+                          value={editingFolder.color}
+                          onChange={(e) => setEditingFolder(prev => prev ? { ...prev, color: e.target.value } : null)}
+                          className="w-8 h-8 border border-gray-300 rounded"
+                        />
+                        <button
+                          onClick={handleUpdateFolder}
+                          disabled={!editingFolder.name.trim() || editingFolder.name.length > 16}
+                          className="p-1 text-green-600 hover:text-green-800 disabled:opacity-50"
+                        >
+                          <Save className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setEditingFolder(null)}
+                          className="p-1 text-gray-400 hover:text-gray-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      // View mode
+                      <>
+                        <div className="flex items-center space-x-3">
+                          <div
+                            className="w-4 h-4 rounded"
+                            style={{ backgroundColor: folder.color }}
+                          />
+                          <span className="font-medium">{folder.name}</span>
+                          <span className="text-xs text-gray-500">
+                            ({folder.name.length}/12)
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <button
+                            onClick={() => setEditingFolder(folder)}
+                            className="p-1 text-gray-400 hover:text-blue-600"
+                            title="Edit folder"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setShowDeleteConfirm(folder.id)}
+                            className="p-1 text-gray-400 hover:text-red-600"
+                            title="Delete folder"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+                {folders.length === 0 && (
+                  <p className="text-gray-500 text-center py-4">No folders created yet</p>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <button
+                onClick={onClose}
+                className="w-full border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-60 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
+            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div
+                className="absolute inset-0 bg-gray-500 opacity-75"
+                onClick={() => setShowDeleteConfirm(null)}
+              ></div>
+            </div>
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <Trash2 className="h-6 w-6 text-red-600" />
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      Delete Folder
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        Are you sure you want to delete this folder? Tasks and diary entries in this folder will be moved to "No Folder".
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  onClick={() => handleDeleteFolder(showDeleteConfirm)}
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Delete
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(null)}
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 function TodoApp() {
-  const [currentView, setCurrentView] = useState("feed"); // Changed default to feed
+  const [currentView, setCurrentView] = useState("feed");
   const [selectedFolder, setSelectedFolder] = useState<FolderType | null>(null);
   const [folders, setFolders] = useState<FolderType[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -34,6 +294,7 @@ function TodoApp() {
   const [backendStatus, setBackendStatus] = useState("checking");
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
+  const [showFolderManagementModal, setShowFolderManagementModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   // NEW: State for subtask creation
@@ -100,8 +361,8 @@ function TodoApp() {
     setLoading(true);
     try {
       const [tasksData, entriesData] = await Promise.all([
-        api.getTasks(null), // Get all tasks for feed
-        api.getDiaryEntries(undefined, undefined), // Get all diary entries for feed
+        api.getTasks(null),
+        api.getDiaryEntries(undefined, undefined),
       ]);
       setTasks(tasksData);
       setDiaryEntries(entriesData);
@@ -168,14 +429,75 @@ function TodoApp() {
     setNewTask((prev: NewTask) => ({ ...prev, is_calendar_event: value }));
   }, []);
 
-  // Folder handlers
+  // Folder handlers with character limit
   const handleFolderNameChange = useCallback((value: string) => {
-    setNewFolder((prev: NewFolder) => ({ ...prev, name: value }));
+    const limitedValue = value.slice(0, 12); // Limit to 12 characters
+    setNewFolder((prev: NewFolder) => ({ ...prev, name: limitedValue }));
   }, []);
 
   const handleFolderColorChange = useCallback((value: string) => {
     setNewFolder((prev: NewFolder) => ({ ...prev, color: value }));
   }, []);
+
+  // Updated folder management functions
+  const handleCreateFolder = async (folderData?: NewFolder) => {
+    try {
+      const dataToUse = folderData || newFolder;
+      if (!dataToUse.name.trim() || dataToUse.name.length > 12) {
+        console.error("Folder name is required and must be 12 characters or less");
+        return;
+      }
+      
+      await api.createFolder(dataToUse);
+      
+      if (!folderData) {
+        setNewFolder({ name: "", color: "#3B82F6" });
+        setShowNewFolderModal(false);
+      }
+      
+      loadFolders();
+    } catch (error) {
+      console.error("Error creating folder:", error);
+    }
+  };
+
+  const handleUpdateFolder = async (id: number, updates: Partial<NewFolder>) => {
+    try {
+      if (updates.name && (updates.name.length === 0 || updates.name.length > 12)) {
+        console.error("Folder name must be between 1 and 12 characters");
+        return;
+      }
+      
+      await api.updateFolder(id, updates);
+      loadFolders();
+    } catch (error) {
+      console.error("Error updating folder:", error);
+    }
+  };
+
+  const handleDeleteFolder = async (id: number) => {
+    try {
+      await api.deleteFolder(id);
+      
+      // If the deleted folder was selected, reset to "All"
+      if (selectedFolder?.id === id) {
+        setSelectedFolder(null);
+      }
+      
+      loadFolders();
+      
+      // Reload current view data to reflect changes
+      if (currentView === "tasks") {
+        loadTasks();
+      } else if (currentView === "diary") {
+        loadDiaryEntries();
+      } else if (currentView === "feed") {
+        loadAllData();
+      }
+    } catch (error) {
+      console.error("Error deleting folder:", error);
+    }
+  };
 
   // Create handlers
   const handleCreateTask = async (taskData?: any) => {
@@ -273,17 +595,6 @@ function TodoApp() {
       } else if (currentView === "feed") {
         loadAllData();
       }
-    }
-  };
-
-  const handleCreateFolder = async () => {
-    try {
-      await api.createFolder(newFolder);
-      setNewFolder({ name: "", color: "#3B82F6" });
-      setShowNewFolderModal(false);
-      loadFolders();
-    } catch (error) {
-      console.error("Error creating folder:", error);
     }
   };
 
@@ -735,12 +1046,22 @@ function TodoApp() {
         <div>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-gray-900">Folders</h3>
-            <button
-              onClick={() => setShowNewFolderModal(true)}
-              className="p-1 text-gray-400 hover:text-gray-600"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={() => setShowFolderManagementModal(true)}
+                className="p-1 text-gray-400 hover:text-gray-600"
+                title="Manage folders"
+              >
+                <Edit className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setShowNewFolderModal(true)}
+                className="p-1 text-gray-400 hover:text-gray-600"
+                title="Add folder"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           <div className="space-y-1">
@@ -770,7 +1091,7 @@ function TodoApp() {
                   className="w-4 h-4 rounded"
                   style={{ backgroundColor: folder.color }}
                 />
-                <span>{folder.name}</span>
+                <span className="truncate">{folder.name}</span>
               </button>
             ))}
           </div>
@@ -853,8 +1174,8 @@ function TodoApp() {
                       onToggleExpansion={toggleTaskExpansion}
                       onToggleStatus={toggleTaskStatus}
                       onCreateSubtask={handleCreateSubtask}
-                      onUpdateTask={handleUpdateTask} // Pass the update handler
-                      onDeleteTask={handleDeleteTask} // NEW: Pass the delete handler
+                      onUpdateTask={handleUpdateTask}
+                      onDeleteTask={handleDeleteTask}
                       allTasks={tasks}
                     />
                   ))}
@@ -1113,13 +1434,19 @@ function TodoApp() {
         title="Create New Folder"
       >
         <div className="space-y-4">
-          <input
-            type="text"
-            placeholder="Folder name"
-            value={newFolder.name}
-            onChange={(e) => handleFolderNameChange(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2"
-          />
+          <div>
+            <input
+              type="text"
+              placeholder="Folder name (max 12 chars)"
+              value={newFolder.name}
+              onChange={(e) => handleFolderNameChange(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              maxLength={12}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              {newFolder.name.length}/12 characters
+            </p>
+          </div>
           <input
             type="color"
             value={newFolder.color}
@@ -1134,8 +1461,8 @@ function TodoApp() {
               Cancel
             </button>
             <button
-              onClick={handleCreateFolder}
-              disabled={!newFolder.name}
+              onClick={() => handleCreateFolder()}
+              disabled={!newFolder.name.trim() || newFolder.name.length > 12}
               className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
             >
               Create Folder
@@ -1143,6 +1470,16 @@ function TodoApp() {
           </div>
         </div>
       </Modal>
+
+      {/* Folder Management Modal */}
+      <FolderManagementModal
+        isOpen={showFolderManagementModal}
+        onClose={() => setShowFolderManagementModal(false)}
+        folders={folders}
+        onCreateFolder={handleCreateFolder}
+        onUpdateFolder={handleUpdateFolder}
+        onDeleteFolder={handleDeleteFolder}
+      />
     </div>
   );
 }

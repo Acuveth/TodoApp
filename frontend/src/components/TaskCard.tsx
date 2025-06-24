@@ -12,8 +12,10 @@ import {
   Calendar,
   X,
   Trash2,
+  Edit2,
+  Save,
 } from "lucide-react";
-import { Task } from "../types";
+import { Task, FolderType } from "../types";
 
 interface TaskCardProps {
   task: Task;
@@ -24,7 +26,237 @@ interface TaskCardProps {
   onUpdateTask?: (taskId: number, updates: any) => void;
   onDeleteTask?: (taskId: number) => void;
   allTasks: Task[];
+  folders?: FolderType[]; // NEW: Add folders for selection
 }
+
+// NEW: Task Edit Modal Component
+const TaskEditModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (updates: any) => void;
+  task: Task;
+  folders?: FolderType[];
+}> = ({ isOpen, onClose, onSave, task, folders = [] }) => {
+  const [title, setTitle] = useState(task.title);
+  const [description, setDescription] = useState(task.description || "");
+  const [priority, setPriority] = useState(task.priority);
+  const [dueDate, setDueDate] = useState(
+    task.due_date ? new Date(task.due_date).toISOString().slice(0, 16) : ""
+  );
+  const [isCalendarEvent, setIsCalendarEvent] = useState(task.is_calendar_event);
+  const [status, setStatus] = useState(task.status);
+  const [folderId, setFolderId] = useState<number | null>(
+    (task as any).folder_id || null
+  );
+
+  // Reset form when task changes
+  useEffect(() => {
+    setTitle(task.title);
+    setDescription(task.description || "");
+    setPriority(task.priority);
+    setDueDate(
+      task.due_date ? new Date(task.due_date).toISOString().slice(0, 16) : ""
+    );
+    setIsCalendarEvent(task.is_calendar_event);
+    setStatus(task.status);
+    setFolderId((task as any).folder_id || null);
+  }, [task]);
+
+  const handleSave = () => {
+    const updates: any = {
+      title: title.trim(),
+      description: description.trim() || null,
+      priority,
+      status,
+      due_date: dueDate ? new Date(dueDate).toISOString() : null,
+      is_calendar_event: isCalendarEvent,
+      folder_id: folderId,
+    };
+
+    // Remove unchanged fields to avoid unnecessary updates
+    const changes: any = {};
+    if (updates.title !== task.title) changes.title = updates.title;
+    if (updates.description !== (task.description || null)) changes.description = updates.description;
+    if (updates.priority !== task.priority) changes.priority = updates.priority;
+    if (updates.status !== task.status) changes.status = updates.status;
+    if (updates.due_date !== task.due_date) changes.due_date = updates.due_date;
+    if (updates.is_calendar_event !== task.is_calendar_event) changes.is_calendar_event = updates.is_calendar_event;
+    if (updates.folder_id !== (task as any).folder_id) changes.folder_id = updates.folder_id;
+
+    if (Object.keys(changes).length > 0) {
+      onSave(changes);
+    }
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
+        <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+          <div
+            className="absolute inset-0 bg-gray-500 opacity-75"
+            onClick={onClose}
+          ></div>
+        </div>
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">
+                Edit Task
+              </h3>
+              <button
+                onClick={onClose}
+                className="rounded-md text-gray-400 hover:text-gray-600 focus:outline-none"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Title *
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Task title"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Task description (optional)"
+                />
+              </div>
+
+              {/* Status */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Status
+                </label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+
+              {/* Priority */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Priority
+                </label>
+                <div className="flex space-x-2">
+                  {[1, 2, 3].map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPriority(p)}
+                      className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
+                        priority === p
+                          ? p === 1
+                            ? "bg-green-100 border-green-500 text-green-700"
+                            : p === 2
+                            ? "bg-yellow-100 border-yellow-500 text-yellow-700"
+                            : "bg-red-100 border-red-500 text-red-700"
+                          : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      {p === 1 ? "Low" : p === 2 ? "Medium" : "High"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Due Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Due Date & Time
+                </label>
+                <input
+                  type="datetime-local"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Folder Selection */}
+              {folders.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Folder
+                  </label>
+                  <select
+                    value={folderId || ""}
+                    onChange={(e) => setFolderId(e.target.value ? parseInt(e.target.value) : null)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">No Folder</option>
+                    {folders.map((folder) => (
+                      <option key={folder.id} value={folder.id}>
+                        {folder.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Calendar Event */}
+              <div>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={isCalendarEvent}
+                    onChange={(e) => setIsCalendarEvent(e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700">
+                    Add to Google Calendar
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex space-x-3 mt-6">
+              <button
+                onClick={onClose}
+                className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={!title.trim()}
+                className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Delete Confirmation Modal Component
 const DeleteConfirmationModal: React.FC<{
@@ -225,6 +457,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   onUpdateTask,
   onDeleteTask,
   allTasks = [],
+  folders = [], // NEW: Accept folders prop
 }) => {
   // Hidden subtasks state with localStorage persistence
   const [hiddenSubtasks, setHiddenSubtasks] = useState<Set<number>>(() => {
@@ -245,6 +478,10 @@ const TaskCard: React.FC<TaskCardProps> = ({
   // Delete confirmation state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
+
+  // NEW: Edit modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editTaskId, setEditTaskId] = useState<number | null>(null);
 
   // Save to localStorage whenever hiddenSubtasks changes
   useEffect(() => {
@@ -305,6 +542,20 @@ const TaskCard: React.FC<TaskCardProps> = ({
     }
     setShowDeleteConfirm(false);
     setDeleteTaskId(null);
+  };
+
+  // NEW: Handle task editing
+  const handleEditTask = (taskId: number) => {
+    setEditTaskId(taskId);
+    setShowEditModal(true);
+  };
+
+  const handleSaveTaskEdits = (updates: any) => {
+    if (editTaskId && onUpdateTask) {
+      onUpdateTask(editTaskId, updates);
+    }
+    setShowEditModal(false);
+    setEditTaskId(null);
   };
 
   const getTaskById = (taskId: number): Task | undefined => {
@@ -464,6 +715,15 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
             {/* Action buttons for subtasks */}
             <div className="flex items-center space-x-1">
+              {/* NEW: Edit button for subtask */}
+              <button
+                onClick={() => handleEditTask(subtask.id)}
+                className="p-1 text-gray-400 hover:text-blue-600 rounded"
+                title="Edit subtask"
+              >
+                <Edit2 className="w-4 h-4" />
+              </button>
+
               {/* Schedule button for subtask */}
               <button
                 onClick={() => handleScheduleTask(subtask.id)}
@@ -641,6 +901,15 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
           {/* Action buttons */}
           <div className="flex items-center space-x-1">
+            {/* NEW: Edit button */}
+            <button
+              onClick={() => handleEditTask(task.id)}
+              className="p-1 text-gray-400 hover:text-blue-600 rounded"
+              title="Edit task"
+            >
+              <Edit2 className="w-5 h-5" />
+            </button>
+
             {/* Schedule button */}
             <button
               onClick={() => handleScheduleTask(task.id)}
@@ -727,6 +996,20 @@ const TaskCard: React.FC<TaskCardProps> = ({
             ))}
           </div>
         </div>
+      )}
+
+      {/* NEW: Task Edit Modal */}
+      {editTaskId && (
+        <TaskEditModal
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditTaskId(null);
+          }}
+          onSave={handleSaveTaskEdits}
+          task={getTaskById(editTaskId) || task}
+          folders={folders}
+        />
       )}
 
       {/* Date/Time Picker Modal */}

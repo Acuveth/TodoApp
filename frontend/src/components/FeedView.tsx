@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Plus,
   Calendar as CalendarIcon,
@@ -13,6 +13,11 @@ import {
   EyeOff,
   X,
   AlarmClockCheck,
+  Filter,
+  ChevronDown,
+  RotateCcw,
+  SortAsc,
+  SortDesc,
 } from "lucide-react";
 import { Task, DiaryEntry, FolderType, NewTask, NewDiaryEntry } from "../types";
 import { Modal, TaskCard } from "./";
@@ -49,6 +54,72 @@ type FeedItem = {
 };
 
 type TabType = "all" | "today" | "diaries" | "tasks";
+
+// NEW: Filter and Sort types - SIMPLIFIED
+type FilterBy = "priority" | "created_at" | "due_date";
+type SortOrder = "asc" | "desc";
+
+interface TaskSort {
+  by: FilterBy;
+  order: SortOrder;
+}
+
+// NEW: Filter Dropdown Component
+const FilterDropdown: React.FC<{
+  label: string;
+  value: string;
+  options: { value: string; label: string; color?: string }[];
+  onChange: (value: string) => void;
+  icon?: React.ReactNode;
+}> = ({ label, value, options, onChange, icon }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedOption = options.find(opt => opt.value === value);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm border transition-colors ${
+          value !== "all" 
+            ? "bg-blue-50 border-blue-200 text-blue-700" 
+            : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+        }`}
+      >
+        {icon && <span className="text-gray-500">{icon}</span>}
+        <span>{selectedOption?.label || label}</span>
+        <ChevronDown className="w-3 h-3" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-8 left-0 z-10 bg-white border border-gray-200 rounded-md shadow-lg min-w-[160px]">
+          <div className="p-1">
+            {options.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 text-sm rounded hover:bg-gray-100 flex items-center space-x-2 ${
+                  value === option.value ? "bg-blue-50 text-blue-700" : "text-gray-700"
+                }`}
+              >
+                {option.color && (
+                  <div
+                    className="w-3 h-3 rounded"
+                    style={{ backgroundColor: option.color }}
+                  />
+                )}
+                <span>{option.label}</span>
+                {value === option.value && <span className="ml-auto">✓</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // NEW: Date/Time Picker Modal for Diary Scheduling
 const DateTimePickerModal: React.FC<{
@@ -203,6 +274,13 @@ const FeedView: React.FC<FeedViewProps> = ({
   const [showEditDiaryModal, setShowEditDiaryModal] = useState(false);
   const [editDiaryContent, setEditDiaryContent] = useState("");
 
+  // NEW: Simplified Filter State
+  const [taskSort, setTaskSort] = useState<TaskSort>({
+    by: "created_at",
+    order: "desc",
+  });
+  const [showFilters, setShowFilters] = useState(false);
+
   // NEW: Scheduling state
   const [showSchedulePicker, setShowSchedulePicker] = useState(false);
   const [entryToSchedule, setEntryToSchedule] = useState<DiaryEntry | null>(
@@ -227,22 +305,52 @@ const FeedView: React.FC<FeedViewProps> = ({
   // Get today's date in YYYY-MM-DD format
   const today = new Date().toISOString().split("T")[0];
 
+  // NEW: Helper functions for sorting only
+  const sortTasks = useCallback((taskList: Task[]): Task[] => {
+    return [...taskList].sort((a, b) => {
+      let compareValue = 0;
+
+      switch (taskSort.by) {
+        case "created_at":
+          compareValue = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          break;
+        case "priority":
+          compareValue = b.priority - a.priority; // Higher priority first for desc
+          break;
+        case "due_date":
+          const aDue = a.due_date ? new Date(a.due_date).getTime() : Infinity;
+          const bDue = b.due_date ? new Date(b.due_date).getTime() : Infinity;
+          compareValue = aDue - bDue;
+          break;
+        default:
+          compareValue = 0;
+      }
+
+      return taskSort.order === "desc" ? -compareValue : compareValue;
+    });
+  }, [taskSort]);
+
   // Combine and sort items by creation time
   const createFeedItems = useCallback((): FeedItem[] => {
     const feedItems: FeedItem[] = [];
 
     // Add tasks to feed (only root tasks for cleaner feed view)
-    tasks
-      .filter((task) => !task.parent_task_id) // Only show root tasks
-      .forEach((task) => {
-        feedItems.push({
-          id: `task-${task.id}`,
-          type: "task",
-          data: task,
-          created_at: task.created_at,
-          due_date: task.due_date,
-        });
+    let tasksToShow = tasks.filter((task) => !task.parent_task_id);
+    
+    // Apply sorting only to tasks tab
+    if (activeTab === "tasks") {
+      tasksToShow = sortTasks(tasksToShow);
+    }
+
+    tasksToShow.forEach((task) => {
+      feedItems.push({
+        id: `task-${task.id}`,
+        type: "task",
+        data: task,
+        created_at: task.created_at,
+        due_date: task.due_date,
       });
+    });
 
     // Add diary entries to feed
     diaryEntries.forEach((entry) => {
@@ -251,16 +359,20 @@ const FeedView: React.FC<FeedViewProps> = ({
         type: "diary",
         data: entry,
         created_at: entry.created_at,
-        scheduled_date: entry.scheduled_date, // NEW: Include scheduled date
+        scheduled_date: entry.scheduled_date,
       });
     });
 
-    // Sort by creation time (newest first)
-    return feedItems.sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-  }, [tasks, diaryEntries]);
+    // Sort by creation time (newest first) if not tasks tab
+    if (activeTab !== "tasks") {
+      return feedItems.sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    }
+
+    return feedItems;
+  }, [tasks, diaryEntries, activeTab, sortTasks]);
 
   // Filter items based on active tab
   const filteredItems = useCallback((): FeedItem[] => {
@@ -292,6 +404,26 @@ const FeedView: React.FC<FeedViewProps> = ({
         return allItems;
     }
   }, [createFeedItems, activeTab, today]);
+
+  // NEW: Simplified filter options
+  const sortOptions = [
+    { value: "created_at", label: "Latest First (Created)" },
+    { value: "priority", label: "Priority (High to Low)" },
+    { value: "due_date", label: "Due Date (Earliest First)" },
+  ];
+
+  // Reset sorting
+  const resetSort = () => {
+    setTaskSort({
+      by: "created_at",
+      order: "desc",
+    });
+  };
+
+  // Check if sorting is not default
+  const isCustomSort = useMemo(() => {
+    return taskSort.by !== "created_at" || taskSort.order !== "desc";
+  }, [taskSort]);
 
   // Task handlers
   const handleTaskTitleChange = useCallback((value: string) => {
@@ -488,8 +620,6 @@ const FeedView: React.FC<FeedViewProps> = ({
           {/* Feed context header */}
           <div className="flex items-center justify-between text-xs text-gray-500 px-1">
             <div className="flex items-center space-x-2">
-              <CheckSquare className="w-3 h-3 text-blue-500" />
-              <span className="font-medium text-blue-700">Task</span>
             </div>
             <div className="flex items-center space-x-1">
               <Clock className="w-3 h-3" />
@@ -522,6 +652,7 @@ const FeedView: React.FC<FeedViewProps> = ({
             onUpdateTask={onUpdateTask}
             onDeleteTask={onDeleteTask}
             allTasks={tasks}
+            folders={folders} // Pass folders to TaskCard
           />
         </div>
       );
@@ -732,6 +863,49 @@ const FeedView: React.FC<FeedViewProps> = ({
               );
             })}
           </div>
+
+          {/* NEW: Simplified Sort Controls for Tasks Tab */}
+          {activeTab === "tasks" && (
+            <div className="mt-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  {/* Sort Dropdown */}
+                  <FilterDropdown
+                    label="Sort by"
+                    value={taskSort.by}
+                    options={sortOptions}
+                    onChange={(value) =>
+                      setTaskSort((prev) => ({
+                        ...prev,
+                        by: value as FilterBy,
+                      }))
+                    }
+                  />
+                  
+                  {/* Sort Order Toggle */}
+                  <button
+                    onClick={() =>
+                      setTaskSort((prev) => ({
+                        ...prev,
+                        order: prev.order === "asc" ? "desc" : "asc",
+                      }))
+                    }
+                    className="px-3 py-1.5 border border-gray-300 rounded text-gray-500 hover:text-gray-700 hover:bg-gray-50 flex items-center space-x-1"
+                    title={`Sort ${taskSort.order === "asc" ? "ascending" : "descending"}`}
+                  >
+                    {taskSort.order === "asc" ? (
+                      <SortAsc className="w-4 h-4" />
+                    ) : (
+                      <SortDesc className="w-4 h-4" />
+                    )}
+                    <span className="text-xs">
+                      {taskSort.order === "asc" ? "Asc" : "Desc"}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Feed content */}
@@ -757,23 +931,38 @@ const FeedView: React.FC<FeedViewProps> = ({
                   )}
                 </div>
                 <p className="text-gray-500">
-                  {activeTab === "today"
-                    ? "No items for today"
-                    : activeTab === "diaries"
-                    ? "No diary entries yet"
-                    : activeTab === "tasks"
-                    ? "No tasks yet"
-                    : "No items yet"}
+                  {isCustomSort ? (
+                    <>No tasks match current sorting</>
+                  ) : (
+                    <>
+                      {activeTab === "today"
+                        ? "No items for today"
+                        : activeTab === "diaries"
+                        ? "No diary entries yet"
+                        : activeTab === "tasks"
+                        ? "No tasks yet"
+                        : "No items yet"}
+                    </>
+                  )}
                 </p>
-                <p className="text-sm text-gray-400 mt-2">
-                  Create your first{" "}
-                  {activeTab === "diaries"
-                    ? "diary entry"
-                    : activeTab === "tasks"
-                    ? "task"
-                    : "item"}{" "}
-                  to get started
-                </p>
+                {isCustomSort ? (
+                  <button
+                    onClick={resetSort}
+                    className="text-blue-600 hover:text-blue-800 text-sm mt-2"
+                  >
+                    Reset sorting
+                  </button>
+                ) : (
+                  <p className="text-sm text-gray-400 mt-2">
+                    Create your first{" "}
+                    {activeTab === "diaries"
+                      ? "diary entry"
+                      : activeTab === "tasks"
+                      ? "task"
+                      : "item"}{" "}
+                    to get started
+                  </p>
+                )}
               </div>
             )}
           </div>

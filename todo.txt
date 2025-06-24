@@ -1,8 +1,9 @@
 floating action button tasks
-today section on the calander - individual day feed controled by arrows so you can navigate between days
 when adding tasks or diaries to folders they should have their specific folder background color in the background
 tomorrow feed
 visual changes - enak design za diary entry in task and feedu
-limit folder name to a few characters, add ability to delete or update folders
-update tasks
-filter for task priority or time created or time scheduled
+
+remove the diary and tasks feeds 
+Calendar when you click on the task or diary it shows you it in the popup
+Feed view when I click on the diary it pops up 
+tasks and diary buttons should be hidden behind a dropdown schedule indicator should be next to that button

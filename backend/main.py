@@ -455,6 +455,32 @@ def create_task(task: TaskCreate, current_user: User = Depends(get_current_user)
     
     return db_task
 
+@app.put("/api/folders/{folder_id}")
+def update_folder(folder_id: int, updates: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Verify folder belongs to user
+    folder = db.query(Folder).filter(Folder.id == folder_id, Folder.user_id == current_user.id).first()
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found")
+    
+    # Validate folder name length if it's being updated
+    if 'name' in updates:
+        name = updates['name'].strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="Folder name cannot be empty")
+        if len(name) > 16:
+            raise HTTPException(status_code=400, detail="Folder name cannot exceed 12 characters")
+        updates['name'] = name
+    
+    # Update folder fields
+    for field, value in updates.items():
+        if hasattr(folder, field):
+            setattr(folder, field, value)
+    
+    folder.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(folder)
+    return folder
+
 @app.get("/api/tasks")
 def get_tasks(folder_id: Optional[int] = None, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     query = db.query(Task).filter(Task.user_id == current_user.id)
