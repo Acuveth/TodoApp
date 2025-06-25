@@ -1,9 +1,12 @@
+// Update frontend/src/components/FeedView.tsx to include Quest support
+
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Plus,
   Calendar as CalendarIcon,
   CheckSquare,
   BookOpen,
+  Scroll,
   Clock,
   Flag,
   Edit,
@@ -22,16 +25,18 @@ import {
   MoreVertical,
   ChevronLeft,
 } from "lucide-react";
-import { Task, DiaryEntry, FolderType, NewTask, NewDiaryEntry } from "../types";
-import { Modal, TaskCard, DiaryViewModal } from "./";
+import { Task, DiaryEntry, Quest, FolderType, NewTask, NewDiaryEntry, NewQuest } from "../types";
+import { Modal, TaskCard, DiaryViewModal, QuestCard, QuestViewModal } from "./";
 
 interface FeedViewProps {
   tasks: Task[];
   diaryEntries: DiaryEntry[];
+  quests: Quest[];
   folders: FolderType[];
   loading: boolean;
   onCreateTask: (taskData: any) => Promise<void>;
   onCreateDiaryEntry: (content: string) => Promise<void>;
+  onCreateQuest: (questData: any) => Promise<void>;
   onToggleTaskStatus: (task: Task) => Promise<void>;
   onUpdateTask: (taskId: number, updates: any) => Promise<void>;
   onDeleteTask: (taskId: number) => Promise<void>;
@@ -41,6 +46,11 @@ interface FeedViewProps {
     id: number,
     folderId: number | null
   ) => Promise<void>;
+  onUpdateQuest: (questId: number, updates: any) => Promise<void>;
+  onDeleteQuest: (questId: number) => Promise<void>;
+  onAddQuestParagraph: (questId: number, content: string) => Promise<void>;
+  onUpdateQuestParagraph: (questId: number, paragraphId: number, content: string) => Promise<void>;
+  onDeleteQuestParagraph: (questId: number, paragraphId: number) => Promise<void>;
   onCreateSubtask?: (parentTaskId: number) => void;
   onScheduleDiaryEntry?: (id: number, scheduledDate: string) => Promise<void>;
   onUnscheduleDiaryEntry?: (id: number) => Promise<void>;
@@ -48,14 +58,14 @@ interface FeedViewProps {
 
 type FeedItem = {
   id: string;
-  type: "task" | "diary";
-  data: Task | DiaryEntry;
+  type: "task" | "diary" | "quest";
+  data: Task | DiaryEntry | Quest;
   created_at: string;
   due_date?: string;
   scheduled_date?: string;
 };
 
-type TabType = "all" | "today" | "diaries" | "tasks";
+type TabType = "all" | "today" | "diaries" | "tasks" | "quests";
 
 type FilterBy = "priority" | "created_at" | "due_date";
 type SortOrder = "asc" | "desc";
@@ -377,16 +387,23 @@ const DateTimePickerModal: React.FC<{
 const FeedView: React.FC<FeedViewProps> = ({
   tasks,
   diaryEntries,
+  quests,
   folders,
   loading,
   onCreateTask,
   onCreateDiaryEntry,
+  onCreateQuest,
   onToggleTaskStatus,
   onUpdateTask,
   onDeleteTask,
   onUpdateDiaryEntry,
   onDeleteDiaryEntry,
   onUpdateDiaryEntryFolder,
+  onUpdateQuest,
+  onDeleteQuest,
+  onAddQuestParagraph,
+  onUpdateQuestParagraph,
+  onDeleteQuestParagraph,
   onCreateSubtask,
   onScheduleDiaryEntry,
   onUnscheduleDiaryEntry,
@@ -394,11 +411,16 @@ const FeedView: React.FC<FeedViewProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [showNewDiaryModal, setShowNewDiaryModal] = useState(false);
+  const [showNewQuestModal, setShowNewQuestModal] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [showFolderSelect, setShowFolderSelect] = useState<string | null>(null);
   const [editingDiary, setEditingDiary] = useState<DiaryEntry | null>(null);
   const [showEditDiaryModal, setShowEditDiaryModal] = useState(false);
   const [editDiaryContent, setEditDiaryContent] = useState("");
+
+  // Quest modal states
+  const [showQuestViewModal, setShowQuestViewModal] = useState(false);
+  const [viewingQuest, setViewingQuest] = useState<Quest | null>(null);
 
   // Simplified Filter State
   const [taskSort, setTaskSort] = useState<TaskSort>({
@@ -434,6 +456,12 @@ const FeedView: React.FC<FeedViewProps> = ({
 
   // Diary creation state
   const [newDiaryContent, setNewDiaryContent] = useState("");
+
+  // Quest creation state
+  const [newQuest, setNewQuest] = useState<NewQuest>({
+    title: "",
+    paragraphs: [],
+  });
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -516,6 +544,16 @@ const FeedView: React.FC<FeedViewProps> = ({
       });
     });
 
+    // Add quests to feed
+    quests.forEach((quest) => {
+      feedItems.push({
+        id: `quest-${quest.id}`,
+        type: "quest",
+        data: quest,
+        created_at: quest.created_at,
+      });
+    });
+
     // Sort by creation time (newest first) if not tasks tab
     if (activeTab !== "tasks") {
       return feedItems.sort(
@@ -525,7 +563,7 @@ const FeedView: React.FC<FeedViewProps> = ({
     }
 
     return feedItems;
-  }, [tasks, diaryEntries, activeTab, sortTasks]);
+  }, [tasks, diaryEntries, quests, activeTab, sortTasks]);
 
   // Filter items based on active tab
   const filteredItems = useCallback((): FeedItem[] => {
@@ -552,6 +590,8 @@ const FeedView: React.FC<FeedViewProps> = ({
         return allItems.filter((item) => item.type === "diary");
       case "tasks":
         return allItems.filter((item) => item.type === "task");
+      case "quests":
+        return allItems.filter((item) => item.type === "quest");
       default:
         return allItems;
     }
@@ -664,6 +704,39 @@ const FeedView: React.FC<FeedViewProps> = ({
     }
   };
 
+  // Quest handlers
+  const handleQuestTitleChange = useCallback((value: string) => {
+    setNewQuest((prev) => ({ ...prev, title: value.slice(0, 200) }));
+  }, []);
+
+  const handleCreateQuest = async () => {
+    try {
+      if (!newQuest.title.trim()) return;
+
+      const questData = {
+        title: newQuest.title.trim(),
+        folder_id: null,
+        paragraphs: [],
+      };
+
+      await onCreateQuest(questData);
+
+      setNewQuest({
+        title: "",
+        paragraphs: [],
+      });
+      setShowNewQuestModal(false);
+    } catch (error) {
+      console.error("Error creating quest:", error);
+    }
+  };
+
+  // Handle quest viewing
+  const handleViewQuest = (quest: Quest) => {
+    setViewingQuest(quest);
+    setShowQuestViewModal(true);
+  };
+
   // Handle diary viewing
   const handleViewDiary = (entry: DiaryEntry) => {
     setViewingDiary(entry);
@@ -703,6 +776,8 @@ const FeedView: React.FC<FeedViewProps> = ({
         await onUpdateDiaryEntryFolder(parseInt(id), folderId);
       } else if (type === "task") {
         await onUpdateTask(parseInt(id), { folder_id: folderId });
+      } else if (type === "quest") {
+        await onUpdateQuest(parseInt(id), { folder_id: folderId });
       }
       setShowFolderSelect(null);
     } catch (error) {
@@ -719,6 +794,18 @@ const FeedView: React.FC<FeedViewProps> = ({
       await onUpdateDiaryEntryFolder(entryId, folderId);
     } catch (error) {
       console.error("Error updating diary folder:", error);
+    }
+  };
+
+  // Handle folder assignment for quest modal
+  const handleQuestFolderSelect = async (
+    questId: number,
+    folderId: number | null
+  ) => {
+    try {
+      await onUpdateQuest(questId, { folder_id: folderId });
+    } catch (error) {
+      console.error("Error updating quest folder:", error);
     }
   };
 
@@ -786,6 +873,9 @@ const FeedView: React.FC<FeedViewProps> = ({
     } else if (item.type === "task") {
       const task = item.data as Task;
       return folders.find((folder) => folder.id === (task as any).folder_id) || null;
+    } else if (item.type === "quest") {
+      const quest = item.data as Quest;
+      return folders.find((folder) => folder.id === quest.folder_id) || null;
     }
     return null;
   };
@@ -888,6 +978,57 @@ const FeedView: React.FC<FeedViewProps> = ({
               onDeleteTask={onDeleteTask}
               allTasks={tasks}
               folders={folders}
+            />
+          </div>
+        </div>
+      );
+    } else if (item.type === "quest") {
+      const quest = item.data as Quest;
+
+      return (
+        <div key={item.id} className="space-y-2">
+          {/* Feed context header */}
+          <div className="flex items-center justify-between text-xs text-gray-500 px-1">
+            <div className="flex items-center space-x-2">
+              {/* Folder indicator for quests */}
+              {folder && (
+                <div className="flex items-center space-x-1">
+                  <div
+                    className="w-3 h-3 rounded"
+                    style={{ backgroundColor: folder.color }}
+                  />
+                  <span className="text-xs text-gray-600 font-medium">
+                    {folder.name}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center space-x-1">
+              <Clock className="w-3 h-3" />
+              <span>
+                {new Date(quest.created_at).toLocaleDateString()}{" "}
+                {new Date(quest.created_at).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
+          </div>
+
+          {/* Wrapper with folder styling */}
+          <div 
+            className="rounded-lg transition-all duration-200 cursor-pointer"
+            style={folderStyling}
+            onClick={() => handleViewQuest(quest)}
+          >
+            <QuestCard
+              quest={quest}
+              folders={folders}
+              onUpdateQuest={onUpdateQuest}
+              onDeleteQuest={onDeleteQuest}
+              onAddParagraph={onAddQuestParagraph}
+              onUpdateParagraph={onUpdateQuestParagraph}
+              onDeleteParagraph={onDeleteQuestParagraph}
             />
           </div>
         </div>
@@ -1015,6 +1156,7 @@ const FeedView: React.FC<FeedViewProps> = ({
     { id: "today", label: "Today", icon: CalendarIcon },
     { id: "diaries", label: "Diaries", icon: BookOpen },
     { id: "tasks", label: "Tasks", icon: CheckSquare },
+    { id: "quests", label: "Quests", icon: Scroll },
   ];
 
   return (
@@ -1114,6 +1256,8 @@ const FeedView: React.FC<FeedViewProps> = ({
                     <BookOpen className="w-12 h-12 mx-auto" />
                   ) : activeTab === "tasks" ? (
                     <CheckSquare className="w-12 h-12 mx-auto" />
+                  ) : activeTab === "quests" ? (
+                    <Scroll className="w-12 h-12 mx-auto" />
                   ) : (
                     <Clock className="w-12 h-12 mx-auto" />
                   )}
@@ -1129,6 +1273,8 @@ const FeedView: React.FC<FeedViewProps> = ({
                         ? "No diary entries yet"
                         : activeTab === "tasks"
                         ? "No tasks yet"
+                        : activeTab === "quests"
+                        ? "No quests yet"
                         : "No items yet"}
                     </>
                   )}
@@ -1147,6 +1293,8 @@ const FeedView: React.FC<FeedViewProps> = ({
                       ? "diary entry"
                       : activeTab === "tasks"
                       ? "task"
+                      : activeTab === "quests"
+                      ? "quest"
                       : "item"}{" "}
                     to get started
                   </p>
@@ -1159,6 +1307,13 @@ const FeedView: React.FC<FeedViewProps> = ({
       
       {/* Floating action buttons */}
       <div className="fixed bottom-6 right-6 z-30 flex flex-col space-y-3">
+        <button
+          onClick={() => setShowNewQuestModal(true)}
+          className="w-14 h-14 rounded-full bg-orange-600 hover:bg-orange-700 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110"
+          title="New Quest"
+        >
+          <Scroll className="w-6 h-6 text-white" />
+        </button>
         <button
           onClick={() => setShowNewDiaryModal(true)}
           className="w-14 h-14 rounded-full bg-purple-600 hover:bg-purple-700 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110"
@@ -1248,6 +1403,49 @@ const FeedView: React.FC<FeedViewProps> = ({
               className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
             >
               Create Task
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Quest Creation Modal */}
+      <Modal
+        isOpen={showNewQuestModal}
+        onClose={() => setShowNewQuestModal(false)}
+        title="Create New Quest"
+      >
+        <div className="space-y-4">
+          <div>
+            <input
+              type="text"
+              placeholder="Quest title (max 200 characters)"
+              value={newQuest.title}
+              onChange={(e) => handleQuestTitleChange(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              maxLength={200}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              {newQuest.title.length}/200 characters
+            </p>
+          </div>
+
+          <div className="text-xs text-gray-500">
+            You can add paragraphs to your quest after creating it.
+          </div>
+
+          <div className="flex space-x-3">
+            <button
+              onClick={() => setShowNewQuestModal(false)}
+              className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreateQuest}
+              disabled={!newQuest.title.trim() || newQuest.title.length > 200}
+              className="flex-1 bg-orange-600 text-white py-2 rounded-md hover:bg-orange-700 disabled:opacity-50"
+            >
+              Create Quest
             </button>
           </div>
         </div>
@@ -1371,6 +1569,23 @@ Write your diary entry here. Use **bold** for bold text and *italic* for italic 
         onSchedule={handleScheduleEntry}
         onFolderSelect={handleDiaryFolderSelect}
         onDelete={onDeleteDiaryEntry}
+      />
+
+      {/* Quest View Modal */}
+      <QuestViewModal
+        isOpen={showQuestViewModal}
+        onClose={() => {
+          setShowQuestViewModal(false);
+          setViewingQuest(null);
+        }}
+        quest={viewingQuest}
+        folders={folders}
+        onEdit={() => {}} // Quest editing is handled inline in the modal
+        onFolderSelect={handleQuestFolderSelect}
+        onDelete={onDeleteQuest}
+        onAddParagraph={onAddQuestParagraph}
+        onUpdateParagraph={onUpdateQuestParagraph}
+        onDeleteParagraph={onDeleteQuestParagraph}
       />
     </>
   );

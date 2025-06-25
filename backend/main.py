@@ -15,6 +15,7 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from jose import jwt
 from passlib.context import CryptContext
+from typing import List, Optional
 
 # Database setup - MySQL configuration
 # Šiht
@@ -77,6 +78,30 @@ class Folder(Base):
     user = relationship("User", back_populates="folders")
     tasks = relationship("Task", back_populates="folder")
     diary_entries = relationship("DiaryEntry", back_populates="folder")
+
+class Quest(Base):
+    __tablename__ = "quests"
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    folder_id = Column(Integer, ForeignKey("folders.id", ondelete="SET NULL"), nullable=True)
+    title = Column(String(200), nullable=False)  # Max 200 characters
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = relationship("User", back_populates="quests")
+    folder = relationship("Folder", back_populates="quests")
+    paragraphs = relationship("QuestParagraph", back_populates="quest", cascade="all, delete-orphan")
+
+class QuestParagraph(Base):
+    __tablename__ = "quest_paragraphs"
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    quest_id = Column(Integer, ForeignKey("quests.id", ondelete="CASCADE"), nullable=False)
+    content = Column(Text, nullable=False)
+    order_index = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    quest = relationship("Quest", back_populates="paragraphs")
 
 class Task(Base):
     __tablename__ = "tasks"
@@ -206,6 +231,38 @@ class FolderCreate(BaseModel):
     name: str
     color: str = "#3B82F6"
     parent_folder_id: Optional[int] = None
+
+
+class QuestParagraphCreate(BaseModel):
+    content: str
+    order_index: int = 0
+
+class QuestParagraphResponse(BaseModel):
+    id: int
+    content: str
+    order_index: int
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class QuestCreate(BaseModel):
+    title: str
+    folder_id: Optional[int] = None
+    paragraphs: List[QuestParagraphCreate] = []
+
+class QuestResponse(BaseModel):
+    id: int
+    title: str
+    folder_id: Optional[int]
+    created_at: datetime
+    updated_at: datetime
+    paragraphs: List[QuestParagraphResponse] = []
+    
+    class Config:
+        from_attributes = True
+
 
 # Global test user cache to prevent race conditions
 _test_user_cache = None
@@ -454,6 +511,138 @@ def create_task(task: TaskCreate, current_user: User = Depends(get_current_user)
                 print(f"Calendar integration failed: {e}")
     
     return db_task
+
+@app.post("/api/quests", response_model=QuestResponse)
+def create_quest(quest: QuestCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Validate title length
+    if len(quest.title) > 200:
+        raise HTTPException(status_code=400, detail="Quest title cannot exceed 200 characters")
+    
+    # Create quest
+    db_quest = Quest(
+        title=quest.title,
+        folder_id=quest.folder_id,
+        user_id=current_user.id
+    )
+    db.add(db_quest)
+    db.commit()
+    db.refresh(db_quest)
+    
+    # Create paragraphs
+    for i, paragraph in enumerate(quest.paragraphs):
+        db_paragraph = QuestParagraph(
+            quest_id=db_quest.id,
+            content=paragraph.content,
+            order_index=paragraph.order_index or i
+        )
+        db.add(db_paragraph)
+    
+    db.commit()
+    db.refresh(db_quest)
+    return db_quest
+
+@app.get("/api/quests")
+def get_quests(folder_id: Optional[int] = None, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    query = db.query(Quest).filter(Quest.user_id == current_user.id)
+    if folder_id:
+        query = query.filter(Quest.folder_id == folder_id)
+    return query.order_by(Quest.created_at.desc()).all()
+
+@app.put("/api/quests/{quest_id}")
+def update_quest(quest_id: int, updates: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Verify quest belongs to user
+    quest = db.query(Quest).filter(Quest.id == quest_id, Quest.user_id == current_user.id).first()
+    if not quest:
+        raise HTTPException(status_code=404, detail="Quest not found")
+    
+    # Validate title length if being updated
+    if 'title' in updates and len(updates['title']) > 200:
+        raise HTTPException(status_code=400, detail="Quest title cannot exceed 200 characters")
+    
+    # Update quest fields
+    for field, value in updates.items():
+        if hasattr(quest, field):
+            setattr(quest, field, value)
+    
+    quest.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(quest)
+    return quest
+
+@app.delete("/api/quests/{quest_id}")
+def delete_quest(quest_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Verify quest belongs to user
+    quest = db.query(Quest).filter(Quest.id == quest_id, Quest.user_id == current_user.id).first()
+    if not quest:
+        raise HTTPException(status_code=404, detail="Quest not found")
+    
+    quest_title = quest.title
+    db.delete(quest)
+    db.commit()
+    
+    return {"message": f"Quest '{quest_title}' deleted successfully", "id": quest_id}
+
+@app.post("/api/quests/{quest_id}/paragraphs")
+def add_quest_paragraph(quest_id: int, paragraph: QuestParagraphCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Verify quest belongs to user
+    quest = db.query(Quest).filter(Quest.id == quest_id, Quest.user_id == current_user.id).first()
+    if not quest:
+        raise HTTPException(status_code=404, detail="Quest not found")
+    
+    # If no order_index provided, set to end
+    if paragraph.order_index == 0:
+        max_order = db.query(QuestParagraph).filter(QuestParagraph.quest_id == quest_id).count()
+        paragraph.order_index = max_order
+    
+    db_paragraph = QuestParagraph(
+        quest_id=quest_id,
+        content=paragraph.content,
+        order_index=paragraph.order_index
+    )
+    db.add(db_paragraph)
+    db.commit()
+    db.refresh(db_paragraph)
+    return db_paragraph
+
+@app.put("/api/quests/{quest_id}/paragraphs/{paragraph_id}")
+def update_quest_paragraph(quest_id: int, paragraph_id: int, updates: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Verify quest belongs to user
+    quest = db.query(Quest).filter(Quest.id == quest_id, Quest.user_id == current_user.id).first()
+    if not quest:
+        raise HTTPException(status_code=404, detail="Quest not found")
+    
+    # Verify paragraph belongs to quest
+    paragraph = db.query(QuestParagraph).filter(QuestParagraph.id == paragraph_id, QuestParagraph.quest_id == quest_id).first()
+    if not paragraph:
+        raise HTTPException(status_code=404, detail="Paragraph not found")
+    
+    # Update paragraph fields
+    for field, value in updates.items():
+        if hasattr(paragraph, field):
+            setattr(paragraph, field, value)
+    
+    paragraph.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(paragraph)
+    return paragraph
+
+@app.delete("/api/quests/{quest_id}/paragraphs/{paragraph_id}")
+def delete_quest_paragraph(quest_id: int, paragraph_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Verify quest belongs to user
+    quest = db.query(Quest).filter(Quest.id == quest_id, Quest.user_id == current_user.id).first()
+    if not quest:
+        raise HTTPException(status_code=404, detail="Quest not found")
+    
+    # Verify paragraph belongs to quest
+    paragraph = db.query(QuestParagraph).filter(QuestParagraph.id == paragraph_id, QuestParagraph.quest_id == quest_id).first()
+    if not paragraph:
+        raise HTTPException(status_code=404, detail="Paragraph not found")
+    
+    db.delete(paragraph)
+    db.commit()
+    
+    return {"message": "Paragraph deleted successfully", "id": paragraph_id}
+
 
 @app.put("/api/folders/{folder_id}")
 def update_folder(folder_id: int, updates: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

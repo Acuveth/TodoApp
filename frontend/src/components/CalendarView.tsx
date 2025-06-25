@@ -1,11 +1,14 @@
+// Update frontend/src/components/CalendarView.tsx to include Quest support
+
 import React, { useState } from "react";
-import { ChevronLeft, ChevronRight, Clock, BookOpen, CheckSquare, Calendar as CalendarIcon, CalendarDays } from "lucide-react";
-import { Task, DiaryEntry, FolderType } from "../types";
-import { TaskViewModal, DiaryViewModal } from "./";
+import { ChevronLeft, ChevronRight, Clock, BookOpen, CheckSquare, Calendar as CalendarIcon, CalendarDays, Scroll } from "lucide-react";
+import { Task, DiaryEntry, Quest, FolderType } from "../types";
+import { TaskViewModal, DiaryViewModal, QuestViewModal } from "./";
 
 interface CalendarViewProps {
   tasks: Task[];
   diaryEntries?: DiaryEntry[];
+  quests?: Quest[];
   folders: FolderType[];
   onToggleTaskStatus: (task: Task) => Promise<void>;
   onEditTask: (task: Task) => void;
@@ -17,11 +20,15 @@ interface CalendarViewProps {
   onScheduleDiary: (id: number, scheduledDate: string) => Promise<void>;
   onUpdateDiaryFolder: (id: number, folderId: number | null) => Promise<void>;
   onDeleteDiary: (id: number) => Promise<void>;
+  onEditQuest: (quest: Quest) => void;
+  onUpdateQuestFolder: (questId: number, folderId: number | null) => Promise<void>;
+  onDeleteQuest: (questId: number) => Promise<void>;
 }
 
 const CalendarView: React.FC<CalendarViewProps> = ({
   tasks,
   diaryEntries = [],
+  quests = [],
   folders,
   onToggleTaskStatus,
   onEditTask,
@@ -33,16 +40,21 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   onScheduleDiary,
   onUpdateDiaryFolder,
   onDeleteDiary,
+  onEditQuest,
+  onUpdateQuestFolder,
+  onDeleteQuest,
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDayDate, setSelectedDayDate] = useState(new Date());
   const [activeTab, setActiveTab] = useState<"day" | "month">("day");
 
-  // Modal states for task and diary popups
+  // Modal states for task, diary, and quest popups
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showDiaryModal, setShowDiaryModal] = useState(false);
+  const [showQuestModal, setShowQuestModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedDiary, setSelectedDiary] = useState<DiaryEntry | null>(null);
+  const [selectedQuest, setSelectedQuest] = useState<Quest | null>(null);
 
   // Helper function to get folder by ID
   const getFolderById = (folderId: number | null | undefined) => {
@@ -95,15 +107,31 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     );
   };
 
+  // Note: Quests don't have dates by default, but we can show them if they're created on a specific day
+  const getQuestsForDate = (date: Date) => {
+    if (!date) return [];
+    const dateStr = date.toISOString().split("T")[0];
+    return quests.filter(
+      (quest) =>
+        quest.created_at &&
+        quest.created_at.startsWith(dateStr)
+    );
+  };
+
   const getItemsForDate = (date: Date) => {
     const tasksForDay = getTasksForDate(date);
     const diaryEntriesForDay = getDiaryEntriesForDate(date);
+    const questsForDay = getQuestsForDate(date);
 
     return [
       ...tasksForDay.map((task) => ({ type: "task" as const, item: task })),
       ...diaryEntriesForDay.map((entry) => ({
         type: "diary" as const,
         item: entry,
+      })),
+      ...questsForDay.map((quest) => ({
+        type: "quest" as const,
+        item: quest,
       })),
     ];
   };
@@ -143,18 +171,23 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     }
   };
 
-  // Handle task click - show task modal
+  // Handle item clicks - show appropriate modals
   const handleTaskClick = (task: Task, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent calendar cell click
     setSelectedTask(task);
     setShowTaskModal(true);
   };
 
-  // Handle diary click - show diary modal
   const handleDiaryClick = (entry: DiaryEntry, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent calendar cell click
     setSelectedDiary(entry);
     setShowDiaryModal(true);
+  };
+
+  const handleQuestClick = (quest: Quest, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent calendar cell click
+    setSelectedQuest(quest);
+    setShowQuestModal(true);
   };
 
   // Modal handlers
@@ -166,6 +199,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const handleDiaryModalClose = () => {
     setShowDiaryModal(false);
     setSelectedDiary(null);
+  };
+
+  const handleQuestModalClose = () => {
+    setShowQuestModal(false);
+    setSelectedQuest(null);
   };
 
   // Task modal action handlers
@@ -208,8 +246,23 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     handleDiaryModalClose();
   };
 
+  // Quest modal action handlers
+  const handleQuestEdit = (quest: Quest) => {
+    onEditQuest(quest);
+    handleQuestModalClose();
+  };
+
+  const handleQuestFolderChange = (questId: number, folderId: number | null) => {
+    onUpdateQuestFolder(questId, folderId);
+  };
+
+  const handleQuestDelete = (questId: number) => {
+    onDeleteQuest(questId);
+    handleQuestModalClose();
+  };
+
   // Render individual item in day feed
-  const renderDayFeedItem = (item: { type: "task" | "diary"; item: Task | DiaryEntry }) => {
+  const renderDayFeedItem = (item: { type: "task" | "diary" | "quest"; item: Task | DiaryEntry | Quest }) => {
     if (item.type === "task") {
       const task = item.item as Task;
       const folder = getFolderById((task as any).folder_id);
@@ -270,6 +323,43 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             }`}>
               {task.priority === 3 ? "High" : task.priority === 2 ? "Medium" : "Low"}
             </div>
+          </div>
+        </div>
+      );
+    } else if (item.type === "quest") {
+      const quest = item.item as Quest;
+      const folder = getFolderById(quest.folder_id);
+      
+      return (
+        <div 
+          key={`quest-${quest.id}`} 
+          className="flex items-center space-x-4 p-4 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors cursor-pointer"
+          onClick={(e) => handleQuestClick(quest, e)}
+        >
+          <div className="w-3 h-3 rounded-full bg-orange-500" />
+          <Scroll className="w-5 h-5 text-orange-600 flex-shrink-0" />
+          <div className="flex-1">
+            <div className="flex items-center space-x-2">
+              <h4 className="font-medium text-lg text-gray-900">{quest.title}</h4>
+              {folder && (
+                <span 
+                  className="inline-block px-2 py-1 text-xs font-medium rounded-full text-white"
+                  style={{ backgroundColor: folder.color }}
+                >
+                  {folder.name}
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-orange-600 font-medium">
+              📝 {quest.paragraphs.length} paragraph{quest.paragraphs.length !== 1 ? "s" : ""}
+            </p>
+            {quest.paragraphs.length > 0 && (
+              <p className="text-sm text-gray-600 mt-2">
+                {quest.paragraphs[0].content.length > 100 
+                  ? `${quest.paragraphs[0].content.substring(0, 100)}...` 
+                  : quest.paragraphs[0].content}
+              </p>
+            )}
           </div>
         </div>
       );
@@ -347,9 +437,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           <TabButton id="day" label="Day View" icon={Clock} />
           <TabButton id="month" label="Month View" icon={CalendarIcon} />
         </div>
-        <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 mb-6 w-fit">
-
-        </div>
       </div>
 
       {/* Tab Content */}
@@ -388,12 +475,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             </div>
             
             <button
-            onClick={() => setSelectedDayDate(new Date())}
-            className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-600 shadow-sm rounded-md text-sm transition-colors font-medium hover:text-gray-900 hover:bg-white"
-          >
-            <CalendarDays className="w-4 h-4" />
-            <span>Go to Today</span>
-          </button>
+              onClick={() => setSelectedDayDate(new Date())}
+              className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-600 shadow-sm rounded-md text-sm transition-colors font-medium hover:text-gray-900 hover:bg-white"
+            >
+              <CalendarDays className="w-4 h-4" />
+              <span>Go to Today</span>
+            </button>
           </div>
 
           {/* Day Content */}
@@ -413,15 +500,23 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       <div className="w-3 h-3 bg-purple-500 rounded"></div>
                       <span>Diary Entries</span>
                     </div>
+                    <div className="flex items-center space-x-1">
+                      <div className="w-3 h-3 bg-orange-500 rounded"></div>
+                      <span>Quests</span>
+                    </div>
                   </div>
                 </div>
                 
                 <div className="space-y-4 max-h-[calc(100vh-300px)] overflow-y-auto">
                   {selectedDayItems
                     .sort((a, b) => {
-                      // Sort by time if available
-                      const aTime = a.type === "task" ? (a.item as Task).due_date : (a.item as DiaryEntry).scheduled_date;
-                      const bTime = b.type === "task" ? (b.item as Task).due_date : (b.item as DiaryEntry).scheduled_date;
+                      // Sort by time if available, then by type priority
+                      const aTime = a.type === "task" ? (a.item as Task).due_date : 
+                                   a.type === "diary" ? (a.item as DiaryEntry).scheduled_date :
+                                   (a.item as Quest).created_at;
+                      const bTime = b.type === "task" ? (b.item as Task).due_date : 
+                                   b.type === "diary" ? (b.item as DiaryEntry).scheduled_date :
+                                   (b.item as Quest).created_at;
                       
                       if (aTime && bTime) {
                         return new Date(aTime).getTime() - new Date(bTime).getTime();
@@ -437,8 +532,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 <h2 className="text-xl font-semibold text-gray-900 mb-3">No items scheduled</h2>
                 <p className="text-gray-500 text-lg">
                   {selectedDayDate.toDateString() === new Date().toDateString() 
-                    ? "No tasks or diary entries scheduled for today"
-                    : `No tasks or diary entries scheduled for ${getFormattedDate(selectedDayDate).toLowerCase()}`
+                    ? "No tasks, diary entries, or quests scheduled for today"
+                    : `No items scheduled for ${getFormattedDate(selectedDayDate).toLowerCase()}`
                   }
                 </p>
               </div>
@@ -485,6 +580,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 <div className="flex items-center space-x-1">
                   <div className="w-3 h-3 bg-purple-500 rounded"></div>
                   <span>Diary Entries</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <div className="w-3 h-3 bg-orange-500 rounded"></div>
+                  <span>Quests</span>
                 </div>
               </div>
               <button
@@ -563,6 +662,19 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                                     <span className="truncate">{task.title}</span>
                                   </div>
                                 );
+                              } else if (calendarItem.type === "quest") {
+                                const quest = calendarItem.item as Quest;
+                                return (
+                                  <div
+                                    key={`quest-${quest.id}`}
+                                    className="text-xs p-1 rounded truncate flex items-center space-x-1 bg-orange-100 text-orange-800 hover:bg-orange-200 cursor-pointer"
+                                    title={`Quest: ${quest.title}`}
+                                    onClick={(e) => handleQuestClick(quest, e)}
+                                  >
+                                    <Scroll className="w-3 h-3 flex-shrink-0" />
+                                    <span className="truncate">{quest.title}</span>
+                                  </div>
+                                );
                               } else {
                                 const entry = calendarItem.item as DiaryEntry;
                                 return (
@@ -625,6 +737,20 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         return (
                           entryDate.getMonth() === currentDate.getMonth() &&
                           entryDate.getFullYear() === currentDate.getFullYear()
+                        );
+                      }).length
+                    }
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Quests Created:</span>
+                  <span className="font-medium">
+                    {
+                      quests.filter((quest) => {
+                        const questDate = new Date(quest.created_at);
+                        return (
+                          questDate.getMonth() === currentDate.getMonth() &&
+                          questDate.getFullYear() === currentDate.getFullYear()
                         );
                       }).length
                     }
@@ -757,6 +883,22 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           onSchedule={handleDiarySchedule}
           onFolderSelect={handleDiaryFolderChange}
           onDelete={handleDiaryDelete}
+        />
+      )}
+
+      {/* Quest View Modal */}
+      {selectedQuest && (
+        <QuestViewModal
+          isOpen={showQuestModal}
+          onClose={handleQuestModalClose}
+          quest={selectedQuest}
+          folders={folders}
+          onEdit={handleQuestEdit}
+          onFolderSelect={handleQuestFolderChange}
+          onDelete={handleQuestDelete}
+          onAddParagraph={() => {}} // Handled in the modal
+          onUpdateParagraph={() => {}} // Handled in the modal
+          onDeleteParagraph={() => {}} // Handled in the modal
         />
       )}
     </div>

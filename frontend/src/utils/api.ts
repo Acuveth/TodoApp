@@ -144,4 +144,68 @@ export const api = {
     });
     return response.json();
   },
+
+  getQuests: async (folderId: number | null = null) => {
+  const url = folderId
+    ? `${API_BASE_URL}/api/quests?folder_id=${folderId}`
+    : `${API_BASE_URL}/api/quests`;
+  const response = await fetch(url);
+  return response.json();
+},
+
+createQuest: async (questData: any) => {
+  const response = await fetch(`${API_BASE_URL}/api/quests`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(questData),
+  });
+  return response.json();
+},
+
+updateQuest: async (questId: number, updates: any) => {
+  const response = await fetch(`${API_BASE_URL}/api/quests/${questId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+  return response.json();
+},
+
+deleteQuest: async (questId: number) => {
+  const response = await fetch(`${API_BASE_URL}/api/quests/${questId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to delete quest");
+  }
+  return response.json();
+},
+
+addQuestParagraph: async (questId: number, paragraphData: any) => {
+  const response = await fetch(`${API_BASE_URL}/api/quests/${questId}/paragraphs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(paragraphData),
+  });
+  return response.json();
+},
+
+updateQuestParagraph: async (questId: number, paragraphId: number, updates: any) => {
+  const response = await fetch(`${API_BASE_URL}/api/quests/${questId}/paragraphs/${paragraphId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+  return response.json();
+},
+
+deleteQuestParagraph: async (questId: number, paragraphId: number) => {
+  const response = await fetch(`${API_BASE_URL}/api/quests/${questId}/paragraphs/${paragraphId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to delete quest paragraph");
+  }
+  return response.json();
+},
 };

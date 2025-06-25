@@ -80,3 +80,31 @@ export interface NewDiaryEntry {
   scheduled_date?: string;
   is_scheduled?: boolean;
 }
+
+export interface QuestParagraph {
+  id: number;
+  content: string;
+  order_index: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Quest {
+  id: number;
+  title: string;
+  folder_id?: number;
+  created_at: string;
+  updated_at: string;
+  paragraphs: QuestParagraph[];
+}
+
+export interface NewQuest {
+  title: string;
+  folder_id?: number;
+  paragraphs?: NewQuestParagraph[];
+}
+
+export interface NewQuestParagraph {
+  content: string;
+  order_index?: number;
+}
