@@ -15,9 +15,12 @@ import {
   AlarmClockCheck,
   Filter,
   ChevronDown,
+  ChevronRight,
   RotateCcw,
   SortAsc,
   SortDesc,
+  MoreVertical,
+  ChevronLeft,
 } from "lucide-react";
 import { Task, DiaryEntry, FolderType, NewTask, NewDiaryEntry } from "../types";
 import { Modal, TaskCard } from "./";
@@ -39,7 +42,6 @@ interface FeedViewProps {
     folderId: number | null
   ) => Promise<void>;
   onCreateSubtask?: (parentTaskId: number) => void;
-  // NEW: Diary scheduling props
   onScheduleDiaryEntry?: (id: number, scheduledDate: string) => Promise<void>;
   onUnscheduleDiaryEntry?: (id: number) => Promise<void>;
 }
@@ -50,12 +52,11 @@ type FeedItem = {
   data: Task | DiaryEntry;
   created_at: string;
   due_date?: string;
-  scheduled_date?: string; // NEW: For diary entries
+  scheduled_date?: string;
 };
 
 type TabType = "all" | "today" | "diaries" | "tasks";
 
-// NEW: Filter and Sort types - SIMPLIFIED
 type FilterBy = "priority" | "created_at" | "due_date";
 type SortOrder = "asc" | "desc";
 
@@ -64,7 +65,132 @@ interface TaskSort {
   order: SortOrder;
 }
 
-// NEW: Filter Dropdown Component
+// Enhanced Diary Action Dropdown Component with Folder Submenu
+const DiaryActionDropdown: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onEdit: () => void;
+  onSchedule: () => void;
+  onFolderSelect: (folderId: number | null) => void;
+  onDelete: () => void;
+  isScheduled: boolean;
+  folders: FolderType[];
+  currentFolderId: number | null;
+}> = ({ 
+  isOpen, 
+  onClose, 
+  onEdit, 
+  onSchedule, 
+  onFolderSelect, 
+  onDelete, 
+  isScheduled, 
+  folders, 
+  currentFolderId 
+}) => {
+  const [showFolderSubmenu, setShowFolderSubmenu] = useState(false);
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      
+      {/* Main Dropdown */}
+      <div className="absolute top-8 right-0 z-50 bg-white border border-gray-200 rounded-md shadow-xl min-w-[180px] py-1">
+        <button
+          onClick={() => {
+            onEdit();
+            onClose();
+          }}
+          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+        >
+          <Edit className="w-4 h-4" />
+          <span>Edit Entry</span>
+        </button>
+        
+        <button
+          onClick={() => {
+            onSchedule();
+            onClose();
+          }}
+          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+        >
+          <CalendarIcon className="w-4 h-4" />
+          <span>{isScheduled ? "Reschedule" : "Schedule"}</span>
+        </button>
+        
+        {/* Folder selection with hover submenu */}
+        <div 
+          className="relative"
+          onMouseEnter={() => setShowFolderSubmenu(true)}
+          onMouseLeave={() => setShowFolderSubmenu(false)}
+        >
+          <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <FolderPlus className="w-4 h-4" />
+              <span>Change Folder</span>
+            </div>
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          
+          {/* Folder submenu */}
+          {showFolderSubmenu && (
+            <div className="absolute top-0 right-full ml-1 z-60 bg-white border border-gray-200 rounded-md shadow-xl min-w-[200px] py-1">
+              <button
+                onClick={() => {
+                  onFolderSelect(null);
+                  onClose();
+                }}
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-2 ${
+                  currentFolderId === null ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                }`}
+              >
+                <div className="w-3 h-3 rounded bg-gray-300" />
+                <span>No Folder</span>
+                {currentFolderId === null && <span className="ml-auto text-blue-600">✓</span>}
+              </button>
+              {folders.map((folder) => (
+                <button
+                  key={folder.id}
+                  onClick={() => {
+                    onFolderSelect(folder.id);
+                    onClose();
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-2 ${
+                    currentFolderId === folder.id ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                  }`}
+                >
+                  <div
+                    className="w-3 h-3 rounded"
+                    style={{ backgroundColor: folder.color }}
+                  />
+                  <span>{folder.name}</span>
+                  {currentFolderId === folder.id && <span className="ml-auto text-blue-600">✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        
+        <hr className="my-1" />
+        
+        <button
+          onClick={() => {
+            onDelete();
+            onClose();
+          }}
+          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+        >
+          <Trash2 className="w-4 h-4" />
+          <span>Delete Entry</span>
+        </button>
+      </div>
+    </>
+  );
+};
+
+// Filter Dropdown Component
 const FilterDropdown: React.FC<{
   label: string;
   value: string;
@@ -121,7 +247,7 @@ const FilterDropdown: React.FC<{
   );
 };
 
-// NEW: Date/Time Picker Modal for Diary Scheduling
+// Date/Time Picker Modal for Diary Scheduling
 const DateTimePickerModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -274,18 +400,21 @@ const FeedView: React.FC<FeedViewProps> = ({
   const [showEditDiaryModal, setShowEditDiaryModal] = useState(false);
   const [editDiaryContent, setEditDiaryContent] = useState("");
 
-  // NEW: Simplified Filter State
+  // Simplified Filter State
   const [taskSort, setTaskSort] = useState<TaskSort>({
     by: "created_at",
     order: "desc",
   });
   const [showFilters, setShowFilters] = useState(false);
 
-  // NEW: Scheduling state
+  // Scheduling state
   const [showSchedulePicker, setShowSchedulePicker] = useState(false);
   const [entryToSchedule, setEntryToSchedule] = useState<DiaryEntry | null>(
     null
   );
+
+  // Dropdown states
+  const [showActionDropdown, setShowActionDropdown] = useState<string | null>(null);
 
   // Task creation state
   const [newTask, setNewTask] = useState<NewTask>({
@@ -305,27 +434,27 @@ const FeedView: React.FC<FeedViewProps> = ({
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (showFolderSelect) {
-        // Check if the click is outside the dropdown
+      if (showFolderSelect || showActionDropdown) {
         const target = event.target as Element;
-        if (target && !target.closest('.folder-dropdown-container')) {
+        if (target && !target.closest('.folder-dropdown-container') && !target.closest('.action-dropdown-container')) {
           setShowFolderSelect(null);
+          setShowActionDropdown(null);
         }
       }
     };
 
-    if (showFolderSelect) {
+    if (showFolderSelect || showActionDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
     }
-  }, [showFolderSelect]);
+  }, [showFolderSelect, showActionDropdown]);
 
   // Get today's date in YYYY-MM-DD format
   const today = new Date().toISOString().split("T")[0];
 
-  // NEW: Helper functions for sorting only
+  // Helper functions for sorting only
   const sortTasks = useCallback((taskList: Task[]): Task[] => {
     return [...taskList].sort((a, b) => {
       let compareValue = 0;
@@ -406,7 +535,6 @@ const FeedView: React.FC<FeedViewProps> = ({
           }
           if (item.type === "diary") {
             const entry = item.data as DiaryEntry;
-            // Show entries created today or scheduled for today
             return (
               entry.entry_date === today ||
               (entry.is_scheduled &&
@@ -425,7 +553,7 @@ const FeedView: React.FC<FeedViewProps> = ({
     }
   }, [createFeedItems, activeTab, today]);
 
-  // NEW: Simplified filter options
+  // Simplified filter options
   const sortOptions = [
     { value: "created_at", label: "Latest First (Created)" },
     { value: "priority", label: "Priority (High to Low)" },
@@ -444,6 +572,31 @@ const FeedView: React.FC<FeedViewProps> = ({
   const isCustomSort = useMemo(() => {
     return taskSort.by !== "created_at" || taskSort.order !== "desc";
   }, [taskSort]);
+
+  // Helper function to format scheduled time
+  const formatScheduledTime = (scheduledDate: string) => {
+    const date = new Date(scheduledDate);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const isToday = date.toDateString() === today.toDateString();
+    const isTomorrow = date.toDateString() === tomorrow.toDateString();
+    
+    if (isToday) {
+      return `Today ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } else if (isTomorrow) {
+      return `Tomorrow ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } else {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+    }
+  };
 
   // Task handlers
   const handleTaskTitleChange = useCallback((value: string) => {
@@ -538,7 +691,6 @@ const FeedView: React.FC<FeedViewProps> = ({
       if (type === "diary") {
         await onUpdateDiaryEntryFolder(parseInt(id), folderId);
       } else if (type === "task") {
-        // NEW: Add support for updating task folders
         await onUpdateTask(parseInt(id), { folder_id: folderId });
       }
       setShowFolderSelect(null);
@@ -547,7 +699,7 @@ const FeedView: React.FC<FeedViewProps> = ({
     }
   };
 
-  // NEW: Diary scheduling handlers
+  // Diary scheduling handlers
   const handleScheduleEntry = useCallback((entry: DiaryEntry) => {
     setEntryToSchedule(entry);
     setShowSchedulePicker(true);
@@ -603,7 +755,7 @@ const FeedView: React.FC<FeedViewProps> = ({
     }
   };
 
-  // NEW: Enhanced folder helpers with visual styling
+  // Enhanced folder helpers with visual styling
   const getCurrentFolder = (item: FeedItem): FolderType | null => {
     if (item.type === "diary") {
       const entry = item.data as DiaryEntry;
@@ -615,7 +767,7 @@ const FeedView: React.FC<FeedViewProps> = ({
     return null;
   };
 
-  // NEW: Get folder-specific styling
+  // Get folder-specific styling
   const getFolderStyling = (folder: FolderType | null) => {
     if (!folder) return { backgroundColor: 'transparent', borderColor: 'transparent' };
     
@@ -625,7 +777,6 @@ const FeedView: React.FC<FeedViewProps> = ({
     if (!rgb) return { backgroundColor: 'transparent', borderColor: color };
     
     return {
-      backgroundColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)`,
       borderLeftColor: color,
       borderLeftWidth: '4px',
       borderLeftStyle: 'solid' as const,
@@ -640,18 +791,6 @@ const FeedView: React.FC<FeedViewProps> = ({
       g: parseInt(result[2], 16),
       b: parseInt(result[3], 16)
     } : null;
-  };
-
-  // NEW: Helper function to format scheduled time
-  const formatScheduledTime = (scheduledDate: string) => {
-    const date = new Date(scheduledDate);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
   };
 
   // Simple markdown-like formatting for display
@@ -676,7 +815,7 @@ const FeedView: React.FC<FeedViewProps> = ({
           {/* Feed context header */}
           <div className="flex items-center justify-between text-xs text-gray-500 px-1">
             <div className="flex items-center space-x-2">
-              {/* NEW: Folder indicator for tasks */}
+              {/* Folder indicator for tasks */}
               {folder && (
                 <div className="flex items-center space-x-1">
                   <div
@@ -701,7 +840,7 @@ const FeedView: React.FC<FeedViewProps> = ({
             </div>
           </div>
 
-          {/* NEW: Wrapper with folder styling */}
+          {/* Wrapper with folder styling */}
           <div 
             className="rounded-lg transition-all duration-200"
             style={folderStyling}
@@ -725,7 +864,7 @@ const FeedView: React.FC<FeedViewProps> = ({
               onUpdateTask={onUpdateTask}
               onDeleteTask={onDeleteTask}
               allTasks={tasks}
-              folders={folders} // Pass folders to TaskCard
+              folders={folders}
             />
           </div>
         </div>
@@ -749,7 +888,7 @@ const FeedView: React.FC<FeedViewProps> = ({
                     <span className="text-sm font-medium text-purple-700">
                       Diary Entry
                     </span>
-                    {/* NEW: Enhanced folder indicator */}
+                    {/* Enhanced folder indicator */}
                     {folder && (
                       <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-200">
                         <div
@@ -763,13 +902,46 @@ const FeedView: React.FC<FeedViewProps> = ({
                     )}
                   </div>
 
-                  {/* NEW: Scheduling indicator */}
-                  {entry.is_scheduled && entry.scheduled_date && (
-                    <div className="flex items-center space-x-1 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                      <CalendarIcon className="w-3 h-3" />
-                      <span>{formatScheduledTime(entry.scheduled_date)}</span>
+                  {/* Schedule indicator and action dropdown in top right */}
+                  <div className="flex items-center space-x-2">
+                    {/* Scheduling indicator */}
+                    {entry.is_scheduled && entry.scheduled_date && (
+                      <div className="flex items-center space-x-1 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full">
+                        <Clock className="w-3 h-3" />
+                        <span>{formatScheduledTime(entry.scheduled_date)}</span>
+                      </div>
+                    )}
+
+                    {/* Action dropdown */}
+                    <div className="relative action-dropdown-container">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowActionDropdown(
+                            showActionDropdown === item.id ? null : item.id
+                          );
+                        }}
+                        className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                        title="More actions"
+                      >
+                        <MoreVertical className="w-5 h-5" />
+                      </button>
+
+                      {showActionDropdown === item.id && (
+                        <DiaryActionDropdown
+                          isOpen={true}
+                          onClose={() => setShowActionDropdown(null)}
+                          onEdit={() => handleEditDiary(entry)}
+                          onSchedule={() => handleScheduleEntry(entry)}
+                          onFolderSelect={(folderId) => handleFolderSelect(item.id, folderId)}
+                          onDelete={() => onDeleteDiaryEntry(entry.id)}
+                          isScheduled={entry.is_scheduled}
+                          folders={folders}
+                          currentFolderId={(entry as any).folder_id || null}
+                        />
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 {entry.title && (
@@ -807,96 +979,6 @@ const FeedView: React.FC<FeedViewProps> = ({
                     </span>
                   </div>
                 </div>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                {/* NEW: Schedule button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleScheduleEntry(entry);
-                  }}
-                  className={`p-1 rounded transition-colors ${
-                    entry.is_scheduled
-                      ? "text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                      : "text-gray-400 hover:text-blue-600 hover:bg-blue-50"
-                  }`}
-                  title={
-                    entry.is_scheduled ? "Reschedule entry" : "Schedule entry"
-                  }
-                >
-                  <CalendarIcon className="w-4 h-4" />
-                </button>
-
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleEditDiary(entry);
-                  }}
-                  className="p-1 text-gray-400 hover:text-blue-600 rounded"
-                  title="Edit diary entry"
-                >
-                  <Edit className="w-4 h-4" />
-                </button>
-
-                <div className="relative folder-dropdown-container">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowFolderSelect(
-                        showFolderSelect === item.id ? null : item.id
-                      );
-                    }}
-                    className="p-1 text-gray-400 hover:text-gray-600 rounded"
-                    title="Change folder"
-                  >
-                    <FolderPlus className="w-4 h-4" />
-                  </button>
-
-                  {showFolderSelect === item.id && (
-                    <div className="absolute top-8 right-0 z-[9999] bg-white border border-gray-200 rounded-md shadow-2xl min-w-[200px] max-h-64 overflow-y-auto border-2">
-                      <div className="p-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleFolderSelect(item.id, null);
-                          }}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded flex items-center space-x-2"
-                        >
-                          <div className="w-3 h-3 rounded bg-gray-300" />
-                          <span>No Folder</span>
-                        </button>
-                        {folders.map((folder) => (
-                          <button
-                            key={folder.id}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleFolderSelect(item.id, folder.id);
-                            }}
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded flex items-center space-x-2"
-                          >
-                            <div
-                              className="w-3 h-3 rounded"
-                              style={{ backgroundColor: folder.color }}
-                            />
-                            <span>{folder.name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteDiaryEntry(entry.id);
-                  }}
-                  className="p-1 text-gray-400 hover:text-red-600 rounded"
-                  title="Delete diary entry"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
               </div>
             </div>
           </div>
@@ -947,7 +1029,7 @@ const FeedView: React.FC<FeedViewProps> = ({
             })}
           </div>
 
-          {/* NEW: Simplified Sort Controls for Tasks Tab */}
+          {/* Simplified Sort Controls for Tasks Tab */}
           {activeTab === "tasks" && (
             <div className="mt-4 rounded-lg">
               <div className="flex items-center justify-between">
@@ -1051,6 +1133,7 @@ const FeedView: React.FC<FeedViewProps> = ({
           </div>
         )}
       </div>
+      
       {/* Floating action buttons */}
       <div className="fixed bottom-6 right-6 z-30 flex flex-col space-y-3">
         <button
@@ -1068,6 +1151,7 @@ const FeedView: React.FC<FeedViewProps> = ({
           <AlarmClockCheck className="w-6 h-6 text-white" />
         </button>
       </div>
+      
       {/* Task Creation Modal */}
       <Modal
         isOpen={showNewTaskModal}
@@ -1238,7 +1322,7 @@ Write your diary entry here. Use **bold** for bold text and *italic* for italic 
         </div>
       </Modal>
 
-      {/* NEW: Schedule Entry Modal */}
+      {/* Schedule Entry Modal */}
       <DateTimePickerModal
         isOpen={showSchedulePicker}
         onClose={() => {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   Clock,
+  ChevronLeft,
   ChevronRight,
   ChevronDown,
   Circle,
@@ -15,6 +16,7 @@ import {
   Edit2,
   Save,
   FolderPlus,
+  MoreVertical,
 } from "lucide-react";
 import { Task, FolderType } from "../types";
 
@@ -27,10 +29,133 @@ interface TaskCardProps {
   onUpdateTask?: (taskId: number, updates: any) => void;
   onDeleteTask?: (taskId: number) => void;
   allTasks: Task[];
-  folders?: FolderType[]; // NEW: Add folders for selection
+  folders?: FolderType[];
 }
 
-// NEW: Task Edit Modal Component
+// Enhanced Task Action Dropdown Component with Folder Submenu
+const TaskActionDropdown: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onEdit: () => void;
+  onSchedule: () => void;
+  onFolderSelect: (folderId: number | null) => void;
+  onDelete: () => void;
+  folders: FolderType[];
+  currentFolderId: number | null;
+}> = ({ 
+  isOpen, 
+  onClose, 
+  onEdit, 
+  onSchedule, 
+  onFolderSelect, 
+  onDelete, 
+  folders, 
+  currentFolderId 
+}) => {
+  const [showFolderSubmenu, setShowFolderSubmenu] = useState(false);
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      
+      {/* Main Dropdown */}
+      <div className="absolute top-8 right-0 z-50 bg-white border border-gray-200 rounded-md shadow-xl min-w-[180px] py-1">
+        <button
+          onClick={() => {
+            onEdit();
+            onClose();
+          }}
+          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+        >
+          <Edit2 className="w-4 h-4" />
+          <span>Edit Task</span>
+        </button>
+        
+        <button
+          onClick={() => {
+            onSchedule();
+            onClose();
+          }}
+          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+        >
+          <Calendar className="w-4 h-4" />
+          <span>Schedule Task</span>
+        </button>
+        
+        {/* Folder selection with hover submenu */}
+        <div 
+          className="relative"
+          onMouseEnter={() => setShowFolderSubmenu(true)}
+          onMouseLeave={() => setShowFolderSubmenu(false)}
+        >
+          <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <FolderPlus className="w-4 h-4" />
+              <span>Change Folder</span>
+            </div>
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          
+          {/* Folder submenu */}
+          {showFolderSubmenu && (
+            <div className="absolute top-0 right-full ml-1 z-60 bg-white border border-gray-200 rounded-md shadow-xl min-w-[200px] py-1">
+              <button
+                onClick={() => {
+                  onFolderSelect(null);
+                  onClose();
+                }}
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-2 ${
+                  currentFolderId === null ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                }`}
+              >
+                <div className="w-3 h-3 rounded bg-gray-300" />
+                <span>No Folder</span>
+                {currentFolderId === null && <span className="ml-auto text-blue-600">✓</span>}
+              </button>
+              {folders.map((folder) => (
+                <button
+                  key={folder.id}
+                  onClick={() => {
+                    onFolderSelect(folder.id);
+                    onClose();
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-2 ${
+                    currentFolderId === folder.id ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                  }`}
+                >
+                  <div
+                    className="w-3 h-3 rounded"
+                    style={{ backgroundColor: folder.color }}
+                  />
+                  <span>{folder.name}</span>
+                  {currentFolderId === folder.id && <span className="ml-auto text-blue-600">✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        
+        <hr className="my-1" />
+        
+        <button
+          onClick={() => {
+            onDelete();
+            onClose();
+          }}
+          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+        >
+          <Trash2 className="w-4 h-4" />
+          <span>Delete Task</span>
+        </button>
+      </div>
+    </>
+  );
+};
+
+// Task Edit Modal Component
 const TaskEditModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -458,7 +583,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   onUpdateTask,
   onDeleteTask,
   allTasks = [],
-  folders = [], // NEW: Accept folders prop
+  folders = [],
 }) => {
   // Hidden subtasks state with localStorage persistence
   const [hiddenSubtasks, setHiddenSubtasks] = useState<Set<number>>(() => {
@@ -480,12 +605,12 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
 
-  // NEW: Edit modal state
+  // Edit modal state
   const [showEditModal, setShowEditModal] = useState(false);
   const [editTaskId, setEditTaskId] = useState<number | null>(null);
 
-  // NEW: Folder dropdown state
-  const [showFolderDropdown, setShowFolderDropdown] = useState(false);
+  // Action dropdown state
+  const [showActionDropdown, setShowActionDropdown] = useState<string | null>(null);
 
   // Save to localStorage whenever hiddenSubtasks changes
   useEffect(() => {
@@ -548,7 +673,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
     setDeleteTaskId(null);
   };
 
-  // NEW: Handle task editing
+  // Handle task editing
   const handleEditTask = (taskId: number) => {
     setEditTaskId(taskId);
     setShowEditModal(true);
@@ -562,12 +687,12 @@ const TaskCard: React.FC<TaskCardProps> = ({
     setEditTaskId(null);
   };
 
-  // NEW: Handle folder assignment
+  // Handle folder assignment
   const handleFolderSelect = (folderId: number | null) => {
     if (onUpdateTask) {
       onUpdateTask(task.id, { folder_id: folderId });
     }
-    setShowFolderDropdown(false);
+    setShowActionDropdown(null);
   };
 
   const getTaskById = (taskId: number): Task | undefined => {
@@ -732,23 +857,36 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
             {/* Action buttons for subtasks */}
             <div className="flex items-center space-x-1">
-              {/* NEW: Edit button for subtask */}
-              <button
-                onClick={() => handleEditTask(subtask.id)}
-                className="p-1 text-gray-400 hover:text-blue-600 rounded"
-                title="Edit subtask"
-              >
-                <Edit2 className="w-4 h-4" />
-              </button>
+              {/* Action dropdown for subtask */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowActionDropdown(
+                    showActionDropdown === `subtask-${subtask.id}` ? null : `subtask-${subtask.id}`
+                  )}
+                  className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                  title="More actions"
+                >
+                  <MoreVertical className="w-5 h-5" />
+                </button>
 
-              {/* Schedule button for subtask */}
-              <button
-                onClick={() => handleScheduleTask(subtask.id)}
-                className="p-1 text-gray-400 hover:text-blue-600 rounded"
-                title="Schedule task"
-              >
-                <Calendar className="w-4 h-4" />
-              </button>
+                {showActionDropdown === `subtask-${subtask.id}` && (
+                  <TaskActionDropdown
+                    isOpen={true}
+                    onClose={() => setShowActionDropdown(null)}
+                    onEdit={() => handleEditTask(subtask.id)}
+                    onSchedule={() => handleScheduleTask(subtask.id)}
+                    onFolderSelect={(folderId) => {
+                      if (onUpdateTask) {
+                        onUpdateTask(subtask.id, { folder_id: folderId });
+                      }
+                      setShowActionDropdown(null);
+                    }}
+                    onDelete={() => handleDeleteTask(subtask.id)}
+                    folders={folders}
+                    currentFolderId={(subtask as any).folder_id || null}
+                  />
+                )}
+              </div>
 
               {/* Hide/Show button for subtask - only show for level 0 subtasks with nested children */}
               {canHideSubtasks && (
@@ -762,9 +900,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
                   }
                 >
                   {isThisSubtaskHidden ? (
-                    <EyeOff className="w-4 h-4" />
+                    <EyeOff className="w-5 h-5" />
                   ) : (
-                    <Eye className="w-4 h-4" />
+                    <Eye className="w-5 h-5" />
                   )}
                 </button>
               )}
@@ -776,18 +914,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                   className="p-1 text-gray-400 hover:text-blue-600 rounded"
                   title="Add subtask"
                 >
-                  <Plus className="w-4 h-4" />
-                </button>
-              )}
-
-              {/* Delete subtask button */}
-              {onDeleteTask && (
-                <button
-                  onClick={() => handleDeleteTask(subtask.id)}
-                  className="p-1 text-gray-400 hover:text-red-600 rounded"
-                  title="Delete subtask"
-                >
-                  <Trash2 className="w-4 h-4" />
+                  <Plus className="w-5 h-5" />
                 </button>
               )}
             </div>
@@ -862,7 +989,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                     </div>
                   )}
 
-                  {/* NEW: Folder indicator */}
+                  {/* Folder indicator */}
                   {currentFolder && (
                     <div className="flex items-center space-x-1">
                       <div
@@ -933,64 +1060,29 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
           {/* Action buttons */}
           <div className="flex items-center space-x-1">
-            {/* NEW: Edit button */}
-            <button
-              onClick={() => handleEditTask(task.id)}
-              className="p-1 text-gray-400 hover:text-blue-600 rounded"
-              title="Edit task"
-            >
-              <Edit2 className="w-5 h-5" />
-            </button>
-
-            {/* Schedule button */}
-            <button
-              onClick={() => handleScheduleTask(task.id)}
-              className="p-1 text-gray-400 hover:text-blue-600 rounded"
-              title="Schedule task"
-            >
-              <Calendar className="w-5 h-5" />
-            </button>
-
-            {/* NEW: Folder assignment button */}
+            {/* Main action dropdown */}
             <div className="relative">
               <button
-                onClick={() => setShowFolderDropdown(!showFolderDropdown)}
+                onClick={() => setShowActionDropdown(
+                  showActionDropdown === `task-${task.id}` ? null : `task-${task.id}`
+                )}
                 className="p-1 text-gray-400 hover:text-gray-600 rounded"
-                title="Change folder"
+                title="More actions"
               >
-                <FolderPlus className="w-5 h-5" />
+                <MoreVertical className="w-5 h-5" />
               </button>
 
-              {showFolderDropdown && (
-                <div className="absolute top-8 right-0 z-50 bg-white border border-gray-200 rounded-md shadow-xl min-w-[200px] max-h-64 overflow-y-auto">
-                  <div className="p-2">
-                    <button
-                      onClick={() => handleFolderSelect(null)}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded flex items-center space-x-2"
-                    >
-                      <div className="w-3 h-3 rounded bg-gray-300" />
-                      <span>No Folder</span>
-                    </button>
-                    {folders.map((folder) => (
-                      <button
-                        key={folder.id}
-                        onClick={() => handleFolderSelect(folder.id)}
-                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded flex items-center space-x-2 ${
-                          currentFolder?.id === folder.id ? 'bg-blue-50 text-blue-700' : ''
-                        }`}
-                      >
-                        <div
-                          className="w-3 h-3 rounded"
-                          style={{ backgroundColor: folder.color }}
-                        />
-                        <span>{folder.name}</span>
-                        {currentFolder?.id === folder.id && (
-                          <span className="ml-auto text-blue-600">✓</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              {showActionDropdown === `task-${task.id}` && (
+                <TaskActionDropdown
+                  isOpen={true}
+                  onClose={() => setShowActionDropdown(null)}
+                  onEdit={() => handleEditTask(task.id)}
+                  onSchedule={() => handleScheduleTask(task.id)}
+                  onFolderSelect={handleFolderSelect}
+                  onDelete={() => handleDeleteTask(task.id)}
+                  folders={folders}
+                  currentFolderId={(task as any).folder_id || null}
+                />
               )}
             </div>
 
@@ -1017,17 +1109,6 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 title="Add subtask"
               >
                 <Plus className="w-5 h-5" />
-              </button>
-            )}
-
-            {/* Delete task button */}
-            {onDeleteTask && (
-              <button
-                onClick={() => handleDeleteTask(task.id)}
-                className="p-1 text-gray-400 hover:text-red-600 rounded"
-                title="Delete task"
-              >
-                <Trash2 className="w-5 h-5" />
               </button>
             )}
 
@@ -1073,7 +1154,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
         </div>
       )}
 
-      {/* NEW: Task Edit Modal */}
+      {/* Task Edit Modal */}
       {editTaskId && (
         <TaskEditModal
           isOpen={showEditModal}
@@ -1124,17 +1205,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
             : false
         }
       />
-
-      {/* Click outside to close folder dropdown */}
-      {showFolderDropdown && (
-        <div 
-          className="fixed inset-0 z-40" 
-          onClick={() => setShowFolderDropdown(false)}
-        />
-      )}
     </div>
   );
 };
 
 export default TaskCard;
-                  
