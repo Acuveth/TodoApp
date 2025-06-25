@@ -16,6 +16,7 @@ from googleapiclient.discovery import build
 from jose import jwt
 from passlib.context import CryptContext
 from typing import List, Optional
+from sqlalchemy.orm import selectinload
 
 # Database setup - MySQL configuration
 # Šiht
@@ -540,12 +541,15 @@ def create_quest(quest: QuestCreate, current_user: User = Depends(get_current_us
         db.add(db_paragraph)
     
     db.commit()
-    db.refresh(db_quest)
+    
+    # IMPORTANT: Re-fetch the quest with eager-loaded paragraphs
+    db_quest = db.query(Quest).options(selectinload(Quest.paragraphs)).filter(Quest.id == db_quest.id).first()
+    
     return db_quest
 
 @app.get("/api/quests")
 def get_quests(folder_id: Optional[int] = None, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    query = db.query(Quest).filter(Quest.user_id == current_user.id)
+    query = db.query(Quest).options(selectinload(Quest.paragraphs)).filter(Quest.user_id == current_user.id)
     if folder_id:
         query = query.filter(Quest.folder_id == folder_id)
     return query.order_by(Quest.created_at.desc()).all()
@@ -568,7 +572,10 @@ def update_quest(quest_id: int, updates: dict, current_user: User = Depends(get_
     
     quest.updated_at = datetime.utcnow()
     db.commit()
-    db.refresh(quest)
+    
+    # IMPORTANT: Re-fetch the quest with eager-loaded paragraphs
+    quest = db.query(Quest).options(selectinload(Quest.paragraphs)).filter(Quest.id == quest_id).first()
+    
     return quest
 
 @app.delete("/api/quests/{quest_id}")
