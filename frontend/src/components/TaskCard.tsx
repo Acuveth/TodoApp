@@ -42,6 +42,7 @@ const TaskActionDropdown: React.FC<{
   onDelete: () => void;
   folders: FolderType[];
   currentFolderId: number | null;
+  isSubtask: boolean; // Add this prop to control folder menu visibility
 }> = ({ 
   isOpen, 
   onClose, 
@@ -50,7 +51,8 @@ const TaskActionDropdown: React.FC<{
   onFolderSelect, 
   onDelete, 
   folders, 
-  currentFolderId 
+  currentFolderId,
+  isSubtask
 }) => {
   const [showFolderSubmenu, setShowFolderSubmenu] = useState(false);
 
@@ -85,7 +87,8 @@ const TaskActionDropdown: React.FC<{
           <span>Schedule Task</span>
         </button>
         
-        {/* Folder selection with hover submenu */}
+        {/* Only show folder menu for main tasks (not subtasks) */}
+        {!isSubtask && (
         <div 
           className="relative"
           onMouseEnter={() => setShowFolderSubmenu(true)}
@@ -137,7 +140,7 @@ const TaskActionDropdown: React.FC<{
             </div>
           )}
         </div>
-        
+        )}
         <hr className="my-1" />
         
         <button
@@ -689,7 +692,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
   // Handle folder assignment
   const handleFolderSelect = (folderId: number | null) => {
-    if (onUpdateTask) {
+    if (!task.parent_task_id && onUpdateTask) {
       onUpdateTask(task.id, { folder_id: folderId });
     }
     setShowActionDropdown(null);
@@ -884,6 +887,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                     onDelete={() => handleDeleteTask(subtask.id)}
                     folders={folders}
                     currentFolderId={(subtask as any).folder_id || null}
+                    isSubtask={true}
                   />
                 )}
               </div>
@@ -1082,6 +1086,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                   onDelete={() => handleDeleteTask(task.id)}
                   folders={folders}
                   currentFolderId={(task as any).folder_id || null}
+                  isSubtask={!!task.parent_task_id}
                 />
               )}
             </div>
