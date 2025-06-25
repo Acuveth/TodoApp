@@ -1,19 +1,47 @@
 import React, { useState } from "react";
 import { ChevronLeft, ChevronRight, Clock, BookOpen, CheckSquare, Calendar as CalendarIcon, CalendarDays } from "lucide-react";
-import { Task, DiaryEntry } from "../types";
+import { Task, DiaryEntry, FolderType } from "../types";
 
 interface CalendarViewProps {
   tasks: Task[];
   diaryEntries?: DiaryEntry[];
+  folders: FolderType[];
+  onToggleTaskStatus: (task: Task) => Promise<void>;
+  onEditTask: (task: Task) => void;
+  onScheduleTask: (taskId: number, updates: any) => Promise<void>;
+  onUpdateTaskFolder: (taskId: number, folderId: number | null) => Promise<void>;
+  onDeleteTask: (taskId: number) => Promise<void>;
+  onCreateSubtask: (parentTaskId: number) => Promise<void>;
+  onEditDiary: (entry: DiaryEntry) => void;
+  onScheduleDiary: (id: number, scheduledDate: string) => Promise<void>;
+  onUpdateDiaryFolder: (id: number, folderId: number | null) => Promise<void>;
+  onDeleteDiary: (id: number) => Promise<void>;
 }
 
 const CalendarView: React.FC<CalendarViewProps> = ({
   tasks,
   diaryEntries = [],
+  folders,
+  onToggleTaskStatus,
+  onEditTask,
+  onScheduleTask,
+  onUpdateTaskFolder,
+  onDeleteTask,
+  onCreateSubtask,
+  onEditDiary,
+  onScheduleDiary,
+  onUpdateDiaryFolder,
+  onDeleteDiary,
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDayDate, setSelectedDayDate] = useState(new Date());
   const [activeTab, setActiveTab] = useState<"day" | "month">("day");
+
+  // Helper function to get folder by ID
+  const getFolderById = (folderId: number | null | undefined) => {
+    if (!folderId) return null;
+    return folders.find(folder => folder.id === folderId) || null;
+  };
 
   // Calendar helper functions
   const getDaysInMonth = (date: Date) => {
@@ -110,14 +138,26 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const renderDayFeedItem = (item: { type: "task" | "diary"; item: Task | DiaryEntry }) => {
     if (item.type === "task") {
       const task = item.item as Task;
+      const folder = getFolderById((task as any).folder_id);
+      
       return (
         <div key={`task-${task.id}`} className="flex items-center space-x-4 p-4 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors">
           <div className={`w-3 h-3 rounded-full ${task.status === "completed" ? "bg-green-500" : "bg-blue-500"}`} />
           <CheckSquare className="w-5 h-5 text-blue-600 flex-shrink-0" />
           <div className="flex-1">
-            <h4 className={`font-medium text-lg ${task.status === "completed" ? "line-through text-gray-500" : "text-gray-900"}`}>
-              {task.title}
-            </h4>
+            <div className="flex items-center space-x-2">
+              <h4 className={`font-medium text-lg ${task.status === "completed" ? "line-through text-gray-500" : "text-gray-900"}`}>
+                {task.title}
+              </h4>
+              {folder && (
+                <span 
+                  className="inline-block px-2 py-1 text-xs font-medium rounded-full text-white"
+                  style={{ backgroundColor: folder.color }}
+                >
+                  {folder.name}
+                </span>
+              )}
+            </div>
             {task.due_date && (
               <p className="text-sm text-blue-600 font-medium">
                 {new Date(task.due_date).toLocaleTimeString([], {
@@ -132,6 +172,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             )}
           </div>
           <div className="flex items-center space-x-2">
+            <button
+              onClick={() => onToggleTaskStatus(task)}
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                task.status === "completed" 
+                  ? "bg-green-100 text-green-700 hover:bg-green-200" 
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              {task.status === "completed" ? "✓ Done" : "Mark Done"}
+            </button>
             <div className={`px-3 py-1 rounded-full text-sm font-medium ${
               task.priority === 3 ? "bg-red-100 text-red-700" :
               task.priority === 2 ? "bg-yellow-100 text-yellow-700" :
@@ -144,12 +194,24 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       );
     } else {
       const entry = item.item as DiaryEntry;
+      const folder = getFolderById((entry as any).folder_id);
+      
       return (
         <div key={`diary-${entry.id}`} className="flex items-center space-x-4 p-4 bg-purple-50 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors">
           <div className="w-3 h-3 rounded-full bg-purple-500" />
           <BookOpen className="w-5 h-5 text-purple-600 flex-shrink-0" />
           <div className="flex-1">
-            <h4 className="font-medium text-lg text-gray-900">{entry.title || "Diary Entry"}</h4>
+            <div className="flex items-center space-x-2">
+              <h4 className="font-medium text-lg text-gray-900">{entry.title || "Diary Entry"}</h4>
+              {folder && (
+                <span 
+                  className="inline-block px-2 py-1 text-xs font-medium rounded-full text-white"
+                  style={{ backgroundColor: folder.color }}
+                >
+                  {folder.name}
+                </span>
+              )}
+            </div>
             {entry.scheduled_date && (
               <p className="text-sm text-purple-600 font-medium">
                 {new Date(entry.scheduled_date).toLocaleTimeString([], {

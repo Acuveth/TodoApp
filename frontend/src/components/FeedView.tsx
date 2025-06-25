@@ -23,7 +23,7 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { Task, DiaryEntry, FolderType, NewTask, NewDiaryEntry } from "../types";
-import { Modal, TaskCard } from "./";
+import { Modal, TaskCard, DiaryViewModal } from "./";
 
 interface FeedViewProps {
   tasks: Task[];
@@ -416,6 +416,10 @@ const FeedView: React.FC<FeedViewProps> = ({
   // Dropdown states
   const [showActionDropdown, setShowActionDropdown] = useState<string | null>(null);
 
+  // Diary view modal state
+  const [showDiaryViewModal, setShowDiaryViewModal] = useState(false);
+  const [viewingDiary, setViewingDiary] = useState<DiaryEntry | null>(null);
+
   // Task creation state
   const [newTask, setNewTask] = useState<NewTask>({
     title: "",
@@ -660,6 +664,12 @@ const FeedView: React.FC<FeedViewProps> = ({
     }
   };
 
+  // Handle diary viewing
+  const handleViewDiary = (entry: DiaryEntry) => {
+    setViewingDiary(entry);
+    setShowDiaryViewModal(true);
+  };
+
   const handleEditDiary = (entry: DiaryEntry) => {
     setEditingDiary(entry);
     const combinedText = entry.title
@@ -682,6 +692,7 @@ const FeedView: React.FC<FeedViewProps> = ({
     }
   };
 
+  // Handle folder assignment for diary entries
   const handleFolderSelect = async (
     itemId: string,
     folderId: number | null
@@ -696,6 +707,18 @@ const FeedView: React.FC<FeedViewProps> = ({
       setShowFolderSelect(null);
     } catch (error) {
       console.error("Error updating folder:", error);
+    }
+  };
+
+  // Handle folder assignment for diary modal
+  const handleDiaryFolderSelect = async (
+    entryId: number,
+    folderId: number | null
+  ) => {
+    try {
+      await onUpdateDiaryEntryFolder(entryId, folderId);
+    } catch (error) {
+      console.error("Error updating diary folder:", error);
     }
   };
 
@@ -877,7 +900,7 @@ const FeedView: React.FC<FeedViewProps> = ({
           key={item.id}
           className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all cursor-pointer"
           style={folderStyling}
-          onClick={() => toggleItemExpansion(item.id)}
+          onClick={() => handleViewDiary(entry)}
         >
           <div className="p-4">
             <div className="flex items-start justify-between">
@@ -1333,6 +1356,21 @@ Write your diary entry here. Use **bold** for bold text and *italic* for italic 
         onClear={handleClearSchedule}
         currentDateTime={entryToSchedule?.scheduled_date}
         entryTitle={entryToSchedule?.title || "Diary Entry"}
+      />
+
+      {/* Diary View Modal */}
+      <DiaryViewModal
+        isOpen={showDiaryViewModal}
+        onClose={() => {
+          setShowDiaryViewModal(false);
+          setViewingDiary(null);
+        }}
+        entry={viewingDiary}
+        folders={folders}
+        onEdit={handleEditDiary}
+        onSchedule={handleScheduleEntry}
+        onFolderSelect={handleDiaryFolderSelect}
+        onDelete={onDeleteDiaryEntry}
       />
     </>
   );

@@ -3,3 +3,5 @@ export { default as Modal } from "./Modal";
 export { default as TaskCard } from "./TaskCard";
 export { default as CalendarView } from "./CalendarView";
 export { default as FeedView } from "./FeedView";
+export { default as DiaryViewModal } from "./DiaryViewModal";
+export { default as TaskViewModal } from "./TaskViewModal";

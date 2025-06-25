@@ -878,7 +878,29 @@ function TodoApp() {
           />
         );
       case "calendar":
-        return <CalendarView tasks={tasks} diaryEntries={diaryEntries} />;
+        return (
+          <CalendarView 
+            tasks={tasks} 
+            diaryEntries={diaryEntries}
+            folders={folders}
+            onToggleTaskStatus={toggleTaskStatus}
+            onEditTask={(task: Task) => {
+              // You can implement task editing here if needed
+              console.log("Edit task:", task);
+            }}
+            onScheduleTask={handleUpdateTask}
+            onUpdateTaskFolder={(taskId: number, folderId: number | null) => handleUpdateTask(taskId, { folder_id: folderId })}
+            onDeleteTask={handleDeleteTask}
+            onCreateSubtask={handleCreateSubtask}
+            onEditDiary={(entry: DiaryEntry) => {
+              // Handle diary editing from calendar
+              console.log("Edit diary:", entry);
+            }}
+            onScheduleDiary={handleScheduleDiaryEntry}
+            onUpdateDiaryFolder={handleUpdateDiaryEntryFolder}
+            onDeleteDiary={handleDeleteDiaryEntry}
+          />
+        );
       default:
         return (
           <FeedView
