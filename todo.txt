@@ -1,5 +1,5 @@
 FUNCTIONAL
-add quests - 200 letter title you can add or remove paragraphs under it and that's it
+fix bugs quests
 
 VISUAL 
 visual indicator for a task in a folder resets when you refresh the page 
