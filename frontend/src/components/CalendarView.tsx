@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { ChevronLeft, ChevronRight, Clock, BookOpen, CheckSquare, Calendar as CalendarIcon, CalendarDays } from "lucide-react";
 import { Task, DiaryEntry, FolderType } from "../types";
+import { TaskViewModal, DiaryViewModal } from "./";
 
 interface CalendarViewProps {
   tasks: Task[];
@@ -37,6 +38,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const [selectedDayDate, setSelectedDayDate] = useState(new Date());
   const [activeTab, setActiveTab] = useState<"day" | "month">("day");
 
+  // Modal states for task and diary popups
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [showDiaryModal, setShowDiaryModal] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedDiary, setSelectedDiary] = useState<DiaryEntry | null>(null);
+
   // Helper function to get folder by ID
   const getFolderById = (folderId: number | null | undefined) => {
     if (!folderId) return null;
@@ -71,7 +78,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     if (!date) return [];
     const dateStr = date.toISOString().split("T")[0];
     return tasks.filter(
-      (task) => task.due_date && task.due_date.startsWith(dateStr)
+      (task) => task.due_date && 
+                task.due_date.startsWith(dateStr) && 
+                !task.parent_task_id // Only show main tasks, not subtasks
     );
   };
 
@@ -134,6 +143,71 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     }
   };
 
+  // Handle task click - show task modal
+  const handleTaskClick = (task: Task, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent calendar cell click
+    setSelectedTask(task);
+    setShowTaskModal(true);
+  };
+
+  // Handle diary click - show diary modal
+  const handleDiaryClick = (entry: DiaryEntry, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent calendar cell click
+    setSelectedDiary(entry);
+    setShowDiaryModal(true);
+  };
+
+  // Modal handlers
+  const handleTaskModalClose = () => {
+    setShowTaskModal(false);
+    setSelectedTask(null);
+  };
+
+  const handleDiaryModalClose = () => {
+    setShowDiaryModal(false);
+    setSelectedDiary(null);
+  };
+
+  // Task modal action handlers
+  const handleTaskEdit = (task: Task) => {
+    onEditTask(task);
+    handleTaskModalClose();
+  };
+
+  const handleTaskSchedule = (task: Task) => {
+    // This would open a scheduling modal - for now just close the view modal
+    handleTaskModalClose();
+  };
+
+  const handleTaskFolderChange = (taskId: number, folderId: number | null) => {
+    onUpdateTaskFolder(taskId, folderId);
+  };
+
+  const handleTaskDelete = (taskId: number) => {
+    onDeleteTask(taskId);
+    handleTaskModalClose();
+  };
+
+  // Diary modal action handlers
+  const handleDiaryEdit = (entry: DiaryEntry) => {
+    onEditDiary(entry);
+    handleDiaryModalClose();
+  };
+
+  const handleDiarySchedule = (entry: DiaryEntry) => {
+    // This would open a scheduling modal - for now just close the view modal
+    handleDiaryModalClose();
+  };
+
+  const handleDiaryFolderChange = (entryId: number, folderId: number | null) => {
+    onUpdateDiaryFolder(entryId, folderId);
+  };
+
+  const handleDiaryDelete = (entryId: number) => {
+    onDeleteDiary(entryId);
+    handleDiaryModalClose();
+  };
+
   // Render individual item in day feed
   const renderDayFeedItem = (item: { type: "task" | "diary"; item: Task | DiaryEntry }) => {
     if (item.type === "task") {
@@ -141,7 +215,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       const folder = getFolderById((task as any).folder_id);
       
       return (
-        <div key={`task-${task.id}`} className="flex items-center space-x-4 p-4 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors">
+        <div 
+          key={`task-${task.id}`} 
+          className="flex items-center space-x-4 p-4 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
+          onClick={(e) => handleTaskClick(task, e)}
+        >
           <div className={`w-3 h-3 rounded-full ${task.status === "completed" ? "bg-green-500" : "bg-blue-500"}`} />
           <CheckSquare className="w-5 h-5 text-blue-600 flex-shrink-0" />
           <div className="flex-1">
@@ -173,7 +251,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => onToggleTaskStatus(task)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleTaskStatus(task);
+              }}
               className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                 task.status === "completed" 
                   ? "bg-green-100 text-green-700 hover:bg-green-200" 
@@ -197,7 +278,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       const folder = getFolderById((entry as any).folder_id);
       
       return (
-        <div key={`diary-${entry.id}`} className="flex items-center space-x-4 p-4 bg-purple-50 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors">
+        <div 
+          key={`diary-${entry.id}`} 
+          className="flex items-center space-x-4 p-4 bg-purple-50 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer"
+          onClick={(e) => handleDiaryClick(entry, e)}
+        >
           <div className="w-3 h-3 rounded-full bg-purple-500" />
           <BookOpen className="w-5 h-5 text-purple-600 flex-shrink-0" />
           <div className="flex-1">
@@ -466,12 +551,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                                 return (
                                   <div
                                     key={`task-${task.id}`}
-                                    className={`text-xs p-1 rounded truncate flex items-center space-x-1 ${
+                                    className={`text-xs p-1 rounded truncate flex items-center space-x-1 cursor-pointer ${
                                       task.status === "completed"
                                         ? "bg-green-100 text-green-800 line-through"
-                                        : "bg-blue-100 text-blue-800"
+                                        : "bg-blue-100 text-blue-800 hover:bg-blue-200"
                                     }`}
                                     title={`Task: ${task.title}`}
+                                    onClick={(e) => handleTaskClick(task, e)}
                                   >
                                     <Clock className="w-3 h-3 flex-shrink-0" />
                                     <span className="truncate">{task.title}</span>
@@ -482,8 +568,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                                 return (
                                   <div
                                     key={`diary-${entry.id}`}
-                                    className="text-xs p-1 rounded truncate flex items-center space-x-1 bg-purple-100 text-purple-800"
+                                    className="text-xs p-1 rounded truncate flex items-center space-x-1 bg-purple-100 text-purple-800 hover:bg-purple-200 cursor-pointer"
                                     title={`Diary: ${entry.title || "Untitled"}`}
+                                    onClick={(e) => handleDiaryClick(entry, e)}
                                   >
                                     <BookOpen className="w-3 h-3 flex-shrink-0" />
                                     <span className="truncate">
@@ -517,7 +604,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   <span className="font-medium">
                     {
                       tasks.filter((task) => {
-                        if (!task.due_date) return false;
+                        if (!task.due_date || task.parent_task_id) return false; // Exclude subtasks
                         const taskDate = new Date(task.due_date);
                         return (
                           taskDate.getMonth() === currentDate.getMonth() &&
@@ -556,8 +643,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   <span className="font-medium text-green-600">
                     {
                       tasks.filter((task) => {
-                        if (!task.due_date || task.status !== "completed")
-                          return false;
+                        if (!task.due_date || task.status !== "completed" || task.parent_task_id) return false; // Exclude subtasks
                         const taskDate = new Date(task.due_date);
                         return (
                           taskDate.getMonth() === currentDate.getMonth() &&
@@ -572,7 +658,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   <span className="font-medium">
                     {(() => {
                       const monthTasks = tasks.filter((task) => {
-                        if (!task.due_date) return false;
+                        if (!task.due_date || task.parent_task_id) return false; // Exclude subtasks
                         const taskDate = new Date(task.due_date);
                         return (
                           taskDate.getMonth() === currentDate.getMonth() &&
@@ -607,7 +693,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       const today = new Date();
 
                       const upcomingTasks = tasks.filter((task) => {
-                        if (!task.due_date) return false;
+                        if (!task.due_date || task.parent_task_id) return false; // Exclude subtasks
                         const taskDate = new Date(task.due_date);
                         return taskDate >= today && taskDate <= nextWeek;
                       });
@@ -628,8 +714,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   <span className="font-medium text-red-600">
                     {
                       tasks.filter((task) => {
-                        if (!task.due_date || task.status === "completed")
-                          return false;
+                        if (!task.due_date || task.status === "completed" || task.parent_task_id) return false; // Exclude subtasks
                         const taskDate = new Date(task.due_date);
                         const today = new Date();
                         today.setHours(0, 0, 0, 0);
@@ -642,6 +727,37 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Task View Modal */}
+      {selectedTask && (
+        <TaskViewModal
+          isOpen={showTaskModal}
+          onClose={handleTaskModalClose}
+          task={selectedTask}
+          allTasks={tasks}
+          folders={folders}
+          onToggleStatus={onToggleTaskStatus}
+          onEdit={handleTaskEdit}
+          onSchedule={handleTaskSchedule}
+          onFolderSelect={handleTaskFolderChange}
+          onDelete={handleTaskDelete}
+          onCreateSubtask={onCreateSubtask}
+        />
+      )}
+
+      {/* Diary View Modal */}
+      {selectedDiary && (
+        <DiaryViewModal
+          isOpen={showDiaryModal}
+          onClose={handleDiaryModalClose}
+          entry={selectedDiary}
+          folders={folders}
+          onEdit={handleDiaryEdit}
+          onSchedule={handleDiarySchedule}
+          onFolderSelect={handleDiaryFolderChange}
+          onDelete={handleDiaryDelete}
+        />
       )}
     </div>
   );

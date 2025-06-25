@@ -1,6 +1,5 @@
 FUNCTIONAL
-Calendar when you click on the task or diary it shows you it in the popup
-add quests
+add quests - 200 letter title you can add or remove paragraphs under it and that's it
 
 VISUAL 
 visual indicator for a task in a folder resets when you refresh the page 
