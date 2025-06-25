@@ -302,6 +302,26 @@ const FeedView: React.FC<FeedViewProps> = ({
   // Diary creation state
   const [newDiaryContent, setNewDiaryContent] = useState("");
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showFolderSelect) {
+        // Check if the click is outside the dropdown
+        const target = event.target as Element;
+        if (target && !target.closest('.folder-dropdown-container')) {
+          setShowFolderSelect(null);
+        }
+      }
+    };
+
+    if (showFolderSelect) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showFolderSelect]);
+
   // Get today's date in YYYY-MM-DD format
   const today = new Date().toISOString().split("T")[0];
 
@@ -517,6 +537,9 @@ const FeedView: React.FC<FeedViewProps> = ({
       const [type, id] = itemId.split("-");
       if (type === "diary") {
         await onUpdateDiaryEntryFolder(parseInt(id), folderId);
+      } else if (type === "task") {
+        // NEW: Add support for updating task folders
+        await onUpdateTask(parseInt(id), { folder_id: folderId });
       }
       setShowFolderSelect(null);
     } catch (error) {
@@ -580,12 +603,43 @@ const FeedView: React.FC<FeedViewProps> = ({
     }
   };
 
-  const getCurrentFolder = (item: FeedItem) => {
+  // NEW: Enhanced folder helpers with visual styling
+  const getCurrentFolder = (item: FeedItem): FolderType | null => {
     if (item.type === "diary") {
       const entry = item.data as DiaryEntry;
-      return folders.find((folder) => folder.id === (entry as any).folder_id);
+      return folders.find((folder) => folder.id === (entry as any).folder_id) || null;
+    } else if (item.type === "task") {
+      const task = item.data as Task;
+      return folders.find((folder) => folder.id === (task as any).folder_id) || null;
     }
     return null;
+  };
+
+  // NEW: Get folder-specific styling
+  const getFolderStyling = (folder: FolderType | null) => {
+    if (!folder) return { backgroundColor: 'transparent', borderColor: 'transparent' };
+    
+    // Create a lighter version of the folder color for background
+    const color = folder.color;
+    const rgb = hexToRgb(color);
+    if (!rgb) return { backgroundColor: 'transparent', borderColor: color };
+    
+    return {
+      backgroundColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)`,
+      borderLeftColor: color,
+      borderLeftWidth: '4px',
+      borderLeftStyle: 'solid' as const,
+    };
+  };
+
+  // Helper function to convert hex to RGB
+  const hexToRgb = (hex: string) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
   };
 
   // NEW: Helper function to format scheduled time
@@ -610,6 +664,8 @@ const FeedView: React.FC<FeedViewProps> = ({
 
   const renderFeedItem = (item: FeedItem) => {
     const isExpanded = expandedItems.has(item.id);
+    const folder = getCurrentFolder(item);
+    const folderStyling = getFolderStyling(folder);
 
     if (item.type === "task") {
       const task = item.data as Task;
@@ -620,6 +676,18 @@ const FeedView: React.FC<FeedViewProps> = ({
           {/* Feed context header */}
           <div className="flex items-center justify-between text-xs text-gray-500 px-1">
             <div className="flex items-center space-x-2">
+              {/* NEW: Folder indicator for tasks */}
+              {folder && (
+                <div className="flex items-center space-x-1">
+                  <div
+                    className="w-3 h-3 rounded"
+                    style={{ backgroundColor: folder.color }}
+                  />
+                  <span className="text-xs text-gray-600 font-medium">
+                    {folder.name}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="flex items-center space-x-1">
               <Clock className="w-3 h-3" />
@@ -633,188 +701,203 @@ const FeedView: React.FC<FeedViewProps> = ({
             </div>
           </div>
 
-          {/* Use the full TaskCard component */}
-          <TaskCard
-            task={task}
-            isExpanded={expandedItems.has(task.id.toString())}
-            onToggleExpansion={(taskId) => {
-              const newExpanded = new Set(expandedItems);
-              const taskIdStr = taskId.toString();
-              if (newExpanded.has(taskIdStr)) {
-                newExpanded.delete(taskIdStr);
-              } else {
-                newExpanded.add(taskIdStr);
-              }
-              setExpandedItems(newExpanded);
-            }}
-            onToggleStatus={onToggleTaskStatus}
-            onCreateSubtask={onCreateSubtask}
-            onUpdateTask={onUpdateTask}
-            onDeleteTask={onDeleteTask}
-            allTasks={tasks}
-            folders={folders} // Pass folders to TaskCard
-          />
+          {/* NEW: Wrapper with folder styling */}
+          <div 
+            className="rounded-lg transition-all duration-200"
+            style={folderStyling}
+          >
+            {/* Use the full TaskCard component */}
+            <TaskCard
+              task={task}
+              isExpanded={expandedItems.has(task.id.toString())}
+              onToggleExpansion={(taskId) => {
+                const newExpanded = new Set(expandedItems);
+                const taskIdStr = taskId.toString();
+                if (newExpanded.has(taskIdStr)) {
+                  newExpanded.delete(taskIdStr);
+                } else {
+                  newExpanded.add(taskIdStr);
+                }
+                setExpandedItems(newExpanded);
+              }}
+              onToggleStatus={onToggleTaskStatus}
+              onCreateSubtask={onCreateSubtask}
+              onUpdateTask={onUpdateTask}
+              onDeleteTask={onDeleteTask}
+              allTasks={tasks}
+              folders={folders} // Pass folders to TaskCard
+            />
+          </div>
         </div>
       );
     } else {
       const entry = item.data as DiaryEntry;
-      const folder = getCurrentFolder(item);
 
       return (
         <div
           key={item.id}
-          className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
+          className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all cursor-pointer"
+          style={folderStyling}
           onClick={() => toggleItemExpansion(item.id)}
         >
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center space-x-2">
-                  <BookOpen className="w-4 h-4 text-purple-500" />
-                  <span className="text-sm font-medium text-purple-700">
-                    Diary Entry
-                  </span>
-                  {folder && (
-                    <>
-                      <div
-                        className="w-3 h-3 rounded"
-                        style={{ backgroundColor: folder.color }}
-                      />
-                      <span className="text-xs text-gray-500">
-                        {folder.name}
-                      </span>
-                    </>
+          <div className="p-4">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-2">
+                    <BookOpen className="w-4 h-4 text-purple-500" />
+                    <span className="text-sm font-medium text-purple-700">
+                      Diary Entry
+                    </span>
+                    {/* NEW: Enhanced folder indicator */}
+                    {folder && (
+                      <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-200">
+                        <div
+                          className="w-3 h-3 rounded-full border border-white shadow-sm"
+                          style={{ backgroundColor: folder.color }}
+                        />
+                        <span className="text-xs text-gray-700 font-medium">
+                          {folder.name}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* NEW: Scheduling indicator */}
+                  {entry.is_scheduled && entry.scheduled_date && (
+                    <div className="flex items-center space-x-1 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                      <CalendarIcon className="w-3 h-3" />
+                      <span>{formatScheduledTime(entry.scheduled_date)}</span>
+                    </div>
                   )}
                 </div>
 
-                {/* NEW: Scheduling indicator */}
-                {entry.is_scheduled && entry.scheduled_date && (
-                  <div className="flex items-center space-x-1 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                    <CalendarIcon className="w-3 h-3" />
-                    <span>{formatScheduledTime(entry.scheduled_date)}</span>
+                {entry.title && (
+                  <h3 className="font-medium text-lg text-gray-900 mb-2">
+                    {entry.title}
+                  </h3>
+                )}
+
+                <div className="text-gray-600 mb-2">
+                  {isExpanded ? (
+                    <div
+                      className="prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{
+                        __html: formatContent(entry.content),
+                      }}
+                    />
+                  ) : (
+                    <p className="line-clamp-3">
+                      {entry.content.length > 200
+                        ? `${entry.content.substring(0, 200)}...`
+                        : entry.content}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-1 text-xs text-gray-500">
+                    <Clock className="w-3 h-3" />
+                    <span>
+                      {new Date(entry.created_at).toLocaleDateString()}{" "}
+                      {new Date(entry.created_at).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
                   </div>
-                )}
-              </div>
-
-              {entry.title && (
-                <h3 className="font-medium text-lg text-gray-900 mb-2">
-                  {entry.title}
-                </h3>
-              )}
-
-              <div className="text-gray-600 mb-2">
-                {isExpanded ? (
-                  <div
-                    className="prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{
-                      __html: formatContent(entry.content),
-                    }}
-                  />
-                ) : (
-                  <p className="line-clamp-3">
-                    {entry.content.length > 200
-                      ? `${entry.content.substring(0, 200)}...`
-                      : entry.content}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-1 text-xs text-gray-500">
-                  <Clock className="w-3 h-3" />
-                  <span>
-                    {new Date(entry.created_at).toLocaleDateString()}{" "}
-                    {new Date(entry.created_at).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
                 </div>
               </div>
-            </div>
 
-            <div className="flex items-center space-x-2">
-              {/* NEW: Schedule button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleScheduleEntry(entry);
-                }}
-                className={`p-1 rounded transition-colors ${
-                  entry.is_scheduled
-                    ? "text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                    : "text-gray-400 hover:text-blue-600 hover:bg-blue-50"
-                }`}
-                title={
-                  entry.is_scheduled ? "Reschedule entry" : "Schedule entry"
-                }
-              >
-                <CalendarIcon className="w-4 h-4" />
-              </button>
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleEditDiary(entry);
-                }}
-                className="p-1 text-gray-400 hover:text-blue-600 rounded"
-                title="Edit diary entry"
-              >
-                <Edit className="w-4 h-4" />
-              </button>
-
-              <div className="relative">
+              <div className="flex items-center space-x-2">
+                {/* NEW: Schedule button */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    setShowFolderSelect(
-                      showFolderSelect === item.id ? null : item.id
-                    );
+                    handleScheduleEntry(entry);
                   }}
-                  className="p-1 text-gray-400 hover:text-gray-600 rounded"
-                  title="Change folder"
+                  className={`p-1 rounded transition-colors ${
+                    entry.is_scheduled
+                      ? "text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                      : "text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
+                  title={
+                    entry.is_scheduled ? "Reschedule entry" : "Schedule entry"
+                  }
                 >
-                  <FolderPlus className="w-4 h-4" />
+                  <CalendarIcon className="w-4 h-4" />
                 </button>
 
-                {showFolderSelect === item.id && (
-                  <div className="absolute top-8 right-0 z-10 bg-white border border-gray-200 rounded-md shadow-lg min-w-[200px]">
-                    <div className="p-2">
-                      <button
-                        onClick={() => handleFolderSelect(item.id, null)}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded flex items-center space-x-2"
-                      >
-                        <div className="w-3 h-3 rounded bg-gray-300" />
-                        <span>No Folder</span>
-                      </button>
-                      {folders.map((folder) => (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditDiary(entry);
+                  }}
+                  className="p-1 text-gray-400 hover:text-blue-600 rounded"
+                  title="Edit diary entry"
+                >
+                  <Edit className="w-4 h-4" />
+                </button>
+
+                <div className="relative folder-dropdown-container">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowFolderSelect(
+                        showFolderSelect === item.id ? null : item.id
+                      );
+                    }}
+                    className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                    title="Change folder"
+                  >
+                    <FolderPlus className="w-4 h-4" />
+                  </button>
+
+                  {showFolderSelect === item.id && (
+                    <div className="absolute top-8 right-0 z-[9999] bg-white border border-gray-200 rounded-md shadow-2xl min-w-[200px] max-h-64 overflow-y-auto border-2">
+                      <div className="p-2">
                         <button
-                          key={folder.id}
-                          onClick={() => handleFolderSelect(item.id, folder.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFolderSelect(item.id, null);
+                          }}
                           className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded flex items-center space-x-2"
                         >
-                          <div
-                            className="w-3 h-3 rounded"
-                            style={{ backgroundColor: folder.color }}
-                          />
-                          <span>{folder.name}</span>
+                          <div className="w-3 h-3 rounded bg-gray-300" />
+                          <span>No Folder</span>
                         </button>
-                      ))}
+                        {folders.map((folder) => (
+                          <button
+                            key={folder.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleFolderSelect(item.id, folder.id);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded flex items-center space-x-2"
+                          >
+                            <div
+                              className="w-3 h-3 rounded"
+                              style={{ backgroundColor: folder.color }}
+                            />
+                            <span>{folder.name}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
 
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteDiaryEntry(entry.id);
-                }}
-                className="p-1 text-gray-400 hover:text-red-600 rounded"
-                title="Delete diary entry"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteDiaryEntry(entry.id);
+                  }}
+                  className="p-1 text-gray-400 hover:text-red-600 rounded"
+                  title="Delete diary entry"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         </div>

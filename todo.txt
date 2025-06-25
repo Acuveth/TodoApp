@@ -1,9 +1,11 @@
-floating action button tasks
-when adding tasks or diaries to folders they should have their specific folder background color in the background
-tomorrow feed
-visual changes - enak design za diary entry in task and feedu
-
+STRUCTURAL
 remove the diary and tasks feeds 
+
+FUNCTIONAL
 Calendar when you click on the task or diary it shows you it in the popup
 Feed view when I click on the diary it pops up 
+when adding tasks or diaries to folders they should have their specific folder background color in the background
+
+VISUAL 
+visual changes - enak design za diary entry in task and feedu
 tasks and diary buttons should be hidden behind a dropdown schedule indicator should be next to that button

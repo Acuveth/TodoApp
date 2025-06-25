@@ -14,6 +14,7 @@ import {
   Trash2,
   Edit2,
   Save,
+  FolderPlus,
 } from "lucide-react";
 import { Task, FolderType } from "../types";
 
@@ -483,6 +484,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const [showEditModal, setShowEditModal] = useState(false);
   const [editTaskId, setEditTaskId] = useState<number | null>(null);
 
+  // NEW: Folder dropdown state
+  const [showFolderDropdown, setShowFolderDropdown] = useState(false);
+
   // Save to localStorage whenever hiddenSubtasks changes
   useEffect(() => {
     try {
@@ -558,8 +562,21 @@ const TaskCard: React.FC<TaskCardProps> = ({
     setEditTaskId(null);
   };
 
+  // NEW: Handle folder assignment
+  const handleFolderSelect = (folderId: number | null) => {
+    if (onUpdateTask) {
+      onUpdateTask(task.id, { folder_id: folderId });
+    }
+    setShowFolderDropdown(false);
+  };
+
   const getTaskById = (taskId: number): Task | undefined => {
     return allTasks.find((t) => t.id === taskId);
+  };
+
+  // Get current folder for display
+  const getCurrentFolder = () => {
+    return folders.find((folder) => folder.id === (task as any).folder_id);
   };
 
   // Calculate substep progress (traditional substeps)
@@ -790,6 +807,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
     marginLeft: `${task.indent_level * 24}px`,
   };
 
+  const currentFolder = getCurrentFolder();
+
   return (
     <div
       className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
@@ -814,7 +833,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                   {task.title}
                 </h3>
 
-                {/* Metadata row - priority, date/time, and status indicators */}
+                {/* Metadata row - priority, date/time, folder, and status indicators */}
                 <div className="flex items-center space-x-3 flex-wrap">
                   <div className="flex items-center space-x-1">
                     <Flag
@@ -839,6 +858,19 @@ const TaskCard: React.FC<TaskCardProps> = ({
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* NEW: Folder indicator */}
+                  {currentFolder && (
+                    <div className="flex items-center space-x-1">
+                      <div
+                        className="w-3 h-3 rounded"
+                        style={{ backgroundColor: currentFolder.color }}
+                      />
+                      <span className="text-xs text-gray-500">
+                        {currentFolder.name}
                       </span>
                     </div>
                   )}
@@ -918,6 +950,49 @@ const TaskCard: React.FC<TaskCardProps> = ({
             >
               <Calendar className="w-5 h-5" />
             </button>
+
+            {/* NEW: Folder assignment button */}
+            <div className="relative">
+              <button
+                onClick={() => setShowFolderDropdown(!showFolderDropdown)}
+                className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                title="Change folder"
+              >
+                <FolderPlus className="w-5 h-5" />
+              </button>
+
+              {showFolderDropdown && (
+                <div className="absolute top-8 right-0 z-50 bg-white border border-gray-200 rounded-md shadow-xl min-w-[200px] max-h-64 overflow-y-auto">
+                  <div className="p-2">
+                    <button
+                      onClick={() => handleFolderSelect(null)}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded flex items-center space-x-2"
+                    >
+                      <div className="w-3 h-3 rounded bg-gray-300" />
+                      <span>No Folder</span>
+                    </button>
+                    {folders.map((folder) => (
+                      <button
+                        key={folder.id}
+                        onClick={() => handleFolderSelect(folder.id)}
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded flex items-center space-x-2 ${
+                          currentFolder?.id === folder.id ? 'bg-blue-50 text-blue-700' : ''
+                        }`}
+                      >
+                        <div
+                          className="w-3 h-3 rounded"
+                          style={{ backgroundColor: folder.color }}
+                        />
+                        <span>{folder.name}</span>
+                        {currentFolder?.id === folder.id && (
+                          <span className="ml-auto text-blue-600">✓</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Hide/Show subtasks button */}
             {hasSubtasks && (
@@ -1049,8 +1124,17 @@ const TaskCard: React.FC<TaskCardProps> = ({
             : false
         }
       />
+
+      {/* Click outside to close folder dropdown */}
+      {showFolderDropdown && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setShowFolderDropdown(false)}
+        />
+      )}
     </div>
   );
 };
 
 export default TaskCard;
+                  
