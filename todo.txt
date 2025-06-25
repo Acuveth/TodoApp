@@ -1,11 +1,10 @@
-STRUCTURAL
-remove the diary and tasks feeds 
-
 FUNCTIONAL
 Calendar when you click on the task or diary it shows you it in the popup
 Feed view when I click on the diary it pops up 
+subtasks can't be in different folders than main tasks, 
 
 VISUAL 
-visual changes - enak design za diary entry in task and feedu
+visual indicator for a task in a folder resets when you refresh the page 
+visual changes consistencies - enak design za diary entry in task and feedu
 tasks and diary buttons should be hidden behind a dropdown schedule indicator should be next to that button
 Dark theme

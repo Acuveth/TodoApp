@@ -1,13 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Calendar as CalendarIcon,
-  CheckSquare,
   Plus,
   Folder,
-  BookOpen,
   AlertCircle,
   Activity,
-  AlarmClockCheck,
   Edit,
   Trash2,
   X,
@@ -17,9 +14,7 @@ import {
 // Component imports
 import {
   Modal,
-  TaskCard,
   CalendarView,
-  DiaryView,
   FeedView,
 } from "./components";
 
@@ -292,28 +287,11 @@ function TodoApp() {
   const [expandedTasks, setExpandedTasks] = useState(new Set<number>());
   const [loading, setLoading] = useState(false);
   const [backendStatus, setBackendStatus] = useState("checking");
-  const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showFolderManagementModal, setShowFolderManagementModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  // NEW: State for subtask creation
-  const [showNewSubtaskModal, setShowNewSubtaskModal] = useState(false);
-  const [parentTaskForSubtask, setParentTaskForSubtask] = useState<
-    number | null
-  >(null);
-
   // Form states
-  const [newTask, setNewTask] = useState<NewTask>({
-    title: "",
-    description: "",
-    priority: 1,
-    due_date: "",
-    is_calendar_event: false,
-    parent_task_id: undefined,
-    indent_level: 0,
-    order_index: 0,
-  });
   const [newFolder, setNewFolder] = useState<NewFolder>({
     name: "",
     color: "#3B82F6",
@@ -329,40 +307,13 @@ function TodoApp() {
     }
   }, []);
 
-  const loadTasks = useCallback(async () => {
-    setLoading(true);
-    try {
-      const tasksData = await api.getTasks(selectedFolder?.id || null);
-      setTasks(tasksData);
-    } catch (error) {
-      console.error("Error loading tasks:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedFolder?.id]);
-
-  const loadDiaryEntries = useCallback(async () => {
-    setLoading(true);
-    try {
-      const entriesData = await api.getDiaryEntries(
-        selectedDate ? selectedDate.toISOString().split("T")[0] : undefined,
-        selectedFolder?.id
-      );
-      setDiaryEntries(entriesData);
-    } catch (error) {
-      console.error("Error loading diary entries:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedDate, selectedFolder?.id]);
-
   // Load all data for feed view
   const loadAllData = useCallback(async () => {
     setLoading(true);
     try {
       const [tasksData, entriesData] = await Promise.all([
-        api.getTasks(null),
-        api.getDiaryEntries(undefined, undefined),
+        api.getTasks(selectedFolder?.id || null),
+        api.getDiaryEntries(undefined, selectedFolder?.id || undefined),
       ]);
       setTasks(tasksData);
       setDiaryEntries(entriesData);
@@ -371,7 +322,7 @@ function TodoApp() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedFolder?.id]);
 
   // Initial connection and data loading
   useEffect(() => {
@@ -390,44 +341,15 @@ function TodoApp() {
 
   useEffect(() => {
     if (backendStatus === "connected") {
-      if (currentView === "tasks") {
-        loadTasks();
-      } else if (currentView === "diary") {
-        loadDiaryEntries();
-      } else if (currentView === "feed") {
-        loadAllData();
-      }
+      loadAllData();
     }
   }, [
     currentView,
     selectedFolder,
     selectedDate,
     backendStatus,
-    loadTasks,
-    loadDiaryEntries,
     loadAllData,
   ]);
-
-  // Task handlers
-  const handleTaskTitleChange = useCallback((value: string) => {
-    setNewTask((prev: NewTask) => ({ ...prev, title: value }));
-  }, []);
-
-  const handleTaskDescriptionChange = useCallback((value: string) => {
-    setNewTask((prev: NewTask) => ({ ...prev, description: value }));
-  }, []);
-
-  const handleTaskPriorityChange = useCallback((value: number) => {
-    setNewTask((prev: NewTask) => ({ ...prev, priority: value }));
-  }, []);
-
-  const handleTaskDueDateChange = useCallback((value: string) => {
-    setNewTask((prev: NewTask) => ({ ...prev, due_date: value }));
-  }, []);
-
-  const handleTaskCalendarEventChange = useCallback((value: boolean) => {
-    setNewTask((prev: NewTask) => ({ ...prev, is_calendar_event: value }));
-  }, []);
 
   // Folder handlers with character limit
   const handleFolderNameChange = useCallback((value: string) => {
@@ -485,15 +407,7 @@ function TodoApp() {
       }
       
       loadFolders();
-      
-      // Reload current view data to reflect changes
-      if (currentView === "tasks") {
-        loadTasks();
-      } else if (currentView === "diary") {
-        loadDiaryEntries();
-      } else if (currentView === "feed") {
-        loadAllData();
-      }
+      loadAllData();
     } catch (error) {
       console.error("Error deleting folder:", error);
     }
@@ -503,79 +417,6 @@ function TodoApp() {
   const handleCreateTask = async (taskData?: any) => {
     try {
       const dataToUse = taskData || {
-        ...newTask,
-        folder_id: selectedFolder?.id || null,
-        due_date: newTask.due_date
-          ? new Date(newTask.due_date).toISOString()
-          : null,
-      };
-
-      const createdTask = await api.createTask(dataToUse);
-
-      // Optimistically add to UI without full reload
-      setTasks((prev: Task[]) => [...prev, createdTask]);
-
-      if (!taskData) {
-        setNewTask({
-          title: "",
-          description: "",
-          priority: 1,
-          due_date: "",
-          is_calendar_event: false,
-          parent_task_id: undefined,
-          indent_level: 0,
-          order_index: 0,
-        });
-        setShowNewTaskModal(false);
-      }
-    } catch (error) {
-      console.error("Error creating task:", error);
-      // Only reload on error
-      if (currentView === "tasks") {
-        loadTasks();
-      } else if (currentView === "feed") {
-        loadAllData();
-      }
-    }
-  };
-
-  // NEW: Create subtask handler
-  const handleCreateSubtask = async (parentTaskId: number) => {
-    setParentTaskForSubtask(parentTaskId);
-    setNewTask({
-      title: "",
-      description: "",
-      priority: 1,
-      due_date: "",
-      is_calendar_event: false,
-      parent_task_id: parentTaskId,
-      indent_level: 0, // Will be calculated by backend
-      order_index: 0,
-    });
-    setShowNewSubtaskModal(true);
-  };
-
-  const handleSaveSubtask = async () => {
-    if (!parentTaskForSubtask) return;
-
-    try {
-      const taskData = {
-        ...newTask,
-        folder_id: selectedFolder?.id || null,
-        due_date: newTask.due_date
-          ? new Date(newTask.due_date).toISOString()
-          : null,
-      };
-
-      const createdSubtask = await api.createSubtask(
-        parentTaskForSubtask,
-        taskData
-      );
-
-      // Optimistically add to UI without full reload
-      setTasks((prev: Task[]) => [...prev, createdSubtask]);
-
-      setNewTask({
         title: "",
         description: "",
         priority: 1,
@@ -584,18 +425,26 @@ function TodoApp() {
         parent_task_id: undefined,
         indent_level: 0,
         order_index: 0,
-      });
-      setShowNewSubtaskModal(false);
-      setParentTaskForSubtask(null);
-    } catch (error) {
-      console.error("Error creating subtask:", error);
-      // Only reload on error
-      if (currentView === "tasks") {
-        loadTasks();
-      } else if (currentView === "feed") {
-        loadAllData();
+        folder_id: selectedFolder?.id || null,
+      };
+
+      if (dataToUse.due_date) {
+        dataToUse.due_date = new Date(dataToUse.due_date).toISOString();
       }
+
+      const createdTask = await api.createTask(dataToUse);
+
+      // Optimistically add to UI without full reload
+      setTasks((prev: Task[]) => [...prev, createdTask]);
+    } catch (error) {
+      console.error("Error creating task:", error);
+      loadAllData();
     }
+  };
+
+  const handleCreateSubtask = async (parentTaskId: number) => {
+    // This would trigger a modal or inline form for creating subtasks
+    console.log("Create subtask for task:", parentTaskId);
   };
 
   const handleCreateDiaryEntry = async (entryText: string) => {
@@ -617,7 +466,6 @@ function TodoApp() {
           })}`,
         content: content || entryText.trim(),
         folder_id: selectedFolder?.id || null,
-        // NEW: Default scheduling to false
         is_scheduled: false,
         scheduled_date: null,
       };
@@ -628,12 +476,7 @@ function TodoApp() {
       setDiaryEntries((prev) => [createdEntry, ...prev]);
     } catch (error) {
       console.error("Error creating diary entry:", error);
-      // Reload on error
-      if (currentView === "diary") {
-        loadDiaryEntries();
-      } else if (currentView === "feed") {
-        loadAllData();
-      }
+      loadAllData();
     }
   };
 
@@ -650,13 +493,7 @@ function TodoApp() {
       };
 
       await api.updateDiaryEntry(id, updateData);
-
-      // Reload data to get updated entry
-      if (currentView === "diary") {
-        loadDiaryEntries();
-      } else if (currentView === "feed") {
-        loadAllData();
-      }
+      loadAllData();
     } catch (error) {
       console.error("Error updating diary entry:", error);
     }
@@ -670,12 +507,7 @@ function TodoApp() {
       setDiaryEntries((prev) => prev.filter((entry) => entry.id !== id));
     } catch (error) {
       console.error("Error deleting diary entry:", error);
-      // Reload on error
-      if (currentView === "diary") {
-        loadDiaryEntries();
-      } else if (currentView === "feed") {
-        loadAllData();
-      }
+      loadAllData();
     }
   };
 
@@ -685,19 +517,13 @@ function TodoApp() {
   ) => {
     try {
       await api.updateDiaryEntry(id, { folder_id: folderId });
-
-      // Reload data to get updated entry
-      if (currentView === "diary") {
-        loadDiaryEntries();
-      } else if (currentView === "feed") {
-        loadAllData();
-      }
+      loadAllData();
     } catch (error) {
       console.error("Error updating diary entry folder:", error);
     }
   };
 
-  // NEW: Diary scheduling handlers
+  // Diary scheduling handlers
   const handleScheduleDiaryEntry = async (
     id: number,
     scheduledDate: string
@@ -719,12 +545,7 @@ function TodoApp() {
       );
     } catch (error) {
       console.error("Error scheduling diary entry:", error);
-      // Reload on error
-      if (currentView === "diary") {
-        loadDiaryEntries();
-      } else if (currentView === "feed") {
-        loadAllData();
-      }
+      loadAllData();
     }
   };
 
@@ -746,12 +567,7 @@ function TodoApp() {
       );
     } catch (error) {
       console.error("Error unscheduling diary entry:", error);
-      // Reload on error
-      if (currentView === "diary") {
-        loadDiaryEntries();
-      } else if (currentView === "feed") {
-        loadAllData();
-      }
+      loadAllData();
     }
   };
 
@@ -790,27 +606,6 @@ function TodoApp() {
       });
     }
 
-    // If uncompleting, also update all subtasks to pending in UI
-    if (newStatus === "pending") {
-      const getSubtaskIds = (parentId: number): number[] => {
-        const directSubtasks = tasks.filter(
-          (t) => t.parent_task_id === parentId
-        );
-        let allSubtaskIds = directSubtasks.map((t) => t.id);
-
-        directSubtasks.forEach((subtask) => {
-          allSubtaskIds = allSubtaskIds.concat(getSubtaskIds(subtask.id));
-        });
-
-        return allSubtaskIds;
-      };
-
-      const subtaskIds = getSubtaskIds(task.id);
-      subtaskIds.forEach((subtaskId) => {
-        updateTaskInState(subtaskId, "pending");
-      });
-    }
-
     try {
       // Make API calls in the background
       if (newStatus === "completed") {
@@ -820,16 +615,11 @@ function TodoApp() {
       }
     } catch (error) {
       console.error("Error updating task status:", error);
-      // Revert the optimistic update on error
-      if (currentView === "tasks") {
-        loadTasks();
-      } else if (currentView === "feed") {
-        loadAllData();
-      }
+      loadAllData();
     }
   };
 
-  // NEW: Cascade completion to all subtasks
+  // Cascade completion to all subtasks
   const markTaskAndSubtasksComplete = async (taskId: number) => {
     // Update the main task
     await api.updateTask(taskId, { status: "completed" });
@@ -859,7 +649,7 @@ function TodoApp() {
     }
   };
 
-  // NEW: Cascade incompletion to all subtasks
+  // Cascade incompletion to all subtasks
   const markTaskAndSubtasksIncomplete = async (taskId: number) => {
     // Update the main task
     await api.updateTask(taskId, { status: "pending" });
@@ -889,7 +679,7 @@ function TodoApp() {
     }
   };
 
-  // NEW: Handle task deletion with optimistic updates
+  // Handle task deletion with optimistic updates
   const handleDeleteTask = async (taskId: number) => {
     // Get all tasks that will be deleted (task + all its subtasks)
     const getTasksToDelete = (parentId: number): number[] => {
@@ -915,19 +705,13 @@ function TodoApp() {
 
     try {
       await api.deleteTask(taskId);
-      // No need to reload - we already updated optimistically
     } catch (error) {
       console.error("Error deleting task:", error);
-      // Revert the optimistic update on error
-      if (currentView === "tasks") {
-        loadTasks();
-      } else if (currentView === "feed") {
-        loadAllData();
-      }
+      loadAllData();
     }
   };
 
-  // NEW: Handle task updates (for date/time scheduling) with optimistic updates
+  // Handle task updates (for date/time scheduling) with optimistic updates
   const handleUpdateTask = async (taskId: number, updates: any) => {
     // Optimistically update the UI first
     setTasks((prev: Task[]) =>
@@ -936,15 +720,9 @@ function TodoApp() {
 
     try {
       await api.updateTask(taskId, updates);
-      // No need to reload - we already updated optimistically
     } catch (error) {
       console.error("Error updating task:", error);
-      // Revert the optimistic update on error
-      if (currentView === "tasks") {
-        loadTasks();
-      } else if (currentView === "feed") {
-        loadAllData();
-      }
+      loadAllData();
     }
   };
 
@@ -1016,30 +794,6 @@ function TodoApp() {
           >
             <CalendarIcon className="w-5 h-5" />
             <span>Calendar</span>
-          </button>
-
-          <button
-            onClick={() => setCurrentView("tasks")}
-            className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md text-left ${
-              currentView === "tasks"
-                ? "bg-blue-100 text-blue-700"
-                : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            <AlarmClockCheck className="w-5 h-5" />
-            <span>Tasks</span>
-          </button>
-
-          <button
-            onClick={() => setCurrentView("diary")}
-            className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md text-left ${
-              currentView === "diary"
-                ? "bg-blue-100 text-blue-700"
-                : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            <BookOpen className="w-5 h-5" />
-            <span>Diary</span>
           </button>
         </div>
 
@@ -1125,76 +879,25 @@ function TodoApp() {
         );
       case "calendar":
         return <CalendarView tasks={tasks} diaryEntries={diaryEntries} />;
-      case "diary":
+      default:
         return (
-          <DiaryView
+          <FeedView
+            tasks={tasks}
             diaryEntries={diaryEntries}
             folders={folders}
             loading={loading}
-            onNewEntry={handleCreateDiaryEntry}
-            onUpdateEntry={handleUpdateDiaryEntry}
-            onDeleteEntry={handleDeleteDiaryEntry}
-            onUpdateEntryFolder={handleUpdateDiaryEntryFolder}
-            onScheduleEntry={handleScheduleDiaryEntry}
-            onUnscheduleEntry={handleUnscheduleDiaryEntry}
+            onCreateTask={handleCreateTask}
+            onCreateDiaryEntry={handleCreateDiaryEntry}
+            onToggleTaskStatus={toggleTaskStatus}
+            onUpdateTask={handleUpdateTask}
+            onDeleteTask={handleDeleteTask}
+            onUpdateDiaryEntry={handleUpdateDiaryEntry}
+            onDeleteDiaryEntry={handleDeleteDiaryEntry}
+            onUpdateDiaryEntryFolder={handleUpdateDiaryEntryFolder}
+            onCreateSubtask={handleCreateSubtask}
+            onScheduleDiaryEntry={handleScheduleDiaryEntry}
+            onUnscheduleDiaryEntry={handleUnscheduleDiaryEntry}
           />
-        );
-      default:
-        return (
-          <>
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">
-                  {selectedFolder ? selectedFolder.name : "All Tasks"}
-                </h2>
-                <p className="text-gray-600">{tasks.length} tasks</p>
-              </div>
-              <button
-                onClick={() => setShowNewTaskModal(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Task</span>
-              </button>
-            </div>
-
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {tasks
-                  .filter((task) => !task.parent_task_id) // Only render root-level tasks
-                  .map((task: Task) => (
-                    <TaskCard
-                      key={task.id}
-                      task={task}
-                      isExpanded={expandedTasks.has(task.id)}
-                      onToggleExpansion={toggleTaskExpansion}
-                      onToggleStatus={toggleTaskStatus}
-                      onCreateSubtask={handleCreateSubtask}
-                      onUpdateTask={handleUpdateTask}
-                      onDeleteTask={handleDeleteTask}
-                      allTasks={tasks}
-                    />
-                  ))}
-
-                {tasks.length === 0 && (
-                  <div className="text-center py-12">
-                    <CheckSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">No tasks yet</p>
-                    <button
-                      onClick={() => setShowNewTaskModal(true)}
-                      className="text-blue-600 hover:text-blue-800 text-sm mt-2"
-                    >
-                      Create your first task
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </>
         );
     }
   };
@@ -1209,13 +912,6 @@ function TodoApp() {
       </div>
     );
   }
-
-  // Get parent task name for subtask modal
-  const getParentTaskName = () => {
-    if (!parentTaskForSubtask) return "";
-    const parentTask = tasks.find((t) => t.id === parentTaskForSubtask);
-    return parentTask ? parentTask.title : "";
-  };
 
   return (
     <div className="h-screen bg-gray-50 flex">
@@ -1234,198 +930,6 @@ function TodoApp() {
           </div>
         )}
       </div>
-
-      {/* Task Modal */}
-      <Modal
-        isOpen={showNewTaskModal}
-        onClose={() => setShowNewTaskModal(false)}
-        title="Create New Task"
-      >
-        <div className="space-y-4">
-          <input
-            type="text"
-            placeholder="Task title"
-            value={newTask.title}
-            onChange={(e) => handleTaskTitleChange(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2"
-          />
-          <textarea
-            placeholder="Description (optional)"
-            value={newTask.description}
-            onChange={(e) => handleTaskDescriptionChange(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 h-24"
-          />
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Priority
-            </label>
-            <div className="flex space-x-2">
-              <button
-                type="button"
-                onClick={() => handleTaskPriorityChange(1)}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
-                  newTask.priority === 1
-                    ? "bg-green-100 border-green-500 text-green-700"
-                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                Low
-              </button>
-              <button
-                type="button"
-                onClick={() => handleTaskPriorityChange(2)}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
-                  newTask.priority === 2
-                    ? "bg-yellow-100 border-yellow-500 text-yellow-700"
-                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                Medium
-              </button>
-              <button
-                type="button"
-                onClick={() => handleTaskPriorityChange(3)}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
-                  newTask.priority === 3
-                    ? "bg-red-100 border-red-500 text-red-700"
-                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                High
-              </button>
-            </div>
-          </div>
-          <input
-            type="datetime-local"
-            value={newTask.due_date}
-            onChange={(e) => handleTaskDueDateChange(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2"
-          />
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={newTask.is_calendar_event}
-              onChange={(e) => handleTaskCalendarEventChange(e.target.checked)}
-              className="rounded border-gray-300"
-            />
-            <span className="text-sm">Add to Google Calendar</span>
-          </label>
-          <div className="flex space-x-3">
-            <button
-              onClick={() => setShowNewTaskModal(false)}
-              className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleCreateTask}
-              disabled={!newTask.title}
-              className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
-            >
-              Create Task
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* NEW: Subtask Modal */}
-      <Modal
-        isOpen={showNewSubtaskModal}
-        onClose={() => {
-          setShowNewSubtaskModal(false);
-          setParentTaskForSubtask(null);
-        }}
-        title={`Create Subtask under "${getParentTaskName()}"`}
-      >
-        <div className="space-y-4">
-          <input
-            type="text"
-            placeholder="Subtask title"
-            value={newTask.title}
-            onChange={(e) => handleTaskTitleChange(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2"
-          />
-          <textarea
-            placeholder="Description (optional)"
-            value={newTask.description}
-            onChange={(e) => handleTaskDescriptionChange(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 h-24"
-          />
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Priority
-            </label>
-            <div className="flex space-x-2">
-              <button
-                type="button"
-                onClick={() => handleTaskPriorityChange(1)}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
-                  newTask.priority === 1
-                    ? "bg-green-100 border-green-500 text-green-700"
-                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                Low
-              </button>
-              <button
-                type="button"
-                onClick={() => handleTaskPriorityChange(2)}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
-                  newTask.priority === 2
-                    ? "bg-yellow-100 border-yellow-500 text-yellow-700"
-                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                Medium
-              </button>
-              <button
-                type="button"
-                onClick={() => handleTaskPriorityChange(3)}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
-                  newTask.priority === 3
-                    ? "bg-red-100 border-red-500 text-red-700"
-                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                High
-              </button>
-            </div>
-          </div>
-          <input
-            type="datetime-local"
-            value={newTask.due_date}
-            onChange={(e) => handleTaskDueDateChange(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2"
-          />
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={newTask.is_calendar_event}
-              onChange={(e) => handleTaskCalendarEventChange(e.target.checked)}
-              className="rounded border-gray-300"
-            />
-            <span className="text-sm">Add to Google Calendar</span>
-          </label>
-          <div className="flex space-x-3">
-            <button
-              onClick={() => {
-                setShowNewSubtaskModal(false);
-                setParentTaskForSubtask(null);
-              }}
-              className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSaveSubtask}
-              disabled={!newTask.title}
-              className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
-            >
-              Create Subtask
-            </button>
-          </div>
-        </div>
-      </Modal>
 
       {/* Folder Modal */}
       <Modal
