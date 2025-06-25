@@ -19,7 +19,7 @@ import {
 } from "./components";
 
 // Type and API imports
-import { Task, FolderType, DiaryEntry, NewTask, NewFolder } from "./types";
+import { Task, FolderType, DiaryEntry, Quest, NewTask, NewFolder } from "./types";
 import { api } from "./utils";
 
 // Folder Management Modal Component
@@ -284,6 +284,7 @@ function TodoApp() {
   const [folders, setFolders] = useState<FolderType[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([]);
+  const [quests, setQuests] = useState<Quest[]>([]);
   const [expandedTasks, setExpandedTasks] = useState(new Set<number>());
   const [loading, setLoading] = useState(false);
   const [backendStatus, setBackendStatus] = useState("checking");
@@ -301,9 +302,10 @@ function TodoApp() {
   const loadFolders = useCallback(async () => {
     try {
       const foldersData = await api.getFolders();
-      setFolders(foldersData);
+      setFolders(Array.isArray(foldersData) ? foldersData : []);
     } catch (error) {
       console.error("Error loading folders:", error);
+      setFolders([]); // Set to empty array on error
     }
   }, []);
 
@@ -311,14 +313,20 @@ function TodoApp() {
   const loadAllData = useCallback(async () => {
     setLoading(true);
     try {
-      const [tasksData, entriesData] = await Promise.all([
+      const [tasksData, entriesData, questsData] = await Promise.all([
         api.getTasks(selectedFolder?.id || null),
         api.getDiaryEntries(undefined, selectedFolder?.id || undefined),
+        api.getQuests(selectedFolder?.id || null),
       ]);
-      setTasks(tasksData);
-      setDiaryEntries(entriesData);
+      setTasks(Array.isArray(tasksData) ? tasksData : []);
+      setDiaryEntries(Array.isArray(entriesData) ? entriesData : []);
+      setQuests(Array.isArray(questsData) ? questsData : []);
     } catch (error) {
       console.error("Error loading data:", error);
+      // Set to empty arrays on error
+      setTasks([]);
+      setDiaryEntries([]);
+      setQuests([]);
     } finally {
       setLoading(false);
     }
@@ -477,6 +485,78 @@ function TodoApp() {
     } catch (error) {
       console.error("Error creating diary entry:", error);
       loadAllData();
+    }
+  };
+
+  // Quest handlers
+  const handleCreateQuest = async (questData?: any) => {
+    try {
+      const dataToUse = questData || {
+        title: "",
+        folder_id: selectedFolder?.id || null,
+        paragraphs: [],
+      };
+
+      if (!dataToUse.title.trim()) {
+        console.error("Quest title is required");
+        return;
+      }
+
+      const createdQuest = await api.createQuest(dataToUse);
+
+      // Optimistically add to UI
+      setQuests((prev) => [createdQuest, ...prev]);
+    } catch (error) {
+      console.error("Error creating quest:", error);
+      loadAllData();
+    }
+  };
+
+  const handleUpdateQuest = async (questId: number, updates: any) => {
+    try {
+      await api.updateQuest(questId, updates);
+      loadAllData();
+    } catch (error) {
+      console.error("Error updating quest:", error);
+    }
+  };
+
+  const handleDeleteQuest = async (questId: number) => {
+    try {
+      await api.deleteQuest(questId);
+
+      // Optimistically remove from UI
+      setQuests((prev) => prev.filter((quest) => quest.id !== questId));
+    } catch (error) {
+      console.error("Error deleting quest:", error);
+      loadAllData();
+    }
+  };
+
+  const handleAddQuestParagraph = async (questId: number, content: string) => {
+    try {
+      await api.addQuestParagraph(questId, { content });
+      loadAllData();
+    } catch (error) {
+      console.error("Error adding quest paragraph:", error);
+    }
+  };
+
+  const handleUpdateQuestParagraph = async (questId: number, paragraphId: number, content: string) => {
+    try {
+      await api.updateQuestParagraph(questId, paragraphId, { content });
+      loadAllData();
+    } catch (error) {
+      console.error("Error updating quest paragraph:", error);
+    }
+  };
+
+  const handleDeleteQuestParagraph = async (questId: number, paragraphId: number) => {
+    try {
+      await api.deleteQuestParagraph(questId, paragraphId);
+      loadAllData();
+    } catch (error) {
+      console.error("Error deleting quest paragraph:", error);
     }
   };
 
@@ -831,7 +911,7 @@ function TodoApp() {
               <span>All</span>
             </button>
 
-            {folders.map((folder: FolderType) => (
+            {(folders || []).map((folder: FolderType) => (
               <button
                 key={folder.id}
                 onClick={() => setSelectedFolder(folder)}
@@ -862,16 +942,23 @@ function TodoApp() {
           <FeedView
             tasks={tasks}
             diaryEntries={diaryEntries}
+            quests={quests}
             folders={folders}
             loading={loading}
             onCreateTask={handleCreateTask}
             onCreateDiaryEntry={handleCreateDiaryEntry}
+            onCreateQuest={handleCreateQuest}
             onToggleTaskStatus={toggleTaskStatus}
             onUpdateTask={handleUpdateTask}
             onDeleteTask={handleDeleteTask}
             onUpdateDiaryEntry={handleUpdateDiaryEntry}
             onDeleteDiaryEntry={handleDeleteDiaryEntry}
             onUpdateDiaryEntryFolder={handleUpdateDiaryEntryFolder}
+            onUpdateQuest={handleUpdateQuest}
+            onDeleteQuest={handleDeleteQuest}
+            onAddQuestParagraph={handleAddQuestParagraph}
+            onUpdateQuestParagraph={handleUpdateQuestParagraph}
+            onDeleteQuestParagraph={handleDeleteQuestParagraph}
             onCreateSubtask={handleCreateSubtask}
             onScheduleDiaryEntry={handleScheduleDiaryEntry}
             onUnscheduleDiaryEntry={handleUnscheduleDiaryEntry}
@@ -882,6 +969,7 @@ function TodoApp() {
           <CalendarView 
             tasks={tasks} 
             diaryEntries={diaryEntries}
+            quests={quests}
             folders={folders}
             onToggleTaskStatus={toggleTaskStatus}
             onEditTask={(task: Task) => {
@@ -899,6 +987,12 @@ function TodoApp() {
             onScheduleDiary={handleScheduleDiaryEntry}
             onUpdateDiaryFolder={handleUpdateDiaryEntryFolder}
             onDeleteDiary={handleDeleteDiaryEntry}
+            onEditQuest={(quest: Quest) => {
+              // Handle quest editing from calendar
+              console.log("Edit quest:", quest);
+            }}
+            onUpdateQuestFolder={(questId: number, folderId: number | null) => handleUpdateQuest(questId, { folder_id: folderId })}
+            onDeleteQuest={handleDeleteQuest}
           />
         );
       default:
@@ -906,16 +1000,23 @@ function TodoApp() {
           <FeedView
             tasks={tasks}
             diaryEntries={diaryEntries}
+            quests={quests}
             folders={folders}
             loading={loading}
             onCreateTask={handleCreateTask}
             onCreateDiaryEntry={handleCreateDiaryEntry}
+            onCreateQuest={handleCreateQuest}
             onToggleTaskStatus={toggleTaskStatus}
             onUpdateTask={handleUpdateTask}
             onDeleteTask={handleDeleteTask}
             onUpdateDiaryEntry={handleUpdateDiaryEntry}
             onDeleteDiaryEntry={handleDeleteDiaryEntry}
             onUpdateDiaryEntryFolder={handleUpdateDiaryEntryFolder}
+            onUpdateQuest={handleUpdateQuest}
+            onDeleteQuest={handleDeleteQuest}
+            onAddQuestParagraph={handleAddQuestParagraph}
+            onUpdateQuestParagraph={handleUpdateQuestParagraph}
+            onDeleteQuestParagraph={handleDeleteQuestParagraph}
             onCreateSubtask={handleCreateSubtask}
             onScheduleDiaryEntry={handleScheduleDiaryEntry}
             onUnscheduleDiaryEntry={handleUnscheduleDiaryEntry}

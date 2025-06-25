@@ -91,7 +91,7 @@ const QuestActionDropdown: React.FC<QuestActionDropdownProps> = ({
                   <span className="ml-auto text-blue-600">✓</span>
                 )}
               </button>
-              {folders.map((folder) => (
+              {(folders || []).map((folder) => (
                 <button
                   key={folder.id}
                   onClick={() => {
@@ -162,7 +162,10 @@ const QuestCard: React.FC<QuestCardProps> = ({
   const [newParagraphContent, setNewParagraphContent] = useState("");
   const [showActionDropdown, setShowActionDropdown] = useState(false);
 
-  const currentFolder = folders.find((folder) => folder.id === quest.folder_id);
+  // Safe access to quest properties with fallbacks
+  const questParagraphs = quest.paragraphs || [];
+  const questTitle = quest.title || "Untitled Quest";
+  const currentFolder = (folders || []).find((folder) => folder.id === quest.folder_id);
 
   const handleSaveTitle = () => {
     if (editingTitle.trim() && editingTitle.length <= 200) {
@@ -172,7 +175,7 @@ const QuestCard: React.FC<QuestCardProps> = ({
   };
 
   const handleCancelEditTitle = () => {
-    setEditingTitle(quest.title);
+    setEditingTitle(questTitle);
     setIsEditing(false);
   };
 
@@ -263,13 +266,13 @@ const QuestCard: React.FC<QuestCardProps> = ({
                 className="text-lg font-medium text-gray-900 cursor-pointer hover:text-orange-600"
                 onClick={() => setIsExpanded(!isExpanded)}
               >
-                {quest.title}
+                {questTitle}
               </h3>
             )}
 
             {/* Paragraph count */}
             <div className="mt-2 text-sm text-gray-600">
-              📝 {quest.paragraphs.length} paragraph{quest.paragraphs.length !== 1 ? "s" : ""}
+              📝 {questParagraphs.length} paragraph{questParagraphs.length !== 1 ? "s" : ""}
             </div>
           </div>
 
@@ -292,7 +295,7 @@ const QuestCard: React.FC<QuestCardProps> = ({
                   onEdit={() => setIsEditing(true)}
                   onFolderSelect={handleFolderSelect}
                   onDelete={() => onDeleteQuest(quest.id)}
-                  folders={folders}
+                  folders={folders || []}
                   currentFolderId={quest.folder_id || null}
                 />
               )}
@@ -327,7 +330,7 @@ const QuestCard: React.FC<QuestCardProps> = ({
           <div className="space-y-4 mt-4 border-t border-gray-100 pt-4">
             {/* Paragraphs */}
             <div className="space-y-3">
-              {quest.paragraphs
+              {questParagraphs
                 .sort((a, b) => a.order_index - b.order_index)
                 .map((paragraph) => (
                   <div key={paragraph.id} className="bg-gray-50 rounded-lg p-3">

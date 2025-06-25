@@ -90,7 +90,7 @@ const QuestActionDropdown: React.FC<QuestActionDropdownProps> = ({
                   <span className="ml-auto text-blue-600">✓</span>
                 )}
               </button>
-              {folders.map((folder) => (
+              {(folders || []).map((folder) => (
                 <button
                   key={folder.id}
                   onClick={() => {
@@ -166,8 +166,14 @@ const QuestViewModal: React.FC<QuestViewModalProps> = ({
 
   if (!isOpen || !quest) return null;
 
+  // Safe access to quest properties with fallbacks
+  const questParagraphs = quest.paragraphs || [];
+  const questTitle = quest.title || "Untitled Quest";
+  const questCreatedAt = quest.created_at || new Date().toISOString();
+  const questUpdatedAt = quest.updated_at || questCreatedAt;
+
   // Get current folder
-  const currentFolder = folders.find(
+  const currentFolder = (folders || []).find(
     (folder) => folder.id === quest.folder_id
   );
 
@@ -231,7 +237,7 @@ const QuestViewModal: React.FC<QuestViewModalProps> = ({
 
                 {/* Title */}
                 <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                  {quest.title}
+                  {questTitle}
                 </h1>
 
                 {/* Metadata */}
@@ -240,14 +246,14 @@ const QuestViewModal: React.FC<QuestViewModalProps> = ({
                     <Clock className="w-4 h-4" />
                     <span>
                       Created on{" "}
-                      {new Date(quest.created_at).toLocaleDateString("en-US", {
+                      {new Date(questCreatedAt).toLocaleDateString("en-US", {
                         weekday: "long",
                         year: "numeric",
                         month: "long",
                         day: "numeric",
                       })}{" "}
                       at{" "}
-                      {new Date(quest.created_at).toLocaleTimeString([], {
+                      {new Date(questCreatedAt).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
@@ -255,7 +261,7 @@ const QuestViewModal: React.FC<QuestViewModalProps> = ({
                   </div>
 
                   <div className="flex items-center space-x-1">
-                    <span>📝 {quest.paragraphs.length} paragraph{quest.paragraphs.length !== 1 ? "s" : ""}</span>
+                    <span>📝 {questParagraphs.length} paragraph{questParagraphs.length !== 1 ? "s" : ""}</span>
                   </div>
                 </div>
               </div>
@@ -288,7 +294,7 @@ const QuestViewModal: React.FC<QuestViewModalProps> = ({
                         onDelete(quest.id);
                         onClose();
                       }}
-                      folders={folders}
+                      folders={folders || []}
                       currentFolderId={quest.folder_id || null}
                     />
                   )}
@@ -308,9 +314,9 @@ const QuestViewModal: React.FC<QuestViewModalProps> = ({
             <div className="mb-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Paragraphs</h3>
               
-              {quest.paragraphs.length > 0 ? (
+              {questParagraphs.length > 0 ? (
                 <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {quest.paragraphs
+                  {questParagraphs
                     .sort((a, b) => a.order_index - b.order_index)
                     .map((paragraph, index) => (
                       <div key={paragraph.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
@@ -401,16 +407,16 @@ const QuestViewModal: React.FC<QuestViewModalProps> = ({
             {/* Footer */}
             <div className="flex items-center justify-between pt-4 border-t border-gray-200">
               <div className="text-sm text-gray-500">
-                {quest.updated_at !== quest.created_at && (
+                {questUpdatedAt !== questCreatedAt && (
                   <span>
                     Last updated on{" "}
-                    {new Date(quest.updated_at).toLocaleDateString("en-US", {
+                    {new Date(questUpdatedAt).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
                       year: "numeric",
                     })}{" "}
                     at{" "}
-                    {new Date(quest.updated_at).toLocaleTimeString([], {
+                    {new Date(questUpdatedAt).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}

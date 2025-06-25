@@ -329,6 +329,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     } else if (item.type === "quest") {
       const quest = item.item as Quest;
       const folder = getFolderById(quest.folder_id);
+      // Safe access to quest properties with fallbacks
+      const questParagraphs = quest.paragraphs || [];
+      const questTitle = quest.title || "Untitled Quest";
       
       return (
         <div 
@@ -340,7 +343,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           <Scroll className="w-5 h-5 text-orange-600 flex-shrink-0" />
           <div className="flex-1">
             <div className="flex items-center space-x-2">
-              <h4 className="font-medium text-lg text-gray-900">{quest.title}</h4>
+              <h4 className="font-medium text-lg text-gray-900">{questTitle}</h4>
               {folder && (
                 <span 
                   className="inline-block px-2 py-1 text-xs font-medium rounded-full text-white"
@@ -351,13 +354,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               )}
             </div>
             <p className="text-sm text-orange-600 font-medium">
-              📝 {quest.paragraphs.length} paragraph{quest.paragraphs.length !== 1 ? "s" : ""}
+              📝 {questParagraphs.length} paragraph{questParagraphs.length !== 1 ? "s" : ""}
             </p>
-            {quest.paragraphs.length > 0 && (
+            {questParagraphs.length > 0 && (
               <p className="text-sm text-gray-600 mt-2">
-                {quest.paragraphs[0].content.length > 100 
-                  ? `${quest.paragraphs[0].content.substring(0, 100)}...` 
-                  : quest.paragraphs[0].content}
+                {questParagraphs[0].content.length > 100 
+                  ? `${questParagraphs[0].content.substring(0, 100)}...` 
+                  : questParagraphs[0].content}
               </p>
             )}
           </div>

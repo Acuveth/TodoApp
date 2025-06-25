@@ -1,4 +1,4 @@
-# FastAPI Backend for Todo App - WITH DIARY SCHEDULING
+# FastAPI Backend for Todo App - WITH DIARY SCHEDULING AND QUESTS
 # File: main.py
 
 from fastapi import FastAPI, Depends, HTTPException, status
@@ -64,6 +64,7 @@ class User(Base):
     folders = relationship("Folder", back_populates="user", cascade="all, delete-orphan")
     tasks = relationship("Task", back_populates="user", cascade="all, delete-orphan")
     diary_entries = relationship("DiaryEntry", back_populates="user", cascade="all, delete-orphan")
+    quests = relationship("Quest", back_populates="user", cascade="all, delete-orphan")
 
 class Folder(Base):
     __tablename__ = "folders"
@@ -78,6 +79,7 @@ class Folder(Base):
     user = relationship("User", back_populates="folders")
     tasks = relationship("Task", back_populates="folder")
     diary_entries = relationship("DiaryEntry", back_populates="folder")
+    quests = relationship("Quest", back_populates="folder")
 
 class Quest(Base):
     __tablename__ = "quests"
@@ -996,9 +998,6 @@ def update_task(task_id: int, updates: dict, current_user: User = Depends(get_cu
     db.commit()
     db.refresh(task)
     return task
-
-
-
 
 # NEW: Updated diary entry endpoint with scheduling support
 @app.put("/api/diary/{entry_id}")
