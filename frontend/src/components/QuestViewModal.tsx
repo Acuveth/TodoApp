@@ -381,27 +381,6 @@ const QuestViewModal: React.FC<QuestViewModalProps> = ({
                 </div>
               )}
 
-              {/* Add new paragraph section */}
-              <div className="mt-6 bg-orange-900/20 rounded-lg p-4 border border-orange-600/30">
-                <h4 className="font-medium text-white mb-3">Add New Paragraph</h4>
-                <textarea
-                  value={newParagraphContent}
-                  onChange={(e) => setNewParagraphContent(e.target.value)}
-                  placeholder="Write your new paragraph here..."
-                  className="w-full border border-orange-600 bg-gray-800 text-white rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  rows={4}
-                />
-                <div className="flex justify-end mt-3">
-                  <button
-                    onClick={handleAddParagraph}
-                    disabled={!newParagraphContent.trim()}
-                    className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Add Paragraph</span>
-                  </button>
-                </div>
-              </div>
             </div>
 
             {/* Footer */}
