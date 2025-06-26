@@ -1,5 +1,3 @@
-FUNCTIONAL
-fix bugs quests
 
 VISUAL 
 visual indicator for a task in a folder resets when you refresh the page 
