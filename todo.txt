@@ -1,6 +1,7 @@
 VISUAL 
 visual indicator for a task in a folder resets when you refresh the page 
-bug in calendar
+bug in calendar it displays today's events as tomorrow in month view
+bug in folders taks do not appear with subtasks in folder view 
 Add OAuth2
 
 Make app
