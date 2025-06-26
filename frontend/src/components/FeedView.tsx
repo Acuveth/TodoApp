@@ -925,33 +925,7 @@ const FeedView: React.FC<FeedViewProps> = ({
       // Add a type indicator and timestamp above the TaskCard for feed context
       return (
         <div key={item.id} className="space-y-2">
-          {/* Feed context header */}
-          <div className="flex items-center justify-between text-xs text-gray-500 px-1">
-            <div className="flex items-center space-x-2">
-              {/* Folder indicator for tasks */}
-              {folder && (
-                <div className="flex items-center space-x-1">
-                  <div
-                    className="w-3 h-3 rounded"
-                    style={{ backgroundColor: folder.color }}
-                  />
-                  <span className="text-xs text-gray-600 font-medium">
-                    {folder.name}
-                  </span>
-                </div>
-              )}
-            </div>
-            <div className="flex items-center space-x-1">
-              <Clock className="w-3 h-3" />
-              <span>
-                {new Date(task.created_at).toLocaleDateString()}{" "}
-                {new Date(task.created_at).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            </div>
-          </div>
+
 
           {/* Wrapper with folder styling */}
           <div 

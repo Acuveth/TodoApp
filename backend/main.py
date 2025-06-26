@@ -20,7 +20,7 @@ from sqlalchemy.orm import selectinload
 
 # Database setup - MySQL configuration
 # Šiht
-DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:root@127.0.0.1:3306/side_projects")
+DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:pass@127.0.0.1:3306/side_projects")
 
 # Doma
 #DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:root@127.0.0.1:3306/side_projects")

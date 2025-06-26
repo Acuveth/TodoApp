@@ -4,5 +4,4 @@ fix bugs quests
 VISUAL 
 visual indicator for a task in a folder resets when you refresh the page 
 visual changes consistencies - enak design za diary entry in task and feedu
-schedule indicator should be next to that button
 Dark theme

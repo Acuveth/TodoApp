@@ -16,6 +16,7 @@ import {
   Edit2,
   Save,
   FolderPlus,
+  AlarmClockCheck,
   MoreVertical,
 } from "lucide-react";
 import { Task, FolderType } from "../types";
@@ -157,6 +158,31 @@ const TaskActionDropdown: React.FC<{
     </>
   );
 };
+
+const formatScheduledTime = (scheduledDate: string) => {
+  const date = new Date(scheduledDate);
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  const isToday = date.toDateString() === today.toDateString();
+  const isTomorrow = date.toDateString() === tomorrow.toDateString();
+  
+  if (isToday) {
+    return `Today ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  } else if (isTomorrow) {
+    return `Tomorrow ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  } else {
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  }
+};
+
 
 // Task Edit Modal Component
 const TaskEditModal: React.FC<{
@@ -945,14 +971,34 @@ const TaskCard: React.FC<TaskCardProps> = ({
       className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
       style={indentStyle}
     >
-      <div className="p-3">
+       
+      <div className="px-4">
+      <div className="flex items-center space-x-2 py-4">
+      <AlarmClockCheck className="w-4 h-4 text-sky-600" />
+          <span className="text-sm font-medium text-sky-600">
+                      Task Entry
+           </span>
+                    {/* Enhanced folder indicator */}
+                    {currentFolder && (
+                      <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-200">
+                        <div
+                          className="w-3 h-3 rounded-full border border-white shadow-sm"
+                          style={{ backgroundColor: currentFolder.color }}
+                        />
+                        <span className="text-xs text-gray-700 font-medium">
+                          {currentFolder.name}
+                        </span>
+                      </div>
+                    )}
+          </div>
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-3 flex-1">
             {getStatusIcon(task.status, () => onToggleStatus(task))}
-
+             
             <div className="flex-1">
               <div className="space-y-2">
                 {/* Title row */}
+                <div className="flex flex-row space-x-2">
                 <h3
                   className={`font-medium cursor-pointer leading-relaxed ${
                     task.status === "completed"
@@ -963,6 +1009,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 >
                   {task.title}
                 </h3>
+                </div>
 
                 {/* Metadata row - priority, date/time, folder, and status indicators */}
                 <div className="flex items-center space-x-3 flex-wrap">
@@ -979,32 +1026,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                     </span>
                   </div>
 
-                  {/* Show calendar icon and date/time if task has due date */}
-                  {task.due_date && (
-                    <div className="flex items-center space-x-1">
-                      <Calendar className="w-4 h-4 text-blue-500" />
-                      <span className="text-sm text-blue-600">
-                        {new Date(task.due_date).toLocaleDateString()}{" "}
-                        {new Date(task.due_date).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    </div>
-                  )}
 
-                  {/* Folder indicator */}
-                  {currentFolder && (
-                    <div className="flex items-center space-x-1">
-                      <div
-                        className="w-3 h-3 rounded"
-                        style={{ backgroundColor: currentFolder.color }}
-                      />
-                      <span className="text-xs text-gray-500">
-                        {currentFolder.name}
-                      </span>
-                    </div>
-                  )}
 
                   {/* Auto-completion indicator */}
                   {shouldAutoComplete && (
@@ -1061,7 +1083,13 @@ const TaskCard: React.FC<TaskCardProps> = ({
               )}
             </div>
           </div>
-
+            {/* Show calendar icon and date/time if task has due date */}
+            {task.due_date && (
+              <div className="flex items-center space-x-1 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full mr-2">
+              <Clock className="w-3 h-3" />
+                <span>{formatScheduledTime(task.due_date)}</span>
+                </div>
+                )}
           {/* Action buttons */}
           <div className="flex items-center space-x-1">
             {/* Main action dropdown */}
@@ -1210,6 +1238,19 @@ const TaskCard: React.FC<TaskCardProps> = ({
             : false
         }
       />
+        {/* Feed context header */}
+          <div className="flex items-center space-x-1 text-xs text-gray-500 p-3 px-4">
+                  <div className="flex items-center space-x-1">
+                    <Clock className="w-3 h-3" />
+                    <span>
+                      {new Date(task.created_at).toLocaleDateString()}{" "}
+                      {new Date(task.created_at).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })} 
+                    </span>
+                  </div>
+            </div>
     </div>
   );
 };
