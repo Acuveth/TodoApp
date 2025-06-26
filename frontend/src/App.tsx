@@ -79,19 +79,19 @@ const FolderManagementModal: React.FC<{
       <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
         <div className="fixed inset-0 transition-opacity" aria-hidden="true">
           <div
-            className="absolute inset-0 bg-gray-500 opacity-75"
+            className="absolute inset-0 bg-black opacity-75"
             onClick={onClose}
           ></div>
         </div>
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-          <div className="bg-white px-6 pt-6 pb-4">
+        <div className="inline-block align-bottom bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          <div className="bg-gray-800 px-6 pt-6 pb-4">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
+              <h3 className="text-lg leading-6 font-medium text-white">
                 Manage Folders
               </h3>
               <button
                 onClick={onClose}
-                className="rounded-md text-gray-400 hover:text-gray-600 focus:outline-none"
+                className="rounded-md text-gray-400 hover:text-gray-300 focus:outline-none"
               >
                 <X className="h-6 w-6" />
               </button>
@@ -99,7 +99,7 @@ const FolderManagementModal: React.FC<{
 
             {/* Create New Folder */}
             <div className="space-y-4 mb-6">
-              <h4 className="font-medium text-gray-900">Create New Folder</h4>
+              <h4 className="font-medium text-white">Create New Folder</h4>
               <div className="space-y-3">
                 <div>
                   <input
@@ -110,10 +110,10 @@ const FolderManagementModal: React.FC<{
                       const value = e.target.value.slice(0, 16); // Limit to 12 characters
                       setNewFolder(prev => ({ ...prev, name: value }));
                     }}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-2"
                     maxLength={12}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-400 mt-1">
                     {newFolder.name.length}/16 characters
                   </p>
                 </div>
@@ -121,7 +121,7 @@ const FolderManagementModal: React.FC<{
                   type="color"
                   value={newFolder.color}
                   onChange={(e) => setNewFolder(prev => ({ ...prev, color: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 h-10"
+                  className="w-full border border-gray-600 bg-gray-700 rounded-md px-3 py-2 h-10"
                 />
                 <button
                   onClick={handleCreateFolder}
@@ -135,12 +135,12 @@ const FolderManagementModal: React.FC<{
 
             {/* Existing Folders */}
             <div className="space-y-4">
-              <h4 className="font-medium text-gray-900">Existing Folders ({folders.length})</h4>
+              <h4 className="font-medium text-white">Existing Folders ({folders.length})</h4>
               <div className="max-h-60 overflow-y-auto space-y-2">
                 {folders.map((folder) => (
                   <div
                     key={folder.id}
-                    className="flex items-center justify-between p-3 border border-gray-200 rounded-md hover:bg-gray-50"
+                    className="flex items-center justify-between p-3 border border-gray-600 rounded-md hover:bg-gray-700"
                   >
                     {editingFolder?.id === folder.id ? (
                       // Edit mode
@@ -152,25 +152,25 @@ const FolderManagementModal: React.FC<{
                             const value = e.target.value.slice(0, 16);
                             setEditingFolder(prev => prev ? { ...prev, name: value } : null);
                           }}
-                          className="flex-1 border border-gray-300 rounded-md px-2 py-1 text-sm"
+                          className="flex-1 border border-gray-600 bg-gray-700 text-white rounded-md px-2 py-1 text-sm"
                           maxLength={12}
                         />
                         <input
                           type="color"
                           value={editingFolder.color}
                           onChange={(e) => setEditingFolder(prev => prev ? { ...prev, color: e.target.value } : null)}
-                          className="w-8 h-8 border border-gray-300 rounded"
+                          className="w-8 h-8 border border-gray-600 rounded"
                         />
                         <button
                           onClick={handleUpdateFolder}
                           disabled={!editingFolder.name.trim() || editingFolder.name.length > 16}
-                          className="p-1 text-green-600 hover:text-green-800 disabled:opacity-50"
+                          className="p-1 text-green-400 hover:text-green-300 disabled:opacity-50"
                         >
                           <Save className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setEditingFolder(null)}
-                          className="p-1 text-gray-400 hover:text-gray-600"
+                          className="p-1 text-gray-400 hover:text-gray-300"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -183,22 +183,22 @@ const FolderManagementModal: React.FC<{
                             className="w-4 h-4 rounded"
                             style={{ backgroundColor: folder.color }}
                           />
-                          <span className="font-medium">{folder.name}</span>
-                          <span className="text-xs text-gray-500">
+                          <span className="font-medium text-white">{folder.name}</span>
+                          <span className="text-xs text-gray-400">
                             ({folder.name.length}/12)
                           </span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <button
                             onClick={() => setEditingFolder(folder)}
-                            className="p-1 text-gray-400 hover:text-blue-600"
+                            className="p-1 text-gray-400 hover:text-blue-400"
                             title="Edit folder"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => setShowDeleteConfirm(folder.id)}
-                            className="p-1 text-gray-400 hover:text-red-600"
+                            className="p-1 text-gray-400 hover:text-red-400"
                             title="Delete folder"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -209,7 +209,7 @@ const FolderManagementModal: React.FC<{
                   </div>
                 ))}
                 {folders.length === 0 && (
-                  <p className="text-gray-500 text-center py-4">No folders created yet</p>
+                  <p className="text-gray-400 text-center py-4">No folders created yet</p>
                 )}
               </div>
             </div>
@@ -217,7 +217,7 @@ const FolderManagementModal: React.FC<{
             <div className="mt-6">
               <button
                 onClick={onClose}
-                className="w-full border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50"
+                className="w-full border border-gray-600 text-gray-300 py-2 rounded-md hover:bg-gray-700"
               >
                 Close
               </button>
@@ -232,29 +232,29 @@ const FolderManagementModal: React.FC<{
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
             <div className="fixed inset-0 transition-opacity" aria-hidden="true">
               <div
-                className="absolute inset-0 bg-gray-500 opacity-75"
+                className="absolute inset-0 bg-black opacity-75"
                 onClick={() => setShowDeleteConfirm(null)}
               ></div>
             </div>
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div className="inline-block align-bottom bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+              <div className="bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div className="sm:flex sm:items-start">
-                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                    <Trash2 className="h-6 w-6 text-red-600" />
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-900 sm:mx-0 sm:h-10 sm:w-10">
+                    <Trash2 className="h-6 w-6 text-red-400" />
                   </div>
                   <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    <h3 className="text-lg leading-6 font-medium text-white">
                       Delete Folder
                     </h3>
                     <div className="mt-2">
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-400">
                         Are you sure you want to delete this folder? Tasks and diary entries in this folder will be moved to "No Folder".
                       </p>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <div className="bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                 <button
                   type="button"
                   onClick={() => handleDeleteFolder(showDeleteConfirm)}
@@ -265,7 +265,7 @@ const FolderManagementModal: React.FC<{
                 <button
                   type="button"
                   onClick={() => setShowDeleteConfirm(null)}
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-600 shadow-sm px-4 py-2 bg-gray-800 text-base font-medium text-gray-300 hover:bg-gray-700 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                 >
                   Cancel
                 </button>
@@ -844,9 +844,9 @@ function TodoApp() {
   const ConnectionStatus = () => {
     if (backendStatus === "checking") {
       return (
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+        <div className="bg-yellow-900 border border-yellow-600 text-yellow-200 px-4 py-3 rounded mb-4">
           <div className="flex items-center">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-700 mr-2"></div>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-200 mr-2"></div>
             Connecting to backend...
           </div>
         </div>
@@ -855,7 +855,7 @@ function TodoApp() {
 
     if (backendStatus === "error") {
       return (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        <div className="bg-red-900 border border-red-600 text-red-200 px-4 py-3 rounded mb-4">
           <div className="flex items-center">
             <AlertCircle className="w-4 h-4 mr-2" />
             Backend connection failed. Make sure FastAPI is running on
@@ -870,15 +870,15 @@ function TodoApp() {
 
   // Sidebar component
   const Sidebar = () => (
-    <div className="w-64 bg-white border-r border-gray-200 flex flex-col h-full">
+    <div className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col h-full">
       <nav className="flex-1 p-4">
         <div className="space-y-2 mb-6">
           <button
             onClick={() => setCurrentView("feed")}
             className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md text-left ${
               currentView === "feed"
-                ? "bg-purple-100 text-purple-700"
-                : "text-gray-700 hover:bg-gray-100"
+                ? "bg-purple-900 text-purple-300"
+                : "text-gray-300 hover:bg-gray-700"
             }`}
           >
             <Activity className="w-5 h-5" />
@@ -889,8 +889,8 @@ function TodoApp() {
             onClick={() => setCurrentView("calendar")}
             className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md text-left ${
               currentView === "calendar"
-                ? "bg-blue-100 text-blue-700"
-                : "text-gray-700 hover:bg-gray-100"
+                ? "bg-blue-900 text-blue-300"
+                : "text-gray-300 hover:bg-gray-700"
             }`}
           >
             <CalendarIcon className="w-5 h-5" />
@@ -900,18 +900,18 @@ function TodoApp() {
 
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-gray-900">Folders</h3>
+            <h3 className="text-sm font-medium text-white">Folders</h3>
             <div className="flex items-center space-x-1">
               <button
                 onClick={() => setShowFolderManagementModal(true)}
-                className="p-1 text-gray-400 hover:text-gray-600"
+                className="p-1 text-gray-400 hover:text-gray-300"
                 title="Manage folders"
               >
                 <Edit className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setShowNewFolderModal(true)}
-                className="p-1 text-gray-400 hover:text-gray-600"
+                className="p-1 text-gray-400 hover:text-gray-300"
                 title="Add folder"
               >
                 <Plus className="w-4 h-4" />
@@ -924,8 +924,8 @@ function TodoApp() {
               onClick={() => setSelectedFolder(null)}
               className={`w-full flex items-center space-x-2 px-2 py-1 rounded text-left text-sm ${
                 selectedFolder === null
-                  ? "bg-gray-100 text-gray-900"
-                  : "text-gray-600 hover:bg-gray-50"
+                  ? "bg-gray-700 text-white"
+                  : "text-gray-400 hover:bg-gray-700"
               }`}
             >
               <Folder className="w-4 h-4" />
@@ -938,8 +938,8 @@ function TodoApp() {
                 onClick={() => setSelectedFolder(folder)}
                 className={`w-full flex items-center space-x-2 px-2 py-1 rounded text-left text-sm ${
                   selectedFolder?.id === folder.id
-                    ? "bg-gray-100 text-gray-900"
-                    : "text-gray-600 hover:bg-gray-50"
+                    ? "bg-gray-700 text-white"
+                    : "text-gray-400 hover:bg-gray-700"
                 }`}
               >
                 <div
@@ -1048,17 +1048,17 @@ function TodoApp() {
 
   if (backendStatus === "checking") {
     return (
-      <div className="h-screen bg-gray-50 flex items-center justify-center">
+      <div className="h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Connecting to backend...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-4"></div>
+          <p className="text-gray-300">Connecting to backend...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen bg-gray-50 flex">
+    <div className="h-screen bg-gray-900 flex">
       <Sidebar />
       <div className="flex-1 p-6 overflow-y-auto">
         <ConnectionStatus />
@@ -1068,7 +1068,7 @@ function TodoApp() {
         ) : (
           <div className="text-center py-12">
             <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-            <p className="text-gray-500">
+            <p className="text-gray-400">
               Please start the backend server to use the app
             </p>
           </div>
@@ -1088,10 +1088,10 @@ function TodoApp() {
               placeholder="Folder name (max 12 chars)"
               value={newFolder.name}
               onChange={(e) => handleFolderNameChange(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-2"
               maxLength={12}
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-400 mt-1">
               {newFolder.name.length}/12 characters
             </p>
           </div>
@@ -1099,12 +1099,12 @@ function TodoApp() {
             type="color"
             value={newFolder.color}
             onChange={(e) => handleFolderColorChange(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 h-10"
+            className="w-full border border-gray-600 bg-gray-700 rounded-md px-3 py-2 h-10"
           />
           <div className="flex space-x-3">
             <button
               onClick={() => setShowNewFolderModal(false)}
-              className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50"
+              className="flex-1 border border-gray-600 text-gray-300 py-2 rounded-md hover:bg-gray-700"
             >
               Cancel
             </button>

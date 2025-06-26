@@ -49,13 +49,13 @@ const TaskActionDropdown: React.FC<TaskActionDropdownProps> = ({
       <div className="fixed inset-0 z-40" onClick={onClose} />
 
       {/* Main Dropdown */}
-      <div className="absolute top-8 right-0 z-50 bg-white border border-gray-200 rounded-md shadow-xl min-w-[180px] py-1">
+      <div className="absolute top-8 right-0 z-50 bg-gray-800 border border-gray-600 rounded-md shadow-xl min-w-[180px] py-1">
         <button
           onClick={() => {
             onEdit();
             onClose();
           }}
-          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+          className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center space-x-2"
         >
           <Edit2 className="w-4 h-4" />
           <span>Edit Task</span>
@@ -66,7 +66,7 @@ const TaskActionDropdown: React.FC<TaskActionDropdownProps> = ({
             onSchedule();
             onClose();
           }}
-          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+          className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center space-x-2"
         >
           <Calendar className="w-4 h-4" />
           <span>Schedule Task</span>
@@ -79,7 +79,7 @@ const TaskActionDropdown: React.FC<TaskActionDropdownProps> = ({
             onMouseEnter={() => setShowFolderSubmenu(true)}
             onMouseLeave={() => setShowFolderSubmenu(false)}
           >
-            <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between">
+            <button className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <FolderPlus className="w-4 h-4" />
                 <span>Change Folder</span>
@@ -89,22 +89,22 @@ const TaskActionDropdown: React.FC<TaskActionDropdownProps> = ({
 
             {/* Folder submenu */}
             {showFolderSubmenu && (
-              <div className="absolute top-0 right-full ml-1 z-60 bg-white border border-gray-200 rounded-md shadow-xl min-w-[200px] py-1">
+              <div className="absolute top-0 right-full ml-1 z-60 bg-gray-800 border border-gray-600 rounded-md shadow-xl min-w-[200px] py-1">
                 <button
                   onClick={() => {
                     onFolderSelect(null);
                     onClose();
                   }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-2 ${
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 flex items-center space-x-2 ${
                     currentFolderId === null
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-gray-700"
+                      ? "bg-blue-900 text-blue-300"
+                      : "text-gray-300"
                   }`}
                 >
-                  <div className="w-3 h-3 rounded bg-gray-300" />
+                  <div className="w-3 h-3 rounded bg-gray-500" />
                   <span>No Folder</span>
                   {currentFolderId === null && (
-                    <span className="ml-auto text-blue-600">✓</span>
+                    <span className="ml-auto text-blue-400">✓</span>
                   )}
                 </button>
                 {folders.map((folder) => (
@@ -114,10 +114,10 @@ const TaskActionDropdown: React.FC<TaskActionDropdownProps> = ({
                       onFolderSelect(folder.id);
                       onClose();
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-2 ${
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 flex items-center space-x-2 ${
                       currentFolderId === folder.id
-                        ? "bg-blue-50 text-blue-700"
-                        : "text-gray-700"
+                        ? "bg-blue-900 text-blue-300"
+                        : "text-gray-300"
                     }`}
                   >
                     <div
@@ -126,7 +126,7 @@ const TaskActionDropdown: React.FC<TaskActionDropdownProps> = ({
                     />
                     <span>{folder.name}</span>
                     {currentFolderId === folder.id && (
-                      <span className="ml-auto text-blue-600">✓</span>
+                      <span className="ml-auto text-blue-400">✓</span>
                     )}
                   </button>
                 ))}
@@ -134,14 +134,14 @@ const TaskActionDropdown: React.FC<TaskActionDropdownProps> = ({
             )}
           </div>
         )}
-        <hr className="my-1" />
+        <hr className="my-1 border-gray-600" />
 
         <button
           onClick={() => {
             onDelete();
             onClose();
           }}
-          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+          className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-900/20 flex items-center space-x-2"
         >
           <Trash2 className="w-4 h-4" />
           <span>Delete Task</span>
@@ -224,13 +224,13 @@ const TaskViewModal: React.FC<TaskViewModalProps> = ({
   const getPriorityColor = (priority: number) => {
     switch (priority) {
       case 3:
-        return { text: "text-red-600", bg: "bg-red-100", border: "border-red-200" };
+        return { text: "text-red-400", bg: "bg-red-900/30", border: "border-red-600/30" };
       case 2:
-        return { text: "text-yellow-600", bg: "bg-yellow-100", border: "border-yellow-200" };
+        return { text: "text-yellow-400", bg: "bg-yellow-900/30", border: "border-yellow-600/30" };
       case 1:
-        return { text: "text-green-600", bg: "bg-green-100", border: "border-green-200" };
+        return { text: "text-green-400", bg: "bg-green-900/30", border: "border-green-600/30" };
       default:
-        return { text: "text-gray-600", bg: "bg-gray-100", border: "border-gray-200" };
+        return { text: "text-gray-400", bg: "bg-gray-700", border: "border-gray-600" };
     }
   };
 
@@ -242,7 +242,7 @@ const TaskViewModal: React.FC<TaskViewModalProps> = ({
             onClick={onClick}
             className="hover:scale-110 transition-transform"
           >
-            <CheckCircle2 className="w-6 h-6 text-green-500" />
+            <CheckCircle2 className="w-6 h-6 text-green-400" />
           </button>
         );
       case "in_progress":
@@ -251,7 +251,7 @@ const TaskViewModal: React.FC<TaskViewModalProps> = ({
             onClick={onClick}
             className="hover:scale-110 transition-transform"
           >
-            <Circle className="w-6 h-6 text-blue-500" />
+            <Circle className="w-6 h-6 text-blue-400" />
           </button>
         );
       default:
@@ -260,7 +260,7 @@ const TaskViewModal: React.FC<TaskViewModalProps> = ({
             onClick={onClick}
             className="hover:scale-110 transition-transform"
           >
-            <Circle className="w-6 h-6 text-gray-400" />
+            <Circle className="w-6 h-6 text-gray-500" />
           </button>
         );
     }
@@ -279,7 +279,7 @@ const TaskViewModal: React.FC<TaskViewModalProps> = ({
       return (
         <div key={subtask.id}>
           <div
-            className="flex items-start space-x-3 py-2 px-3 rounded-lg hover:bg-gray-50"
+            className="flex items-start space-x-3 py-2 px-3 rounded-lg hover:bg-gray-700"
             style={{ marginLeft: `${20 * level}px` }}
           >
             {getStatusIcon(subtask.status, () => onToggleStatus(subtask))}
@@ -289,18 +289,18 @@ const TaskViewModal: React.FC<TaskViewModalProps> = ({
                   className={`font-medium ${
                     subtask.status === "completed"
                       ? "line-through text-gray-500"
-                      : "text-gray-900"
+                      : "text-white"
                   }`}
                 >
                   {subtask.title}
                 </span>
                 <Flag
-                  className={`w-4 h-4 ${getPriorityColor(subtask.priority).text.replace('text-', 'text-').replace('-600', '-500')}`}
+                  className={`w-4 h-4 ${getPriorityColor(subtask.priority).text}`}
                 />
                 {subtask.due_date && (
                   <div className="flex items-center space-x-1">
-                    <Calendar className="w-3 h-3 text-blue-500" />
-                    <span className="text-xs text-blue-600">
+                    <Calendar className="w-3 h-3 text-blue-400" />
+                    <span className="text-xs text-blue-300">
                       {new Date(subtask.due_date).toLocaleDateString()}{" "}
                       {new Date(subtask.due_date).toLocaleTimeString([], {
                         hour: "2-digit",
@@ -311,7 +311,7 @@ const TaskViewModal: React.FC<TaskViewModalProps> = ({
                 )}
               </div>
               {subtask.description && (
-                <p className="text-gray-600 mt-1 text-sm">{subtask.description}</p>
+                <p className="text-gray-300 mt-1 text-sm">{subtask.description}</p>
               )}
             </div>
           </div>
@@ -328,19 +328,19 @@ const TaskViewModal: React.FC<TaskViewModalProps> = ({
       <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
         <div className="fixed inset-0 transition-opacity" aria-hidden="true">
           <div
-            className="absolute inset-0 bg-gray-500 opacity-75"
+            className="absolute inset-0 bg-black opacity-75"
             onClick={onClose}
           ></div>
         </div>
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-          <div className="bg-white px-6 pt-6 pb-4">
+        <div className="inline-block align-bottom bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+          <div className="bg-gray-800 px-6 pt-6 pb-4">
             {/* Header */}
             <div className="flex items-start justify-between mb-6">
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-3">
                   {getStatusIcon(task.status, () => onToggleStatus(task))}
-                  <CheckSquare className="w-6 h-6 text-blue-500" />
-                  <span className="text-lg font-medium text-blue-700">Task</span>
+                  <CheckSquare className="w-6 h-6 text-blue-400" />
+                  <span className="text-lg font-medium text-blue-300">Task</span>
                   
                   {/* Priority badge */}
                   <div className={`px-3 py-1 rounded-full text-sm font-medium ${priorityColors.bg} ${priorityColors.text} ${priorityColors.border} border`}>
@@ -354,12 +354,12 @@ const TaskViewModal: React.FC<TaskViewModalProps> = ({
 
                   {/* Folder indicator */}
                   {currentFolder && (
-                    <div className="flex items-center space-x-2 bg-gray-50 px-3 py-1 rounded-full border">
+                    <div className="flex items-center space-x-2 bg-gray-700 px-3 py-1 rounded-full border border-gray-600">
                       <div
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: currentFolder.color }}
                       />
-                      <span className="text-sm text-gray-700 font-medium">
+                      <span className="text-sm text-gray-300 font-medium">
                         {currentFolder.name}
                       </span>
                     </div>
@@ -368,20 +368,20 @@ const TaskViewModal: React.FC<TaskViewModalProps> = ({
 
                 {/* Title */}
                 <h1 className={`text-2xl font-bold mb-3 ${
-                  task.status === "completed" ? "line-through text-gray-500" : "text-gray-900"
+                  task.status === "completed" ? "line-through text-gray-500" : "text-white"
                 }`}>
                   {task.title}
                 </h1>
 
                 {/* Description */}
                 {task.description && (
-                  <p className="text-gray-600 mb-4 text-lg leading-relaxed">
+                  <p className="text-gray-300 mb-4 text-lg leading-relaxed">
                     {task.description}
                   </p>
                 )}
 
                 {/* Metadata */}
-                <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
+                <div className="flex items-center space-x-6 text-sm text-gray-400 mb-4">
                   <div className="flex items-center space-x-1">
                     <Clock className="w-4 h-4" />
                     <span>
@@ -402,7 +402,7 @@ const TaskViewModal: React.FC<TaskViewModalProps> = ({
 
                   {/* Due date */}
                   {task.due_date && (
-                    <div className="flex items-center space-x-1 text-blue-600">
+                    <div className="flex items-center space-x-1 text-blue-300">
                       <Calendar className="w-4 h-4" />
                       <span>
                         Due {new Date(task.due_date).toLocaleDateString("en-US", {
@@ -423,8 +423,8 @@ const TaskViewModal: React.FC<TaskViewModalProps> = ({
                   <div className="flex items-center space-x-1">
                     <span>Status:</span>
                     <span className={`font-medium ${
-                      task.status === "completed" ? "text-green-600" :
-                      task.status === "in_progress" ? "text-blue-600" : "text-gray-600"
+                      task.status === "completed" ? "text-green-400" :
+                      task.status === "in_progress" ? "text-blue-400" : "text-gray-300"
                     }`}>
                       {task.status === "completed" ? "Completed" :
                        task.status === "in_progress" ? "In Progress" : "Pending"}
@@ -436,22 +436,22 @@ const TaskViewModal: React.FC<TaskViewModalProps> = ({
                 {totalItems > 0 && (
                   <div className="mb-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">Progress</span>
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm font-medium text-gray-300">Progress</span>
+                      <span className="text-sm text-gray-400">
                         {completedItems}/{totalItems} items completed
                       </span>
                     </div>
-                    <div className="bg-gray-200 rounded-full h-3">
+                    <div className="bg-gray-600 rounded-full h-3">
                       <div
                         className={`h-3 rounded-full transition-all ${
-                          overallProgress === 1 ? "bg-green-500" : "bg-blue-500"
+                          overallProgress === 1 ? "bg-green-400" : "bg-blue-400"
                         }`}
                         style={{ width: `${overallProgress * 100}%` }}
                       />
                     </div>
                     {/* Progress breakdown */}
                     {totalSubsteps > 0 && totalSubtasks > 0 && (
-                      <div className="text-xs text-gray-500 mt-1 flex space-x-4">
+                      <div className="text-xs text-gray-400 mt-1 flex space-x-4">
                         <span>Steps: {completedSubsteps}/{totalSubsteps}</span>
                         <span>Subtasks: {completedSubtasks}/{totalSubtasks}</span>
                       </div>
@@ -466,7 +466,7 @@ const TaskViewModal: React.FC<TaskViewModalProps> = ({
                 <div className="relative">
                   <button
                     onClick={() => setShowActionDropdown(!showActionDropdown)}
-                    className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                    className="p-2 text-gray-400 hover:text-gray-300 rounded-full hover:bg-gray-700"
                     title="More actions"
                   >
                     <MoreVertical className="w-5 h-5" />
@@ -506,7 +506,7 @@ const TaskViewModal: React.FC<TaskViewModalProps> = ({
                       onCreateSubtask(task.id);
                       onClose();
                     }}
-                    className="p-2 text-gray-400 hover:text-blue-600 rounded-full hover:bg-blue-50"
+                    className="p-2 text-gray-400 hover:text-blue-400 rounded-full hover:bg-blue-900/20"
                     title="Add subtask"
                   >
                     <Plus className="w-5 h-5" />
@@ -516,7 +516,7 @@ const TaskViewModal: React.FC<TaskViewModalProps> = ({
                 {/* Close button */}
                 <button
                   onClick={onClose}
-                  className="p-2 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none"
+                  className="p-2 rounded-full text-gray-400 hover:text-gray-300 hover:bg-gray-700 focus:outline-none"
                 >
                   <X className="h-6 w-6" />
                 </button>
@@ -528,30 +528,30 @@ const TaskViewModal: React.FC<TaskViewModalProps> = ({
               {/* Substeps section */}
               {totalSubsteps > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center space-x-2">
-                    <CheckSquare className="w-5 h-5 text-blue-500" />
+                  <h3 className="text-lg font-semibold text-white mb-3 flex items-center space-x-2">
+                    <CheckSquare className="w-5 h-5 text-blue-400" />
                     <span>Steps ({completedSubsteps}/{totalSubsteps} completed)</span>
                   </h3>
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                  <div className="bg-gray-700 rounded-lg p-4 space-y-2">
                     {task.substeps?.map((substep: any) => (
                       <div key={substep.id} className="flex items-center space-x-3 py-1">
                         <input
                           type="checkbox"
                           checked={substep.is_completed}
-                          className="rounded border-gray-300 w-5 h-5"
+                          className="rounded border-gray-600 bg-gray-700 w-5 h-5"
                           readOnly
                         />
                         <span
                           className={`text-sm ${
                             substep.is_completed
                               ? "line-through text-gray-500"
-                              : "text-gray-700"
+                              : "text-gray-300"
                           }`}
                         >
                           {substep.title}
                         </span>
                         {substep.description && (
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-gray-400">
                             — {substep.description}
                           </span>
                         )}
@@ -564,11 +564,11 @@ const TaskViewModal: React.FC<TaskViewModalProps> = ({
               {/* Subtasks section */}
               {hasSubtasks && (
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center space-x-2">
-                    <CheckSquare className="w-5 h-5 text-green-500" />
+                  <h3 className="text-lg font-semibold text-white mb-3 flex items-center space-x-2">
+                    <CheckSquare className="w-5 h-5 text-green-400" />
                     <span>Subtasks ({completedSubtasks}/{totalSubtasks} completed)</span>
                   </h3>
-                  <div className="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
+                  <div className="bg-gray-700 rounded-lg p-4 max-h-64 overflow-y-auto">
                     {renderSubtasks(task.id)}
                   </div>
                 </div>
@@ -577,12 +577,12 @@ const TaskViewModal: React.FC<TaskViewModalProps> = ({
               {/* Notes section */}
               {task.notes && task.notes.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Notes</h3>
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                  <h3 className="text-lg font-semibold text-white mb-3">Notes</h3>
+                  <div className="bg-gray-700 rounded-lg p-4 space-y-3">
                     {task.notes.map((note: any) => (
-                      <div key={note.id} className="border-l-4 border-blue-200 pl-4">
-                        <p className="text-gray-700">{note.content}</p>
-                        <p className="text-xs text-gray-500 mt-1">
+                      <div key={note.id} className="border-l-4 border-blue-600 pl-4">
+                        <p className="text-gray-300">{note.content}</p>
+                        <p className="text-xs text-gray-400 mt-1">
                           {new Date(note.created_at).toLocaleDateString()} at{" "}
                           {new Date(note.created_at).toLocaleTimeString([], {
                             hour: "2-digit",
@@ -597,8 +597,8 @@ const TaskViewModal: React.FC<TaskViewModalProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between pt-6 border-t border-gray-200 mt-6">
-              <div className="text-sm text-gray-500">
+            <div className="flex items-center justify-between pt-6 border-t border-gray-600 mt-6">
+              <div className="text-sm text-gray-400">
                 {task.parent_task_id && (
                   <span className="mr-4">
                     This is a subtask
@@ -609,7 +609,7 @@ const TaskViewModal: React.FC<TaskViewModalProps> = ({
               
               <button
                 onClick={onClose}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                className="px-4 py-2 bg-gray-700 text-gray-300 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
               >
                 Close
               </button>

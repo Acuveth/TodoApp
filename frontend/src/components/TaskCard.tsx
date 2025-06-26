@@ -18,6 +18,7 @@ import {
   FolderPlus,
   AlarmClockCheck,
   MoreVertical,
+  ChevronLeft as ChevronLeftIcon,
 } from "lucide-react";
 import { Task, FolderType } from "../types";
 
@@ -65,13 +66,13 @@ const TaskActionDropdown: React.FC<{
       <div className="fixed inset-0 z-40" onClick={onClose} />
       
       {/* Main Dropdown */}
-      <div className="absolute top-8 right-0 z-50 bg-white border border-gray-200 rounded-md shadow-xl min-w-[180px] py-1">
+      <div className="absolute top-8 right-0 z-50 bg-gray-800 border border-gray-600 rounded-md shadow-xl min-w-[180px] py-1">
         <button
           onClick={() => {
             onEdit();
             onClose();
           }}
-          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+          className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center space-x-2"
         >
           <Edit2 className="w-4 h-4" />
           <span>Edit Task</span>
@@ -82,7 +83,7 @@ const TaskActionDropdown: React.FC<{
             onSchedule();
             onClose();
           }}
-          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+          className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center space-x-2"
         >
           <Calendar className="w-4 h-4" />
           <span>Schedule Task</span>
@@ -95,29 +96,29 @@ const TaskActionDropdown: React.FC<{
           onMouseEnter={() => setShowFolderSubmenu(true)}
           onMouseLeave={() => setShowFolderSubmenu(false)}
         >
-          <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between">
+          <button className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <FolderPlus className="w-4 h-4" />
               <span>Change Folder</span>
             </div>
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeftIcon className="w-4 h-4" />
           </button>
           
           {/* Folder submenu */}
           {showFolderSubmenu && (
-            <div className="absolute top-0 right-full ml-1 z-60 bg-white border border-gray-200 rounded-md shadow-xl min-w-[200px] py-1">
+            <div className="absolute top-0 right-full ml-1 z-60 bg-gray-800 border border-gray-600 rounded-md shadow-xl min-w-[200px] py-1">
               <button
                 onClick={() => {
                   onFolderSelect(null);
                   onClose();
                 }}
-                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-2 ${
-                  currentFolderId === null ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 flex items-center space-x-2 ${
+                  currentFolderId === null ? 'bg-blue-900 text-blue-300' : 'text-gray-300'
                 }`}
               >
-                <div className="w-3 h-3 rounded bg-gray-300" />
+                <div className="w-3 h-3 rounded bg-gray-500" />
                 <span>No Folder</span>
-                {currentFolderId === null && <span className="ml-auto text-blue-600">✓</span>}
+                {currentFolderId === null && <span className="ml-auto text-blue-400">✓</span>}
               </button>
               {folders.map((folder) => (
                 <button
@@ -126,8 +127,8 @@ const TaskActionDropdown: React.FC<{
                     onFolderSelect(folder.id);
                     onClose();
                   }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-2 ${
-                    currentFolderId === folder.id ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 flex items-center space-x-2 ${
+                    currentFolderId === folder.id ? 'bg-blue-900 text-blue-300' : 'text-gray-300'
                   }`}
                 >
                   <div
@@ -135,21 +136,21 @@ const TaskActionDropdown: React.FC<{
                     style={{ backgroundColor: folder.color }}
                   />
                   <span>{folder.name}</span>
-                  {currentFolderId === folder.id && <span className="ml-auto text-blue-600">✓</span>}
+                  {currentFolderId === folder.id && <span className="ml-auto text-blue-400">✓</span>}
                 </button>
               ))}
             </div>
           )}
         </div>
         )}
-        <hr className="my-1" />
+        <hr className="my-1 border-gray-600" />
         
         <button
           onClick={() => {
             onDelete();
             onClose();
           }}
-          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+          className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-900/20 flex items-center space-x-2"
         >
           <Trash2 className="w-4 h-4" />
           <span>Delete Task</span>
@@ -250,19 +251,19 @@ const TaskEditModal: React.FC<{
       <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
         <div className="fixed inset-0 transition-opacity" aria-hidden="true">
           <div
-            className="absolute inset-0 bg-gray-500 opacity-75"
+            className="absolute inset-0 bg-black opacity-75"
             onClick={onClose}
           ></div>
         </div>
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div className="inline-block align-bottom bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          <div className="bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
+              <h3 className="text-lg leading-6 font-medium text-white">
                 Edit Task
               </h3>
               <button
                 onClick={onClose}
-                className="rounded-md text-gray-400 hover:text-gray-600 focus:outline-none"
+                className="rounded-md text-gray-400 hover:text-gray-300 focus:outline-none"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -271,41 +272,41 @@ const TaskEditModal: React.FC<{
             <div className="space-y-4">
               {/* Title */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Title *
                 </label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Task title"
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Description
                 </label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Task description (optional)"
                 />
               </div>
 
               {/* Status */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Status
                 </label>
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="pending">Pending</option>
                   <option value="in_progress">In Progress</option>
@@ -315,7 +316,7 @@ const TaskEditModal: React.FC<{
 
               {/* Priority */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Priority
                 </label>
                 <div className="flex space-x-2">
@@ -327,11 +328,11 @@ const TaskEditModal: React.FC<{
                       className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
                         priority === p
                           ? p === 1
-                            ? "bg-green-100 border-green-500 text-green-700"
+                            ? "bg-green-900 border-green-500 text-green-300"
                             : p === 2
-                            ? "bg-yellow-100 border-yellow-500 text-yellow-700"
-                            : "bg-red-100 border-red-500 text-red-700"
-                          : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                            ? "bg-yellow-900 border-yellow-500 text-yellow-300"
+                            : "bg-red-900 border-red-500 text-red-300"
+                          : "bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700"
                       }`}
                     >
                       {p === 1 ? "Low" : p === 2 ? "Medium" : "High"}
@@ -342,27 +343,27 @@ const TaskEditModal: React.FC<{
 
               {/* Due Date */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Due Date & Time
                 </label>
                 <input
                   type="datetime-local"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
               {/* Folder Selection */}
               {folders.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
                     Folder
                   </label>
                   <select
                     value={folderId || ""}
                     onChange={(e) => setFolderId(e.target.value ? parseInt(e.target.value) : null)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">No Folder</option>
                     {folders.map((folder) => (
@@ -381,9 +382,9 @@ const TaskEditModal: React.FC<{
                     type="checkbox"
                     checked={isCalendarEvent}
                     onChange={(e) => setIsCalendarEvent(e.target.checked)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-sm font-medium text-gray-300">
                     Add to Google Calendar
                   </span>
                 </label>
@@ -393,7 +394,7 @@ const TaskEditModal: React.FC<{
             <div className="flex space-x-3 mt-6">
               <button
                 onClick={onClose}
-                className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                className="flex-1 border border-gray-600 text-gray-300 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
               >
                 Cancel
               </button>
@@ -427,25 +428,25 @@ const DeleteConfirmationModal: React.FC<{
       <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
         <div className="fixed inset-0 transition-opacity" aria-hidden="true">
           <div
-            className="absolute inset-0 bg-gray-500 opacity-75"
+            className="absolute inset-0 bg-black opacity-75"
             onClick={onClose}
           ></div>
         </div>
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div className="inline-block align-bottom bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          <div className="bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="sm:flex sm:items-start">
-              <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                <Trash2 className="h-6 w-6 text-red-600" />
+              <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-900 sm:mx-0 sm:h-10 sm:w-10">
+                <Trash2 className="h-6 w-6 text-red-400" />
               </div>
               <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                <h3 className="text-lg leading-6 font-medium text-white">
                   Delete Task
                 </h3>
                 <div className="mt-2">
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-400">
                     Are you sure you want to delete "{taskTitle}"?
                     {hasSubtasks && (
-                      <span className="block mt-1 font-medium text-red-600">
+                      <span className="block mt-1 font-medium text-red-400">
                         This will also delete all subtasks.
                       </span>
                     )}
@@ -457,7 +458,7 @@ const DeleteConfirmationModal: React.FC<{
               </div>
             </div>
           </div>
-          <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+          <div className="bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
             <button
               type="button"
               onClick={onConfirm}
@@ -468,7 +469,7 @@ const DeleteConfirmationModal: React.FC<{
             <button
               type="button"
               onClick={onClose}
-              className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+              className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-600 shadow-sm px-4 py-2 bg-gray-800 text-base font-medium text-gray-300 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
             >
               Cancel
             </button>
@@ -522,51 +523,51 @@ const DateTimePickerModal: React.FC<{
       <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
         <div className="fixed inset-0 transition-opacity" aria-hidden="true">
           <div
-            className="absolute inset-0 bg-gray-500 opacity-75"
+            className="absolute inset-0 bg-black opacity-75"
             onClick={onClose}
           ></div>
         </div>
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
-          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div className="inline-block align-bottom bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+          <div className="bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
+              <h3 className="text-lg leading-6 font-medium text-white">
                 Schedule Task
               </h3>
               <button
                 onClick={onClose}
-                className="rounded-md text-gray-400 hover:text-gray-600 focus:outline-none"
+                className="rounded-md text-gray-400 hover:text-gray-300 focus:outline-none"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-3">
+              <p className="text-sm text-gray-300 mb-3">
                 Schedule "{taskTitle}" to appear on the calendar
               </p>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
                     Date
                   </label>
                   <input
                     type="date"
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-2"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
                     Time
                   </label>
                   <input
                     type="time"
                     value={selectedTime}
                     onChange={(e) => setSelectedTime(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-2"
                   />
                 </div>
               </div>
@@ -576,14 +577,14 @@ const DateTimePickerModal: React.FC<{
               {currentDateTime && (
                 <button
                   onClick={handleClear}
-                  className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50"
+                  className="flex-1 border border-gray-600 text-gray-300 py-2 rounded-md hover:bg-gray-700"
                 >
                   Clear
                 </button>
               )}
               <button
                 onClick={onClose}
-                className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50"
+                className="flex-1 border border-gray-600 text-gray-300 py-2 rounded-md hover:bg-gray-700"
               >
                 Cancel
               </button>
@@ -778,13 +779,13 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const getPriorityColor = (priority: number) => {
     switch (priority) {
       case 3:
-        return "text-red-500";
+        return "text-red-400";
       case 2:
-        return "text-yellow-500";
+        return "text-yellow-400";
       case 1:
-        return "text-green-500";
+        return "text-green-400";
       default:
-        return "text-gray-500";
+        return "text-gray-400";
     }
   };
 
@@ -796,7 +797,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
             onClick={onClick}
             className="hover:scale-110 transition-transform"
           >
-            <CheckCircle2 className="w-5 h-5 text-green-500" />
+            <CheckCircle2 className="w-5 h-5 text-green-400" />
           </button>
         );
       case "in_progress":
@@ -805,7 +806,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
             onClick={onClick}
             className="hover:scale-110 transition-transform"
           >
-            <Circle className="w-5 h-5 text-blue-500" />
+            <Circle className="w-5 h-5 text-blue-400" />
           </button>
         );
       default:
@@ -814,7 +815,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
             onClick={onClick}
             className="hover:scale-110 transition-transform"
           >
-            <Circle className="w-5 h-5 text-gray-400" />
+            <Circle className="w-5 h-5 text-gray-500" />
           </button>
         );
     }
@@ -854,7 +855,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                   className={`font-medium ${
                     subtask.status === "completed"
                       ? "line-through text-gray-500"
-                      : "text-gray-900"
+                      : "text-white"
                   }`}
                 >
                   {subtask.title}
@@ -864,8 +865,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 />
                 {subtask.due_date && (
                   <div className="flex items-center space-x-1">
-                    <Calendar className="w-3 h-3 text-blue-500" />
-                    <span className="text-xs text-blue-600">
+                    <Calendar className="w-3 h-3 text-blue-400" />
+                    <span className="text-xs text-blue-300">
                       {new Date(subtask.due_date).toLocaleDateString()}{" "}
                       {new Date(subtask.due_date).toLocaleTimeString([], {
                         hour: "2-digit",
@@ -876,11 +877,11 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 )}
                 {/* Show indicator if subtask has nested children that are hidden (only for level 0) */}
                 {canHideSubtasks && isThisSubtaskHidden && (
-                  <span className="text-xs text-gray-400">(hidden)</span>
+                  <span className="text-xs text-gray-500">(hidden)</span>
                 )}
               </div>
               {subtask.description && (
-                <p className="text-gray-600 mt-1">{subtask.description}</p>
+                <p className="text-gray-300 mt-1">{subtask.description}</p>
               )}
             </div>
 
@@ -892,7 +893,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                   onClick={() => setShowActionDropdown(
                     showActionDropdown === `subtask-${subtask.id}` ? null : `subtask-${subtask.id}`
                   )}
-                  className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                  className="p-1 text-gray-400 hover:text-gray-300 rounded"
                   title="More actions"
                 >
                   <MoreVertical className="w-5 h-5" />
@@ -922,7 +923,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
               {canHideSubtasks && (
                 <button
                   onClick={() => toggleSubtaskVisibility(subtask.id)}
-                  className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                  className="p-1 text-gray-400 hover:text-gray-300 rounded"
                   title={
                     isThisSubtaskHidden
                       ? "Show nested subtasks"
@@ -941,7 +942,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
               {onCreateSubtask && (
                 <button
                   onClick={() => onCreateSubtask(subtask.id)}
-                  className="p-1 text-gray-400 hover:text-blue-600 rounded"
+                  className="p-1 text-gray-400 hover:text-blue-400 rounded"
                   title="Add subtask"
                 >
                   <Plus className="w-5 h-5" />
@@ -974,18 +975,18 @@ const TaskCard: React.FC<TaskCardProps> = ({
     >
       <div className="px-4">
         <div className="flex items-center space-x-2 py-4">
-          <AlarmClockCheck className="w-4 h-4 text-sky-600" />
-          <span className="text-sm font-medium text-sky-600">
+          <AlarmClockCheck className="w-4 h-4 text-sky-400" />
+          <span className="text-sm font-medium text-sky-300">
             Task Entry
           </span>
           {/* FIXED: Always show folder indicator if task has folder */}
           {currentFolder && (
-            <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-200">
+            <div className="flex items-center space-x-2 bg-gray-700/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-600">
               <div
-                className="w-3 h-3 rounded-full border border-white shadow-sm"
+                className="w-3 h-3 rounded-full border border-gray-500 shadow-sm"
                 style={{ backgroundColor: currentFolder.color }}
               />
-              <span className="text-xs text-gray-700 font-medium">
+              <span className="text-xs text-gray-300 font-medium">
                 {currentFolder.name}
               </span>
             </div>
@@ -1003,8 +1004,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
                     className={`font-medium cursor-pointer leading-relaxed ${
                       task.status === "completed"
                         ? "line-through text-gray-500"
-                        : "text-gray-900"
-                    } ${shouldAutoComplete ? "text-green-600" : ""}`}
+                        : "text-white"
+                    } ${shouldAutoComplete ? "text-green-400" : ""}`}
                     onClick={() => onToggleExpansion(task.id)}
                   >
                     {task.title}
@@ -1017,7 +1018,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                     <Flag
                       className={`w-4 h-4 ${getPriorityColor(task.priority)}`}
                     />
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-400">
                       {task.priority === 3
                         ? "High"
                         : task.priority === 2
@@ -1028,7 +1029,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
                   {/* Auto-completion indicator */}
                   {shouldAutoComplete && (
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                    <span className="text-xs bg-green-900 text-green-300 px-2 py-1 rounded">
                       Ready to complete
                     </span>
                   )}
@@ -1036,14 +1037,14 @@ const TaskCard: React.FC<TaskCardProps> = ({
               </div>
 
               {task.description && (
-                <p className="text-gray-600 mt-1">{task.description}</p>
+                <p className="text-gray-300 mt-1">{task.description}</p>
               )}
 
               {/* Progress bar */}
               {totalItems > 0 && (
                 <div className="mt-2">
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <div className="bg-gray-200 rounded-full h-2 flex-1">
+                  <div className="flex items-center space-x-2 text-sm text-gray-300">
+                    <div className="bg-gray-600 rounded-full h-2 flex-1">
                       <div
                         className={`h-2 rounded-full transition-all ${
                           overallProgress === 1 ? "bg-green-500" : "bg-blue-500"
@@ -1058,7 +1059,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
                   {/* Progress breakdown */}
                   {totalSubsteps > 0 && totalSubtasks > 0 && (
-                    <div className="text-xs text-gray-500 mt-1">
+                    <div className="text-xs text-gray-400 mt-1">
                       Steps: {completedSubsteps}/{totalSubsteps}, Subtasks:{" "}
                       {completedSubtasks}/{totalSubtasks}
                     </div>
@@ -1068,7 +1069,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
               {/* Subtask indicator */}
               {hasSubtasks && (
-                <div className="mt-2 text-sm text-gray-600">
+                <div className="mt-2 text-sm text-gray-300">
                   📁 {totalSubtasks} subtask{totalSubtasks !== 1 ? "s" : ""}
                   {completedSubtasks > 0 && ` (${completedSubtasks} completed)`}
                   {areSubtasksHidden && " (hidden)"}
@@ -1083,7 +1084,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
           </div>
           {/* Show calendar icon and date/time if task has due date */}
           {task.due_date && (
-            <div className="flex items-center space-x-1 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full mr-2">
+            <div className="flex items-center space-x-1 text-xs bg-blue-900 text-blue-300 px-2 py-1 rounded-full mr-2">
               <Clock className="w-3 h-3" />
               <span>{formatScheduledTime(task.due_date)}</span>
             </div>
@@ -1096,7 +1097,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 onClick={() => setShowActionDropdown(
                   showActionDropdown === `task-${task.id}` ? null : `task-${task.id}`
                 )}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                className="p-1 text-gray-400 hover:text-gray-300 rounded"
                 title="More actions"
               >
                 <MoreVertical className="w-5 h-5" />
@@ -1121,7 +1122,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
             {hasSubtasks && (
               <button
                 onClick={() => toggleSubtaskVisibility(task.id)}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                className="p-1 text-gray-400 hover:text-gray-300 rounded"
                 title={areSubtasksHidden ? "Show subtasks" : "Hide subtasks"}
               >
                 {areSubtasksHidden ? (
@@ -1136,7 +1137,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
             {onCreateSubtask && (
               <button
                 onClick={() => onCreateSubtask(task.id)}
-                className="p-1 text-gray-400 hover:text-blue-600 rounded"
+                className="p-1 text-gray-400 hover:text-blue-400 rounded"
                 title="Add subtask"
               >
                 <Plus className="w-5 h-5" />
@@ -1159,22 +1160,22 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
       {/* Expanded content for traditional substeps only */}
       {isExpanded && task.substeps && task.substeps.length > 0 && (
-        <div className="border-t border-gray-100 p-4 bg-gray-50">
-          <h4 className="font-medium text-gray-900">Steps</h4>
+        <div className="border-t border-gray-600 p-4 bg-gray-700">
+          <h4 className="font-medium text-white">Steps</h4>
           <div className="space-y-1">
             {task.substeps.map((substep: any) => (
               <div key={substep.id} className="flex items-center space-x-2">
                 <input
                   type="checkbox"
                   checked={substep.is_completed}
-                  className="rounded border-gray-300"
+                  className="rounded border-gray-600 bg-gray-700"
                   readOnly
                 />
                 <span
                   className={
                     substep.is_completed
                       ? "line-through text-gray-500"
-                      : "text-gray-700"
+                      : "text-gray-300"
                   }
                 >
                   {substep.title}
@@ -1237,7 +1238,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
         }
       />
       {/* Feed context header */}
-      <div className="flex items-center space-x-1 text-xs text-gray-500 p-3 px-4">
+      <div className="flex items-center space-x-1 text-xs text-gray-400 p-3 px-4">
         <div className="flex items-center space-x-1">
           <Clock className="w-3 h-3" />
           <span>

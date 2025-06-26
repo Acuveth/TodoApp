@@ -1,4 +1,4 @@
-// Fixed frontend/src/components/FeedView.tsx - Always Show Folder Visual Indicators
+// Fixed frontend/src/components/FeedView.tsx - Dark Mode Version
 
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
@@ -107,13 +107,13 @@ const DiaryActionDropdown: React.FC<{
       <div className="fixed inset-0 z-40" onClick={onClose} />
       
       {/* Main Dropdown */}
-      <div className="absolute top-8 right-0 z-50 bg-white border border-gray-200 rounded-md shadow-xl min-w-[180px] py-1">
+      <div className="absolute top-8 right-0 z-50 bg-gray-800 border border-gray-600 rounded-md shadow-xl min-w-[180px] py-1">
         <button
           onClick={() => {
             onEdit();
             onClose();
           }}
-          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+          className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center space-x-2"
         >
           <Edit className="w-4 h-4" />
           <span>Edit Entry</span>
@@ -124,7 +124,7 @@ const DiaryActionDropdown: React.FC<{
             onSchedule();
             onClose();
           }}
-          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+          className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center space-x-2"
         >
           <CalendarIcon className="w-4 h-4" />
           <span>{isScheduled ? "Reschedule" : "Schedule"}</span>
@@ -136,7 +136,7 @@ const DiaryActionDropdown: React.FC<{
           onMouseEnter={() => setShowFolderSubmenu(true)}
           onMouseLeave={() => setShowFolderSubmenu(false)}
         >
-          <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between">
+          <button className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <FolderPlus className="w-4 h-4" />
               <span>Change Folder</span>
@@ -146,19 +146,19 @@ const DiaryActionDropdown: React.FC<{
           
           {/* Folder submenu */}
           {showFolderSubmenu && (
-            <div className="absolute top-0 right-full ml-1 z-60 bg-white border border-gray-200 rounded-md shadow-xl min-w-[200px] py-1">
+            <div className="absolute top-0 right-full ml-1 z-60 bg-gray-800 border border-gray-600 rounded-md shadow-xl min-w-[200px] py-1">
               <button
                 onClick={() => {
                   onFolderSelect(null);
                   onClose();
                 }}
-                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-2 ${
-                  currentFolderId === null ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 flex items-center space-x-2 ${
+                  currentFolderId === null ? 'bg-blue-900 text-blue-300' : 'text-gray-300'
                 }`}
               >
-                <div className="w-3 h-3 rounded bg-gray-300" />
+                <div className="w-3 h-3 rounded bg-gray-500" />
                 <span>No Folder</span>
-                {currentFolderId === null && <span className="ml-auto text-blue-600">✓</span>}
+                {currentFolderId === null && <span className="ml-auto text-blue-400">✓</span>}
               </button>
               {folders.map((folder) => (
                 <button
@@ -167,8 +167,8 @@ const DiaryActionDropdown: React.FC<{
                     onFolderSelect(folder.id);
                     onClose();
                   }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-2 ${
-                    currentFolderId === folder.id ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 flex items-center space-x-2 ${
+                    currentFolderId === folder.id ? 'bg-blue-900 text-blue-300' : 'text-gray-300'
                   }`}
                 >
                   <div
@@ -176,21 +176,21 @@ const DiaryActionDropdown: React.FC<{
                     style={{ backgroundColor: folder.color }}
                   />
                   <span>{folder.name}</span>
-                  {currentFolderId === folder.id && <span className="ml-auto text-blue-600">✓</span>}
+                  {currentFolderId === folder.id && <span className="ml-auto text-blue-400">✓</span>}
                 </button>
               ))}
             </div>
           )}
         </div>
         
-        <hr className="my-1" />
+        <hr className="my-1 border-gray-600" />
         
         <button
           onClick={() => {
             onDelete();
             onClose();
           }}
-          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+          className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-900/20 flex items-center space-x-2"
         >
           <Trash2 className="w-4 h-4" />
           <span>Delete Entry</span>
@@ -217,17 +217,17 @@ const FilterDropdown: React.FC<{
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm border transition-colors ${
           value !== "all" 
-            ? "bg-blue-50 border-blue-200 text-blue-700" 
-            : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+            ? "bg-blue-900 border-blue-600 text-blue-300" 
+            : "bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700"
         }`}
       >
-        {icon && <span className="text-gray-500">{icon}</span>}
+        {icon && <span className="text-gray-400">{icon}</span>}
         <span>{selectedOption?.label || label}</span>
         <ChevronDown className="w-3 h-3" />
       </button>
 
       {isOpen && (
-        <div className="absolute top-8 left-0 z-10 bg-white border border-gray-200 rounded-md shadow-lg min-w-[160px]">
+        <div className="absolute top-8 left-0 z-10 bg-gray-800 border border-gray-600 rounded-md shadow-lg min-w-[160px]">
           <div className="p-1">
             {options.map((option) => (
               <button
@@ -236,8 +236,8 @@ const FilterDropdown: React.FC<{
                   onChange(option.value);
                   setIsOpen(false);
                 }}
-                className={`w-full text-left px-3 py-2 text-sm rounded hover:bg-gray-100 flex items-center space-x-2 ${
-                  value === option.value ? "bg-blue-50 text-blue-700" : "text-gray-700"
+                className={`w-full text-left px-3 py-2 text-sm rounded hover:bg-gray-700 flex items-center space-x-2 ${
+                  value === option.value ? "bg-blue-900 text-blue-300" : "text-gray-300"
                 }`}
               >
                 {option.color && (
@@ -304,51 +304,51 @@ const DateTimePickerModal: React.FC<{
       <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
         <div className="fixed inset-0 transition-opacity" aria-hidden="true">
           <div
-            className="absolute inset-0 bg-gray-500 opacity-75"
+            className="absolute inset-0 bg-black opacity-75"
             onClick={onClose}
           ></div>
         </div>
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
-          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div className="inline-block align-bottom bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+          <div className="bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
+              <h3 className="text-lg leading-6 font-medium text-white">
                 Schedule Diary Entry
               </h3>
               <button
                 onClick={onClose}
-                className="rounded-md text-gray-400 hover:text-gray-600 focus:outline-none"
+                className="rounded-md text-gray-400 hover:text-gray-300 focus:outline-none"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-3">
+              <p className="text-sm text-gray-300 mb-3">
                 Schedule "{entryTitle}" to appear on the calendar
               </p>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
                     Date
                   </label>
                   <input
                     type="date"
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-2"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
                     Time
                   </label>
                   <input
                     type="time"
                     value={selectedTime}
                     onChange={(e) => setSelectedTime(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-2"
                   />
                 </div>
               </div>
@@ -358,14 +358,14 @@ const DateTimePickerModal: React.FC<{
               {currentDateTime && onClear && (
                 <button
                   onClick={handleClear}
-                  className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50"
+                  className="flex-1 border border-gray-600 text-gray-300 py-2 rounded-md hover:bg-gray-700"
                 >
                   Unschedule
                 </button>
               )}
               <button
                 onClick={onClose}
-                className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50"
+                className="flex-1 border border-gray-600 text-gray-300 py-2 rounded-md hover:bg-gray-700"
               >
                 Cancel
               </button>
@@ -861,13 +861,13 @@ const FeedView: React.FC<FeedViewProps> = ({
   const getPriorityColor = (priority: number) => {
     switch (priority) {
       case 3:
-        return "text-red-500";
+        return "text-red-400";
       case 2:
-        return "text-yellow-500";
+        return "text-yellow-400";
       case 1:
-        return "text-green-500";
+        return "text-green-400";
       default:
-        return "text-gray-500";
+        return "text-gray-400";
     }
   };
 
@@ -891,7 +891,7 @@ const FeedView: React.FC<FeedViewProps> = ({
       return (
         <div key={item.id} className="space-y-2">
           {/* Feed context header - ALWAYS show if task has folder */}
-          <div className="flex items-center justify-between text-xs text-gray-500 px-1">
+          <div className="flex items-center justify-between text-xs text-gray-400 px-1">
             <div className="flex items-center space-x-2">
               {/* FIXED: Always show folder indicator if task has folder */}
               {currentFolder && (
@@ -900,7 +900,7 @@ const FeedView: React.FC<FeedViewProps> = ({
                     className="w-3 h-3 rounded"
                     style={{ backgroundColor: currentFolder.color }}
                   />
-                  <span className="text-xs text-gray-600 font-medium">
+                  <span className="text-xs text-gray-300 font-medium">
                     {currentFolder.name}
                   </span>
                 </div>
@@ -920,7 +920,7 @@ const FeedView: React.FC<FeedViewProps> = ({
   
           {/* FIXED: Always apply folder styling if task has folder */}
           <div 
-            className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all cursor-pointer"
+            className="bg-gray-800 rounded-lg shadow-sm border border-gray-600 hover:shadow-md transition-all cursor-pointer"
             style={currentFolder ? {
               borderLeft: `4px solid ${currentFolder.color}`,
               backgroundColor: `${currentFolder.color}08`,
@@ -958,7 +958,7 @@ const FeedView: React.FC<FeedViewProps> = ({
       return (
         <div key={item.id} className="space-y-2">
           {/* Feed context header - ALWAYS show if quest has folder */}
-          <div className="flex items-center justify-between text-xs text-gray-500 px-1">
+          <div className="flex items-center justify-between text-xs text-gray-400 px-1">
             <div className="flex items-center space-x-2">
               {/* FIXED: Always show folder indicator if quest has folder */}
               {currentFolder && (
@@ -967,7 +967,7 @@ const FeedView: React.FC<FeedViewProps> = ({
                     className="w-3 h-3 rounded"
                     style={{ backgroundColor: currentFolder.color }}
                   />
-                  <span className="text-xs text-gray-600 font-medium">
+                  <span className="text-xs text-gray-300 font-medium">
                     {currentFolder.name}
                   </span>
                 </div>
@@ -987,7 +987,7 @@ const FeedView: React.FC<FeedViewProps> = ({
   
           {/* FIXED: Always apply folder styling if quest has folder */}
           <div 
-            className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all cursor-pointer"
+            className="bg-gray-800 rounded-lg shadow-sm border border-gray-600 hover:shadow-md transition-all cursor-pointer"
             style={currentFolder ? {
               borderLeft: `4px solid ${currentFolder.color}`,
               backgroundColor: `${currentFolder.color}08`,
@@ -1015,7 +1015,7 @@ const FeedView: React.FC<FeedViewProps> = ({
       return (
         <div key={item.id} className="space-y-2">
           {/* Feed context header - ALWAYS show if entry has folder */}
-          <div className="flex items-center justify-between text-xs text-gray-500 px-1">
+          <div className="flex items-center justify-between text-xs text-gray-400 px-1">
             <div className="flex items-center space-x-2">
               {/* FIXED: Always show folder indicator if entry has folder */}
               {currentFolder && (
@@ -1024,7 +1024,7 @@ const FeedView: React.FC<FeedViewProps> = ({
                     className="w-3 h-3 rounded"
                     style={{ backgroundColor: currentFolder.color }}
                   />
-                  <span className="text-xs text-gray-600 font-medium">
+                  <span className="text-xs text-gray-300 font-medium">
                     {currentFolder.name}
                   </span>
                 </div>
@@ -1043,7 +1043,7 @@ const FeedView: React.FC<FeedViewProps> = ({
           </div>
 
           <div
-            className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all cursor-pointer"
+            className="bg-gray-800 rounded-lg shadow-sm border border-gray-600 hover:shadow-md transition-all cursor-pointer"
             style={currentFolder ? {
               borderLeft: `4px solid ${currentFolder.color}`,
               backgroundColor: `${currentFolder.color}08`,
@@ -1055,18 +1055,18 @@ const FeedView: React.FC<FeedViewProps> = ({
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">
-                      <BookOpen className="w-4 h-4 text-purple-500" />
-                      <span className="text-sm font-medium text-purple-700">
+                      <BookOpen className="w-4 h-4 text-purple-400" />
+                      <span className="text-sm font-medium text-purple-300">
                         Diary Entry
                       </span>
                       {/* FIXED: Always show folder indicator if entry has folder */}
                       {currentFolder && (
-                        <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-200">
+                        <div className="flex items-center space-x-2 bg-gray-700/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-600">
                           <div
-                            className="w-3 h-3 rounded-full border border-white shadow-sm"
+                            className="w-3 h-3 rounded-full border border-gray-500 shadow-sm"
                             style={{ backgroundColor: currentFolder.color }}
                           />
-                          <span className="text-xs text-gray-700 font-medium">
+                          <span className="text-xs text-gray-300 font-medium">
                             {currentFolder.name}
                           </span>
                         </div>
@@ -1077,7 +1077,7 @@ const FeedView: React.FC<FeedViewProps> = ({
                     <div className="flex items-center space-x-2">
                       {/* Scheduling indicator */}
                       {entry.is_scheduled && entry.scheduled_date && (
-                        <div className="flex items-center space-x-1 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full">
+                        <div className="flex items-center space-x-1 text-xs bg-blue-900 text-blue-300 px-2 py-1 rounded-full">
                           <Clock className="w-3 h-3" />
                           <span>{formatScheduledTime(entry.scheduled_date)}</span>
                         </div>
@@ -1092,7 +1092,7 @@ const FeedView: React.FC<FeedViewProps> = ({
                               showActionDropdown === item.id ? null : item.id
                             );
                           }}
-                          className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                          className="p-1 text-gray-400 hover:text-gray-300 rounded"
                           title="More actions"
                         >
                           <MoreVertical className="w-5 h-5" />
@@ -1116,15 +1116,15 @@ const FeedView: React.FC<FeedViewProps> = ({
                   </div>
     
                   {entry.title && (
-                    <h3 className="font-medium text-lg text-gray-900 mb-2">
+                    <h3 className="font-medium text-lg text-white mb-2">
                       {entry.title}
                     </h3>
                   )}
     
-                  <div className="text-gray-600 mb-2">
+                  <div className="text-gray-300 mb-2">
                     {isExpanded ? (
                       <div
-                        className="prose prose-sm max-w-none"
+                        className="prose prose-sm max-w-none prose-invert"
                         dangerouslySetInnerHTML={{
                           __html: formatContent(entry.content),
                         }}
@@ -1169,7 +1169,7 @@ const FeedView: React.FC<FeedViewProps> = ({
         {/* Header with tabs */}
         <div className="mb-6">
           {/* Tab Navigation */}
-          <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
+          <div className="flex space-x-1 bg-gray-700 rounded-lg p-1">
             {tabs.map((tab) => {
               const IconComponent = tab.icon;
               return (
@@ -1178,8 +1178,8 @@ const FeedView: React.FC<FeedViewProps> = ({
                   onClick={() => setActiveTab(tab.id as TabType)}
                   className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     activeTab === tab.id
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
+                      ? "bg-gray-800 text-white shadow-sm"
+                      : "text-gray-300 hover:text-white"
                   }`}
                 >
                   <IconComponent className="w-4 h-4" />
@@ -1215,7 +1215,7 @@ const FeedView: React.FC<FeedViewProps> = ({
                         order: prev.order === "asc" ? "desc" : "asc",
                       }))
                     }
-                    className="px-3 py-1.5 border border-gray-300 rounded text-gray-500 hover:text-gray-700 hover:bg-gray-50 flex items-center space-x-1"
+                    className="px-3 py-1.5 border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-gray-700 flex items-center space-x-1"
                     title={`Sort ${taskSort.order === "asc" ? "ascending" : "descending"}`}
                   >
                     {taskSort.order === "asc" ? (
@@ -1236,7 +1236,7 @@ const FeedView: React.FC<FeedViewProps> = ({
         {/* Feed content */}
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
           </div>
         ) : (
           <div className="space-y-4">
@@ -1257,7 +1257,7 @@ const FeedView: React.FC<FeedViewProps> = ({
                     <Clock className="w-12 h-12 mx-auto" />
                   )}
                 </div>
-                <p className="text-gray-500">
+                <p className="text-gray-400">
                   {isCustomSort ? (
                     <>No tasks match current sorting</>
                   ) : (
@@ -1277,12 +1277,12 @@ const FeedView: React.FC<FeedViewProps> = ({
                 {isCustomSort ? (
                   <button
                     onClick={resetSort}
-                    className="text-blue-600 hover:text-blue-800 text-sm mt-2"
+                    className="text-blue-400 hover:text-blue-300 text-sm mt-2"
                   >
                     Reset sorting
                   </button>
                 ) : (
-                  <p className="text-sm text-gray-400 mt-2">
+                  <p className="text-sm text-gray-500 mt-2">
                     Create your first{" "}
                     {activeTab === "diaries"
                       ? "diary entry"
@@ -1337,16 +1337,16 @@ const FeedView: React.FC<FeedViewProps> = ({
             placeholder="Task title"
             value={newTask.title}
             onChange={(e) => handleTaskTitleChange(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2"
+            className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-2"
           />
           <textarea
             placeholder="Description (optional)"
             value={newTask.description}
             onChange={(e) => handleTaskDescriptionChange(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 h-24"
+            className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-2 h-24"
           />
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-300">
               Priority
             </label>
             <div className="flex space-x-2">
@@ -1358,11 +1358,11 @@ const FeedView: React.FC<FeedViewProps> = ({
                   className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
                     newTask.priority === priority
                       ? priority === 1
-                        ? "bg-green-100 border-green-500 text-green-700"
+                        ? "bg-green-900 border-green-500 text-green-300"
                         : priority === 2
-                        ? "bg-yellow-100 border-yellow-500 text-yellow-700"
-                        : "bg-red-100 border-red-500 text-red-700"
-                      : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                        ? "bg-yellow-900 border-yellow-500 text-yellow-300"
+                        : "bg-red-900 border-red-500 text-red-300"
+                      : "bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700"
                   }`}
                 >
                   {priority === 1 ? "Low" : priority === 2 ? "Medium" : "High"}
@@ -1374,21 +1374,21 @@ const FeedView: React.FC<FeedViewProps> = ({
             type="datetime-local"
             value={newTask.due_date}
             onChange={(e) => handleTaskDueDateChange(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2"
+            className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-2"
           />
           <label className="flex items-center space-x-2">
             <input
               type="checkbox"
               checked={newTask.is_calendar_event}
               onChange={(e) => handleTaskCalendarEventChange(e.target.checked)}
-              className="rounded border-gray-300"
+              className="rounded border-gray-600 bg-gray-700"
             />
-            <span className="text-sm">Add to Google Calendar</span>
+            <span className="text-sm text-gray-300">Add to Google Calendar</span>
           </label>
           <div className="flex space-x-3">
             <button
               onClick={() => setShowNewTaskModal(false)}
-              className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50"
+              className="flex-1 border border-gray-600 text-gray-300 py-2 rounded-md hover:bg-gray-700"
             >
               Cancel
             </button>
@@ -1416,22 +1416,22 @@ const FeedView: React.FC<FeedViewProps> = ({
               placeholder="Quest title (max 200 characters)"
               value={newQuest.title}
               onChange={(e) => handleQuestTitleChange(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-2"
               maxLength={200}
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-400 mt-1">
               {newQuest.title.length}/200 characters
             </p>
           </div>
 
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-gray-400">
             You can add paragraphs to your quest after creating it.
           </div>
 
           <div className="flex space-x-3">
             <button
               onClick={() => setShowNewQuestModal(false)}
-              className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50"
+              className="flex-1 border border-gray-600 text-gray-300 py-2 rounded-md hover:bg-gray-700"
             >
               Cancel
             </button>
@@ -1464,10 +1464,10 @@ const FeedView: React.FC<FeedViewProps> = ({
             placeholder="Title
 
 Write your diary entry here. Use **bold** for bold text and *italic* for italic text."
-            className="w-full border border-gray-300 rounded-md px-3 py-3 h-80 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-3 h-80 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
 
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-gray-400">
             First line becomes your title. Use **bold** and *italic* for
             formatting.
           </div>
@@ -1475,7 +1475,7 @@ Write your diary entry here. Use **bold** for bold text and *italic* for italic 
           <div className="flex space-x-3">
             <button
               onClick={() => setShowNewDiaryModal(false)}
-              className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50"
+              className="flex-1 border border-gray-600 text-gray-300 py-2 rounded-md hover:bg-gray-700"
             >
               Cancel
             </button>
@@ -1508,10 +1508,10 @@ Write your diary entry here. Use **bold** for bold text and *italic* for italic 
           <textarea
             value={editDiaryContent}
             onChange={(e) => setEditDiaryContent(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-3 h-80 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-3 h-80 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
 
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-gray-400">
             First line becomes your title. Use **bold** and *italic* for
             formatting.
           </div>
@@ -1523,7 +1523,7 @@ Write your diary entry here. Use **bold** for bold text and *italic* for italic 
                 setEditingDiary(null);
                 setEditDiaryContent("");
               }}
-              className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50"
+              className="flex-1 border border-gray-600 text-gray-300 py-2 rounded-md hover:bg-gray-700"
             >
               Cancel
             </button>

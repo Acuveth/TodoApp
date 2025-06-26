@@ -1,4 +1,4 @@
-// Update frontend/src/components/CalendarView.tsx to include Quest support
+// Update frontend/src/components/CalendarView.tsx to include Quest support - Dark Mode
 
 import React, { useState } from "react";
 import { ChevronLeft, ChevronRight, Clock, BookOpen, CheckSquare, Calendar as CalendarIcon, CalendarDays, Scroll } from "lucide-react";
@@ -270,14 +270,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       return (
         <div 
           key={`task-${task.id}`} 
-          className="flex items-center space-x-4 p-4 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
+          className="flex items-center space-x-4 p-4 bg-blue-900/20 rounded-lg border border-blue-600/30 hover:bg-blue-900/30 transition-colors cursor-pointer"
           onClick={(e) => handleTaskClick(task, e)}
         >
-          <div className={`w-3 h-3 rounded-full ${task.status === "completed" ? "bg-green-500" : "bg-blue-500"}`} />
-          <CheckSquare className="w-5 h-5 text-blue-600 flex-shrink-0" />
+          <div className={`w-3 h-3 rounded-full ${task.status === "completed" ? "bg-green-400" : "bg-blue-400"}`} />
+          <CheckSquare className="w-5 h-5 text-blue-400 flex-shrink-0" />
           <div className="flex-1">
             <div className="flex items-center space-x-2">
-              <h4 className={`font-medium text-lg ${task.status === "completed" ? "line-through text-gray-500" : "text-gray-900"}`}>
+              <h4 className={`font-medium text-lg ${task.status === "completed" ? "line-through text-gray-500" : "text-white"}`}>
                 {task.title}
               </h4>
               {folder && (
@@ -290,7 +290,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               )}
             </div>
             {task.due_date && (
-              <p className="text-sm text-blue-600 font-medium">
+              <p className="text-sm text-blue-300 font-medium">
                 {new Date(task.due_date).toLocaleTimeString([], {
                   hour: "2-digit",
                   minute: "2-digit",
@@ -299,7 +299,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               </p>
             )}
             {task.description && (
-              <p className="text-sm text-gray-600 mt-2">{task.description}</p>
+              <p className="text-sm text-gray-300 mt-2">{task.description}</p>
             )}
           </div>
           <div className="flex items-center space-x-2">
@@ -310,16 +310,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               }}
               className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                 task.status === "completed" 
-                  ? "bg-green-100 text-green-700 hover:bg-green-200" 
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-green-900/30 text-green-300 hover:bg-green-900/50" 
+                  : "bg-gray-700 text-gray-300 hover:bg-gray-600"
               }`}
             >
               {task.status === "completed" ? "✓ Done" : "Mark Done"}
             </button>
             <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-              task.priority === 3 ? "bg-red-100 text-red-700" :
-              task.priority === 2 ? "bg-yellow-100 text-yellow-700" :
-              "bg-green-100 text-green-700"
+              task.priority === 3 ? "bg-red-900/30 text-red-300" :
+              task.priority === 2 ? "bg-yellow-900/30 text-yellow-300" :
+              "bg-green-900/30 text-green-300"
             }`}>
               {task.priority === 3 ? "High" : task.priority === 2 ? "Medium" : "Low"}
             </div>
@@ -336,14 +336,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       return (
         <div 
           key={`quest-${quest.id}`} 
-          className="flex items-center space-x-4 p-4 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors cursor-pointer"
+          className="flex items-center space-x-4 p-4 bg-orange-900/20 rounded-lg border border-orange-600/30 hover:bg-orange-900/30 transition-colors cursor-pointer"
           onClick={(e) => handleQuestClick(quest, e)}
         >
-          <div className="w-3 h-3 rounded-full bg-orange-500" />
-          <Scroll className="w-5 h-5 text-orange-600 flex-shrink-0" />
+          <div className="w-3 h-3 rounded-full bg-orange-400" />
+          <Scroll className="w-5 h-5 text-orange-400 flex-shrink-0" />
           <div className="flex-1">
             <div className="flex items-center space-x-2">
-              <h4 className="font-medium text-lg text-gray-900">{questTitle}</h4>
+              <h4 className="font-medium text-lg text-white">{questTitle}</h4>
               {folder && (
                 <span 
                   className="inline-block px-2 py-1 text-xs font-medium rounded-full text-white"
@@ -353,11 +353,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 </span>
               )}
             </div>
-            <p className="text-sm text-orange-600 font-medium">
+            <p className="text-sm text-orange-300 font-medium">
               📝 {questParagraphs.length} paragraph{questParagraphs.length !== 1 ? "s" : ""}
             </p>
             {questParagraphs.length > 0 && (
-              <p className="text-sm text-gray-600 mt-2">
+              <p className="text-sm text-gray-300 mt-2">
                 {questParagraphs[0].content.length > 100 
                   ? `${questParagraphs[0].content.substring(0, 100)}...` 
                   : questParagraphs[0].content}
@@ -373,14 +373,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       return (
         <div 
           key={`diary-${entry.id}`} 
-          className="flex items-center space-x-4 p-4 bg-purple-50 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors cursor-pointer"
+          className="flex items-center space-x-4 p-4 bg-purple-900/20 rounded-lg border border-purple-600/30 hover:bg-purple-900/30 transition-colors cursor-pointer"
           onClick={(e) => handleDiaryClick(entry, e)}
         >
-          <div className="w-3 h-3 rounded-full bg-purple-500" />
-          <BookOpen className="w-5 h-5 text-purple-600 flex-shrink-0" />
+          <div className="w-3 h-3 rounded-full bg-purple-400" />
+          <BookOpen className="w-5 h-5 text-purple-400 flex-shrink-0" />
           <div className="flex-1">
             <div className="flex items-center space-x-2">
-              <h4 className="font-medium text-lg text-gray-900">{entry.title || "Diary Entry"}</h4>
+              <h4 className="font-medium text-lg text-white">{entry.title || "Diary Entry"}</h4>
               {folder && (
                 <span 
                   className="inline-block px-2 py-1 text-xs font-medium rounded-full text-white"
@@ -391,7 +391,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               )}
             </div>
             {entry.scheduled_date && (
-              <p className="text-sm text-purple-600 font-medium">
+              <p className="text-sm text-purple-300 font-medium">
                 {new Date(entry.scheduled_date).toLocaleTimeString([], {
                   hour: "2-digit",
                   minute: "2-digit",
@@ -399,7 +399,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 })}
               </p>
             )}
-            <p className="text-sm text-gray-600 mt-2">
+            <p className="text-sm text-gray-300 mt-2">
               {entry.content.length > 150 ? `${entry.content.substring(0, 150)}...` : entry.content}
             </p>
           </div>
@@ -423,8 +423,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       onClick={() => setActiveTab(id)}
       className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
         activeTab === id
-          ? "bg-white text-gray-900 shadow-sm"
-          : "text-gray-600 hover:text-gray-900"
+          ? "bg-gray-800 text-white shadow-sm"
+          : "text-gray-300 hover:text-white"
       }`}
     >
       <Icon className="w-4 h-4" />
@@ -436,7 +436,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     <div className="h-full">
       {/* Tab Navigation */}
       <div className="flex flex-row justify-between">
-        <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 mb-6 w-fit">
+        <div className="flex space-x-1 bg-gray-700 rounded-lg p-1 mb-6 w-fit">
           <TabButton id="day" label="Day View" icon={Clock} />
           <TabButton id="month" label="Month View" icon={CalendarIcon} />
         </div>
@@ -445,22 +445,22 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       {/* Tab Content */}
       {activeTab === "day" ? (
         /* Day View Tab */
-        <div className="bg-white rounded-lg shadow border p-6 h-full">
+        <div className="bg-gray-800 rounded-lg shadow border border-gray-600 p-6 h-full">
           {/* Day Navigation Header */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => navigateDay('prev')}
-                className="p-3 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-3 hover:bg-gray-700 rounded-full transition-colors"
                 title="Previous day"
               >
-                <ChevronLeft className="w-6 h-6" />
+                <ChevronLeft className="w-6 h-6 text-gray-300" />
               </button>
               <div className="text-center">
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-white">
                   {getFormattedDate(selectedDayDate)}
                 </h1>
-                <p className="text-lg text-gray-500">
+                <p className="text-lg text-gray-400">
                   {selectedDayDate.toLocaleDateString("en-US", {
                     month: "long",
                     day: "numeric",
@@ -470,16 +470,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               </div>
               <button
                 onClick={() => navigateDay('next')}
-                className="p-3 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-3 hover:bg-gray-700 rounded-full transition-colors"
                 title="Next day"
               >
-                <ChevronRight className="w-6 h-6" />
+                <ChevronRight className="w-6 h-6 text-gray-300" />
               </button>
             </div>
             
             <button
               onClick={() => setSelectedDayDate(new Date())}
-              className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-600 shadow-sm rounded-md text-sm transition-colors font-medium hover:text-gray-900 hover:bg-white"
+              className="flex items-center space-x-2 px-4 py-2 bg-gray-700 text-gray-300 shadow-sm rounded-md text-sm transition-colors font-medium hover:text-white hover:bg-gray-600"
             >
               <CalendarDays className="w-4 h-4" />
               <span>Go to Today</span>
@@ -491,20 +491,20 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             {selectedDayItems.length > 0 ? (
               <>
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold text-gray-900">
+                  <h2 className="text-xl font-semibold text-white">
                     {selectedDayItems.length} item{selectedDayItems.length !== 1 ? 's' : ''} scheduled
                   </h2>
-                  <div className="flex items-center space-x-3 text-sm text-gray-500">
+                  <div className="flex items-center space-x-3 text-sm text-gray-400">
                     <div className="flex items-center space-x-1">
-                      <div className="w-3 h-3 bg-blue-500 rounded"></div>
+                      <div className="w-3 h-3 bg-blue-400 rounded"></div>
                       <span>Tasks</span>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <div className="w-3 h-3 bg-purple-500 rounded"></div>
+                      <div className="w-3 h-3 bg-purple-400 rounded"></div>
                       <span>Diary Entries</span>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <div className="w-3 h-3 bg-orange-500 rounded"></div>
+                      <div className="w-3 h-3 bg-orange-400 rounded"></div>
                       <span>Quests</span>
                     </div>
                   </div>
@@ -531,9 +531,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               </>
             ) : (
               <div className="text-center py-16">
-                <CalendarIcon className="w-16 h-16 text-gray-400 mx-auto mb-6" />
-                <h2 className="text-xl font-semibold text-gray-900 mb-3">No items scheduled</h2>
-                <p className="text-gray-500 text-lg">
+                <CalendarIcon className="w-16 h-16 text-gray-500 mx-auto mb-6" />
+                <h2 className="text-xl font-semibold text-white mb-3">No items scheduled</h2>
+                <p className="text-gray-400 text-lg">
                   {selectedDayDate.toDateString() === new Date().toDateString() 
                     ? "No tasks, diary entries, or quests scheduled for today"
                     : `No items scheduled for ${getFormattedDate(selectedDayDate).toLowerCase()}`
@@ -555,11 +555,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     new Date(currentDate.getFullYear(), currentDate.getMonth() - 1)
                   )
                 }
-                className="p-2 hover:bg-gray-100 rounded"
+                className="p-2 hover:bg-gray-700 rounded text-gray-300"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
-              <h2 className="text-xl font-semibold">
+              <h2 className="text-xl font-semibold text-white">
                 {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
               </h2>
               <button
@@ -568,7 +568,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     new Date(currentDate.getFullYear(), currentDate.getMonth() + 1)
                   )
                 }
-                className="p-2 hover:bg-gray-100 rounded"
+                className="p-2 hover:bg-gray-700 rounded text-gray-300"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -577,16 +577,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               {/* Legend */}
               <div className="flex items-center space-x-4 text-sm">
                 <div className="flex items-center space-x-1">
-                  <div className="w-3 h-3 bg-blue-500 rounded"></div>
-                  <span>Tasks</span>
+                  <div className="w-3 h-3 bg-blue-400 rounded"></div>
+                  <span className="text-gray-300">Tasks</span>
                 </div>
                 <div className="flex items-center space-x-1">
-                  <div className="w-3 h-3 bg-purple-500 rounded"></div>
-                  <span>Diary Entries</span>
+                  <div className="w-3 h-3 bg-purple-400 rounded"></div>
+                  <span className="text-gray-300">Diary Entries</span>
                 </div>
                 <div className="flex items-center space-x-1">
-                  <div className="w-3 h-3 bg-orange-500 rounded"></div>
-                  <span>Quests</span>
+                  <div className="w-3 h-3 bg-orange-400 rounded"></div>
+                  <span className="text-gray-300">Quests</span>
                 </div>
               </div>
               <button
@@ -594,7 +594,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   setCurrentDate(new Date());
                   setSelectedDayDate(new Date());
                 }}
-                className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded"
+                className="px-3 py-1 text-sm bg-blue-900 text-blue-300 rounded"
               >
                 Today
               </button>
@@ -602,12 +602,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
 
           {/* Calendar Grid */}
-          <div className="bg-white rounded-lg shadow border">
-            <div className="grid grid-cols-7 gap-0 border-b">
+          <div className="bg-gray-800 rounded-lg shadow border border-gray-600">
+            <div className="grid grid-cols-7 gap-0 border-b border-gray-600">
               {dayNames.map((day) => (
                 <div
                   key={day}
-                  className="p-3 text-center font-medium text-gray-600 border-r last:border-r-0"
+                  className="p-3 text-center font-medium text-gray-300 border-r border-gray-600 last:border-r-0"
                 >
                   {day}
                 </div>
@@ -624,9 +624,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 return (
                   <div
                     key={index}
-                    className={`min-h-[120px] p-2 border-r border-b last:border-r-0 cursor-pointer transition-colors ${
-                      day ? "bg-white hover:bg-gray-50" : "bg-gray-50"
-                    } ${isToday ? "bg-blue-50" : ""} ${isSelected ? "bg-yellow-50 ring-2 ring-yellow-300" : ""}`}
+                    className={`min-h-[120px] p-2 border-r border-b border-gray-600 last:border-r-0 cursor-pointer transition-colors ${
+                      day ? "bg-gray-800 hover:bg-gray-700" : "bg-gray-700"
+                    } ${isToday ? "bg-blue-900/20" : ""} ${isSelected ? "bg-yellow-900/20 ring-2 ring-yellow-600" : ""}`}
                     onClick={() => {
                       if (day) {
                         setSelectedDayDate(day);
@@ -638,8 +638,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       <>
                         <div
                           className={`text-sm font-medium mb-2 ${
-                            isToday ? "text-blue-600" : 
-                            isSelected ? "text-yellow-600" : "text-gray-900"
+                            isToday ? "text-blue-300" : 
+                            isSelected ? "text-yellow-300" : "text-white"
                           }`}
                         >
                           {day.getDate()}
@@ -655,8 +655,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                                     key={`task-${task.id}`}
                                     className={`text-xs p-1 rounded truncate flex items-center space-x-1 cursor-pointer ${
                                       task.status === "completed"
-                                        ? "bg-green-100 text-green-800 line-through"
-                                        : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+                                        ? "bg-green-900/30 text-green-300 line-through"
+                                        : "bg-blue-900/30 text-blue-300 hover:bg-blue-900/50"
                                     }`}
                                     title={`Task: ${task.title}`}
                                     onClick={(e) => handleTaskClick(task, e)}
@@ -670,7 +670,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                                 return (
                                   <div
                                     key={`quest-${quest.id}`}
-                                    className="text-xs p-1 rounded truncate flex items-center space-x-1 bg-orange-100 text-orange-800 hover:bg-orange-200 cursor-pointer"
+                                    className="text-xs p-1 rounded truncate flex items-center space-x-1 bg-orange-900/30 text-orange-300 hover:bg-orange-900/50 cursor-pointer"
                                     title={`Quest: ${quest.title}`}
                                     onClick={(e) => handleQuestClick(quest, e)}
                                   >
@@ -683,7 +683,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                                 return (
                                   <div
                                     key={`diary-${entry.id}`}
-                                    className="text-xs p-1 rounded truncate flex items-center space-x-1 bg-purple-100 text-purple-800 hover:bg-purple-200 cursor-pointer"
+                                    className="text-xs p-1 rounded truncate flex items-center space-x-1 bg-purple-900/30 text-purple-300 hover:bg-purple-900/50 cursor-pointer"
                                     title={`Diary: ${entry.title || "Untitled"}`}
                                     onClick={(e) => handleDiaryClick(entry, e)}
                                   >
@@ -696,7 +696,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                               }
                             })}
                           {itemsForDay.length > 3 && (
-                            <div className="text-xs text-gray-500 text-center">
+                            <div className="text-xs text-gray-400 text-center">
                               +{itemsForDay.length - 3} more
                             </div>
                           )}
@@ -711,12 +711,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
           {/* Summary Statistics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white p-4 rounded-lg shadow-sm border">
-              <h3 className="font-medium text-gray-900 mb-2">This Month</h3>
+            <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-600">
+              <h3 className="font-medium text-white mb-2">This Month</h3>
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
-                  <span>Total Tasks:</span>
-                  <span className="font-medium">
+                  <span className="text-gray-300">Total Tasks:</span>
+                  <span className="font-medium text-white">
                     {
                       tasks.filter((task) => {
                         if (!task.due_date || task.parent_task_id) return false; // Exclude subtasks
@@ -730,8 +730,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Scheduled Entries:</span>
-                  <span className="font-medium">
+                  <span className="text-gray-300">Scheduled Entries:</span>
+                  <span className="font-medium text-white">
                     {
                       diaryEntries.filter((entry) => {
                         if (!entry.scheduled_date || !entry.is_scheduled)
@@ -746,8 +746,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Quests Created:</span>
-                  <span className="font-medium">
+                  <span className="text-gray-300">Quests Created:</span>
+                  <span className="font-medium text-white">
                     {
                       quests.filter((quest) => {
                         const questDate = new Date(quest.created_at);
@@ -762,14 +762,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               </div>
             </div>
 
-            <div className="bg-white p-4 rounded-lg shadow-sm border">
-              <h3 className="font-medium text-gray-900 mb-2">
+            <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-600">
+              <h3 className="font-medium text-white mb-2">
                 Completed This Month
               </h3>
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
-                  <span>Tasks:</span>
-                  <span className="font-medium text-green-600">
+                  <span className="text-gray-300">Tasks:</span>
+                  <span className="font-medium text-green-400">
                     {
                       tasks.filter((task) => {
                         if (!task.due_date || task.status !== "completed" || task.parent_task_id) return false; // Exclude subtasks
@@ -783,8 +783,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Completion Rate:</span>
-                  <span className="font-medium">
+                  <span className="text-gray-300">Completion Rate:</span>
+                  <span className="font-medium text-white">
                     {(() => {
                       const monthTasks = tasks.filter((task) => {
                         if (!task.due_date || task.parent_task_id) return false; // Exclude subtasks
@@ -810,12 +810,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               </div>
             </div>
 
-            <div className="bg-white p-4 rounded-lg shadow-sm border">
-              <h3 className="font-medium text-gray-900 mb-2">Upcoming</h3>
+            <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-600">
+              <h3 className="font-medium text-white mb-2">Upcoming</h3>
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
-                  <span>Next 7 Days:</span>
-                  <span className="font-medium">
+                  <span className="text-gray-300">Next 7 Days:</span>
+                  <span className="font-medium text-white">
                     {(() => {
                       const nextWeek = new Date();
                       nextWeek.setDate(nextWeek.getDate() + 7);
@@ -839,8 +839,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Overdue Tasks:</span>
-                  <span className="font-medium text-red-600">
+                  <span className="text-gray-300">Overdue Tasks:</span>
+                  <span className="font-medium text-red-400">
                     {
                       tasks.filter((task) => {
                         if (!task.due_date || task.status === "completed" || task.parent_task_id) return false; // Exclude subtasks

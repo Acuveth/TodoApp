@@ -1,4 +1,4 @@
-// Create frontend/src/components/QuestViewModal.tsx
+// Create frontend/src/components/QuestViewModal.tsx - Dark Mode
 
 import React, { useState } from "react";
 import {
@@ -44,13 +44,13 @@ const QuestActionDropdown: React.FC<QuestActionDropdownProps> = ({
       <div className="fixed inset-0 z-40" onClick={onClose} />
 
       {/* Main Dropdown */}
-      <div className="absolute top-8 right-0 z-50 bg-white border border-gray-200 rounded-md shadow-xl min-w-[180px] py-1">
+      <div className="absolute top-8 right-0 z-50 bg-gray-800 border border-gray-600 rounded-md shadow-xl min-w-[180px] py-1">
         <button
           onClick={() => {
             onEdit();
             onClose();
           }}
-          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+          className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center space-x-2"
         >
           <Edit2 className="w-4 h-4" />
           <span>Edit Quest</span>
@@ -62,7 +62,7 @@ const QuestActionDropdown: React.FC<QuestActionDropdownProps> = ({
           onMouseEnter={() => setShowFolderSubmenu(true)}
           onMouseLeave={() => setShowFolderSubmenu(false)}
         >
-          <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between">
+          <button className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <FolderPlus className="w-4 h-4" />
               <span>Change Folder</span>
@@ -72,22 +72,22 @@ const QuestActionDropdown: React.FC<QuestActionDropdownProps> = ({
 
           {/* Folder submenu */}
           {showFolderSubmenu && (
-            <div className="absolute top-0 right-full ml-1 z-60 bg-white border border-gray-200 rounded-md shadow-xl min-w-[200px] py-1">
+            <div className="absolute top-0 right-full ml-1 z-60 bg-gray-800 border border-gray-600 rounded-md shadow-xl min-w-[200px] py-1">
               <button
                 onClick={() => {
                   onFolderSelect(null);
                   onClose();
                 }}
-                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-2 ${
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 flex items-center space-x-2 ${
                   currentFolderId === null
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-gray-700"
+                    ? "bg-blue-900 text-blue-300"
+                    : "text-gray-300"
                 }`}
               >
-                <div className="w-3 h-3 rounded bg-gray-300" />
+                <div className="w-3 h-3 rounded bg-gray-500" />
                 <span>No Folder</span>
                 {currentFolderId === null && (
-                  <span className="ml-auto text-blue-600">✓</span>
+                  <span className="ml-auto text-blue-400">✓</span>
                 )}
               </button>
               {(folders || []).map((folder) => (
@@ -97,10 +97,10 @@ const QuestActionDropdown: React.FC<QuestActionDropdownProps> = ({
                     onFolderSelect(folder.id);
                     onClose();
                   }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-2 ${
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 flex items-center space-x-2 ${
                     currentFolderId === folder.id
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-gray-700"
+                      ? "bg-blue-900 text-blue-300"
+                      : "text-gray-300"
                   }`}
                 >
                   <div
@@ -109,7 +109,7 @@ const QuestActionDropdown: React.FC<QuestActionDropdownProps> = ({
                   />
                   <span>{folder.name}</span>
                   {currentFolderId === folder.id && (
-                    <span className="ml-auto text-blue-600">✓</span>
+                    <span className="ml-auto text-blue-400">✓</span>
                   )}
                 </button>
               ))}
@@ -117,14 +117,14 @@ const QuestActionDropdown: React.FC<QuestActionDropdownProps> = ({
           )}
         </div>
 
-        <hr className="my-1" />
+        <hr className="my-1 border-gray-600" />
 
         <button
           onClick={() => {
             onDelete();
             onClose();
           }}
-          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+          className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-900/20 flex items-center space-x-2"
         >
           <Trash2 className="w-4 h-4" />
           <span>Delete Quest</span>
@@ -207,28 +207,28 @@ const QuestViewModal: React.FC<QuestViewModalProps> = ({
       <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
         <div className="fixed inset-0 transition-opacity" aria-hidden="true">
           <div
-            className="absolute inset-0 bg-gray-500 opacity-75"
+            className="absolute inset-0 bg-black opacity-75"
             onClick={onClose}
           ></div>
         </div>
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-          <div className="bg-white px-6 pt-6 pb-4">
+        <div className="inline-block align-bottom bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+          <div className="bg-gray-800 px-6 pt-6 pb-4">
             {/* Header */}
             <div className="flex items-start justify-between mb-6">
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-2">
-                  <Scroll className="w-6 h-6 text-orange-500" />
-                  <span className="text-lg font-medium text-orange-700">
+                  <Scroll className="w-6 h-6 text-orange-400" />
+                  <span className="text-lg font-medium text-orange-300">
                     Quest
                   </span>
                   {/* Folder indicator */}
                   {currentFolder && (
-                    <div className="flex items-center space-x-2 bg-gray-50 px-3 py-1 rounded-full border">
+                    <div className="flex items-center space-x-2 bg-gray-700 px-3 py-1 rounded-full border border-gray-600">
                       <div
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: currentFolder.color }}
                       />
-                      <span className="text-sm text-gray-700 font-medium">
+                      <span className="text-sm text-gray-300 font-medium">
                         {currentFolder.name}
                       </span>
                     </div>
@@ -236,12 +236,12 @@ const QuestViewModal: React.FC<QuestViewModalProps> = ({
                 </div>
 
                 {/* Title */}
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                <h1 className="text-2xl font-bold text-white mb-2">
                   {questTitle}
                 </h1>
 
                 {/* Metadata */}
-                <div className="flex items-center space-x-4 text-sm text-gray-500">
+                <div className="flex items-center space-x-4 text-sm text-gray-400">
                   <div className="flex items-center space-x-1">
                     <Clock className="w-4 h-4" />
                     <span>
@@ -272,7 +272,7 @@ const QuestViewModal: React.FC<QuestViewModalProps> = ({
                 <div className="relative">
                   <button
                     onClick={() => setShowActionDropdown(!showActionDropdown)}
-                    className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                    className="p-2 text-gray-400 hover:text-gray-300 rounded-full hover:bg-gray-700"
                     title="More actions"
                   >
                     <MoreVertical className="w-5 h-5" />
@@ -303,7 +303,7 @@ const QuestViewModal: React.FC<QuestViewModalProps> = ({
                 {/* Close button */}
                 <button
                   onClick={onClose}
-                  className="p-2 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none"
+                  className="p-2 rounded-full text-gray-400 hover:text-gray-300 hover:bg-gray-700 focus:outline-none"
                 >
                   <X className="h-6 w-6" />
                 </button>
@@ -312,29 +312,29 @@ const QuestViewModal: React.FC<QuestViewModalProps> = ({
 
             {/* Content */}
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Paragraphs</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">Paragraphs</h3>
               
               {questParagraphs.length > 0 ? (
                 <div className="space-y-4 max-h-96 overflow-y-auto">
                   {questParagraphs
                     .sort((a, b) => a.order_index - b.order_index)
                     .map((paragraph, index) => (
-                      <div key={paragraph.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                      <div key={paragraph.id} className="bg-gray-700 rounded-lg p-4 border border-gray-600">
                         <div className="flex items-start justify-between mb-2">
-                          <span className="text-sm font-medium text-gray-600">
+                          <span className="text-sm font-medium text-gray-300">
                             Paragraph {index + 1}
                           </span>
                           <div className="flex space-x-1">
                             <button
                               onClick={() => handleEditParagraph(paragraph)}
-                              className="p-1 text-gray-400 hover:text-orange-600 rounded"
+                              className="p-1 text-gray-400 hover:text-orange-400 rounded"
                               title="Edit paragraph"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => onDeleteParagraph(quest.id, paragraph.id)}
-                              className="p-1 text-gray-400 hover:text-red-600 rounded"
+                              className="p-1 text-gray-400 hover:text-red-400 rounded"
                               title="Delete paragraph"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -347,7 +347,7 @@ const QuestViewModal: React.FC<QuestViewModalProps> = ({
                             <textarea
                               value={editingParagraphContent}
                               onChange={(e) => setEditingParagraphContent(e.target.value)}
-                              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                              className="w-full border border-gray-600 bg-gray-800 text-white rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                               rows={4}
                             />
                             <div className="flex justify-end space-x-2">
@@ -360,14 +360,14 @@ const QuestViewModal: React.FC<QuestViewModalProps> = ({
                               </button>
                               <button
                                 onClick={handleCancelEditParagraph}
-                                className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                                className="px-3 py-1 bg-gray-600 text-gray-300 rounded hover:bg-gray-500"
                               >
                                 <X className="w-4 h-4" />
                               </button>
                             </div>
                           </div>
                         ) : (
-                          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                          <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
                             {paragraph.content}
                           </p>
                         )}
@@ -375,20 +375,20 @@ const QuestViewModal: React.FC<QuestViewModalProps> = ({
                     ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <Scroll className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <div className="text-center py-8 text-gray-400">
+                  <Scroll className="w-12 h-12 mx-auto mb-3 text-gray-500" />
                   <p>No paragraphs yet. Add your first paragraph below.</p>
                 </div>
               )}
 
               {/* Add new paragraph section */}
-              <div className="mt-6 bg-orange-50 rounded-lg p-4 border border-orange-200">
-                <h4 className="font-medium text-gray-900 mb-3">Add New Paragraph</h4>
+              <div className="mt-6 bg-orange-900/20 rounded-lg p-4 border border-orange-600/30">
+                <h4 className="font-medium text-white mb-3">Add New Paragraph</h4>
                 <textarea
                   value={newParagraphContent}
                   onChange={(e) => setNewParagraphContent(e.target.value)}
                   placeholder="Write your new paragraph here..."
-                  className="w-full border border-orange-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
+                  className="w-full border border-orange-600 bg-gray-800 text-white rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   rows={4}
                 />
                 <div className="flex justify-end mt-3">
@@ -405,8 +405,8 @@ const QuestViewModal: React.FC<QuestViewModalProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-              <div className="text-sm text-gray-500">
+            <div className="flex items-center justify-between pt-4 border-t border-gray-600">
+              <div className="text-sm text-gray-400">
                 {questUpdatedAt !== questCreatedAt && (
                   <span>
                     Last updated on{" "}
@@ -426,7 +426,7 @@ const QuestViewModal: React.FC<QuestViewModalProps> = ({
               
               <button
                 onClick={onClose}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                className="px-4 py-2 bg-gray-700 text-gray-300 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
               >
                 Close
               </button>
