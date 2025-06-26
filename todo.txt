@@ -1,9 +1,6 @@
 VISUAL 
 visual indicator for a task in a folder resets when you refresh the page 
-visual changes consistencies - enak design za diary entry in task and feedu
-Visual bugs - fix the dark theme
-tasks are fucked up again
-
+bug in calendar
 Add OAuth2
 
 Make app

@@ -139,7 +139,11 @@ interface QuestCardProps {
   onUpdateQuest: (questId: number, updates: any) => void;
   onDeleteQuest: (questId: number) => void;
   onAddParagraph: (questId: number, content: string) => void;
-  onUpdateParagraph: (questId: number, paragraphId: number, content: string) => void;
+  onUpdateParagraph: (
+    questId: number,
+    paragraphId: number,
+    content: string
+  ) => void;
   onDeleteParagraph: (questId: number, paragraphId: number) => void;
 }
 
@@ -154,7 +158,9 @@ const QuestCard: React.FC<QuestCardProps> = ({
 }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState(quest.title);
-  const [editingParagraphId, setEditingParagraphId] = useState<number | null>(null);
+  const [editingParagraphId, setEditingParagraphId] = useState<number | null>(
+    null
+  );
   const [editingParagraphContent, setEditingParagraphContent] = useState("");
   const [newParagraphContent, setNewParagraphContent] = useState("");
   const [showAddParagraph, setShowAddParagraph] = useState(false);
@@ -163,7 +169,9 @@ const QuestCard: React.FC<QuestCardProps> = ({
   // Safe access to quest properties with fallbacks
   const questParagraphs = quest.paragraphs || [];
   const questTitle = quest.title || "Untitled Quest";
-  const currentFolder = (folders || []).find((folder) => folder.id === quest.folder_id);
+  const currentFolder = (folders || []).find(
+    (folder) => folder.id === quest.folder_id
+  );
 
   const handleSaveTitle = () => {
     if (editingTitle.trim() && editingTitle.length <= 200) {
@@ -184,7 +192,11 @@ const QuestCard: React.FC<QuestCardProps> = ({
 
   const handleSaveParagraph = () => {
     if (editingParagraphId && editingParagraphContent.trim()) {
-      onUpdateParagraph(quest.id, editingParagraphId, editingParagraphContent.trim());
+      onUpdateParagraph(
+        quest.id,
+        editingParagraphId,
+        editingParagraphContent.trim()
+      );
       setEditingParagraphId(null);
       setEditingParagraphContent("");
     }
@@ -208,7 +220,17 @@ const QuestCard: React.FC<QuestCardProps> = ({
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg shadow-sm border border-gray-600 hover:shadow-md transition-shadow">
+    <div
+      className="bg-gray-800  rounded-lg shadow-sm border-2 border-gray-600 hover:shadow-md transition-shadow"
+      style={
+        currentFolder
+          ? {
+              borderLeft: `4px solid ${currentFolder.color}`,
+              backgroundColor: `${currentFolder.color}08`,
+            }
+          : {}
+      }
+    >
       <div className="p-4">
         {/* Header with Quest indicator and folder */}
         <div className="flex items-center space-x-2 mb-3">
@@ -216,7 +238,7 @@ const QuestCard: React.FC<QuestCardProps> = ({
           <span className="text-sm font-medium text-orange-300">Quest</span>
           {/* Folder indicator */}
           {currentFolder && (
-            <div className="flex items-center space-x-2 bg-gray-700/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-200">
+            <div className="flex items-center space-x-2 bg-gray-700/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-600">
               <div
                 className="w-3 h-3 rounded-full border border-gray-500 shadow-sm"
                 style={{ backgroundColor: currentFolder.color }}
@@ -237,14 +259,16 @@ const QuestCard: React.FC<QuestCardProps> = ({
                 <input
                   type="text"
                   value={editingTitle}
-                  onChange={(e) => setEditingTitle(e.target.value.slice(0, 200))}
+                  onChange={(e) =>
+                    setEditingTitle(e.target.value.slice(0, 200))
+                  }
                   className="w-full text-lg font-medium border border-orange-600 bg-gray-700 text-white rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   maxLength={200}
                   autoFocus
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === "Enter") {
                       handleSaveTitle();
-                    } else if (e.key === 'Escape') {
+                    } else if (e.key === "Escape") {
                       handleCancelEditTitle();
                     }
                   }}
@@ -256,7 +280,9 @@ const QuestCard: React.FC<QuestCardProps> = ({
                   <div className="flex space-x-2">
                     <button
                       onClick={handleSaveTitle}
-                      disabled={!editingTitle.trim() || editingTitle.length > 200}
+                      disabled={
+                        !editingTitle.trim() || editingTitle.length > 200
+                      }
                       className="p-1 text-green-400 hover:text-green-300 disabled:opacity-50"
                     >
                       <Save className="w-4 h-4" />
@@ -271,15 +297,14 @@ const QuestCard: React.FC<QuestCardProps> = ({
                 </div>
               </div>
             ) : (
-              <h3 className="text-lg font-medium text-white">
-                {questTitle}
-              </h3>
+              <h3 className="text-lg font-medium text-white">{questTitle}</h3>
             )}
 
             {/* Paragraph count and creation date */}
-            <div className="mt-1 text-sm text-gray-600">
-              📝 {questParagraphs.length} paragraph{questParagraphs.length !== 1 ? "s" : ""}
-              <span className="text-xs text-gray-500 ml-2">
+            <div className="mt-1 text-sm text-gray-400">
+              📝 {questParagraphs.length} paragraph
+              {questParagraphs.length !== 1 ? "s" : ""}
+              <span className="text-xs text-gray-400 ml-2">
                 Created {new Date(quest.created_at).toLocaleDateString()}
               </span>
             </div>
@@ -290,7 +315,7 @@ const QuestCard: React.FC<QuestCardProps> = ({
             {/* Add paragraph button */}
             <button
               onClick={() => setShowAddParagraph(!showAddParagraph)}
-              className="p-2 text-gray-400 hover:text-orange-600 rounded-full hover:bg-orange-50"
+              className="p-2 text-gray-400 hover:text-gray-200 rounded-full"
               title="Add paragraph"
             >
               <Plus className="w-5 h-5" />
@@ -300,7 +325,7 @@ const QuestCard: React.FC<QuestCardProps> = ({
             <div className="relative">
               <button
                 onClick={() => setShowActionDropdown(!showActionDropdown)}
-                className="p-1 text-gray-400 hover:text-gray-300 rounded"
+                className="p-1 text-gray-400 hover:text-gray-200 rounded"
                 title="More actions"
               >
                 <MoreVertical className="w-5 h-5" />
@@ -323,12 +348,12 @@ const QuestCard: React.FC<QuestCardProps> = ({
 
         {/* Add new paragraph section - always visible when active */}
         {showAddParagraph && (
-          <div className="mb-4 bg-orange-50 rounded-lg p-3 border border-orange-200">
+          <div className="mb-4 bg-gray-800 rounded-lg p-3 border border-gray-600">
             <textarea
               value={newParagraphContent}
               onChange={(e) => setNewParagraphContent(e.target.value)}
               placeholder="Write your new paragraph here..."
-              className="w-full border border-orange-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white resize-none"
+              className="w-full rounded px-3 py-2 border border-gray-600  bg-gray-800 resize-none"
               rows={3}
               autoFocus
             />
@@ -338,7 +363,7 @@ const QuestCard: React.FC<QuestCardProps> = ({
                   setShowAddParagraph(false);
                   setNewParagraphContent("");
                 }}
-                className="px-3 py-1 text-gray-600 hover:text-gray-800 text-sm"
+                className="px-3 py-1 text-white hover:text-orange-500 text-sm"
               >
                 Cancel
               </button>
@@ -358,17 +383,22 @@ const QuestCard: React.FC<QuestCardProps> = ({
           {questParagraphs
             .sort((a, b) => a.order_index - b.order_index)
             .map((paragraph, index) => (
-              <div key={paragraph.id} className="bg-gray-700 rounded-lg p-3 border border-gray-100">
+              <div
+                key={paragraph.id}
+                className="bg-gray-700 rounded-lg p-3 border border-gray-600"
+              >
                 {editingParagraphId === paragraph.id ? (
                   <div className="space-y-2">
                     <textarea
                       value={editingParagraphContent}
-                      onChange={(e) => setEditingParagraphContent(e.target.value)}
+                      onChange={(e) =>
+                        setEditingParagraphContent(e.target.value)
+                      }
                       className="w-full border border-gray-600 text-white rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
                       rows={3}
                       autoFocus
                       onKeyDown={(e) => {
-                        if (e.key === 'Escape') {
+                        if (e.key === "Escape") {
                           handleCancelEditParagraph();
                         }
                       }}
@@ -392,9 +422,6 @@ const QuestCard: React.FC<QuestCardProps> = ({
                 ) : (
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <div className="text-xs text-gray-500 mb-1">
-                        Paragraph {index + 1}
-                      </div>
                       <p className="text-white leading-relaxed whitespace-pre-wrap">
                         {paragraph.content}
                       </p>
@@ -408,7 +435,9 @@ const QuestCard: React.FC<QuestCardProps> = ({
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => onDeleteParagraph(quest.id, paragraph.id)}
+                        onClick={() =>
+                          onDeleteParagraph(quest.id, paragraph.id)
+                        }
                         className="p-1 text-gray-400 hover:text-red-400 rounded"
                         title="Delete paragraph"
                       >
