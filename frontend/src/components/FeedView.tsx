@@ -1,4 +1,4 @@
-// Update frontend/src/components/FeedView.tsx to include Quest support
+// Fixed frontend/src/components/FeedView.tsx - Using Diary Folder Pattern for Tasks
 
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
@@ -663,9 +663,6 @@ const FeedView: React.FC<FeedViewProps> = ({
     setNewTask((prev) => ({ ...prev, is_calendar_event: value }));
   }, []);
 
-
-
-  
   const handleCreateTask = async () => {
     try {
       const taskData = {
@@ -868,48 +865,6 @@ const FeedView: React.FC<FeedViewProps> = ({
     }
   };
 
-  // Enhanced folder helpers with visual styling
-  const getCurrentFolder = (item: FeedItem): FolderType | null => {
-    if (!item || !folders) return null;
-    
-    let folderId: number | null = null;
-    
-    if (item.type === "diary") {
-      const entry = item.data as DiaryEntry;
-      folderId = (entry as any).folder_id || null;
-    } else if (item.type === "task") {
-      const task = item.data as Task;
-      folderId = (task as any).folder_id || null;
-    } else if (item.type === "quest") {
-      const quest = item.data as Quest;
-      folderId = quest.folder_id || null;
-    }
-    
-    if (!folderId) return null;
-    
-    return folders.find((folder) => folder.id === folderId) || null;
-  };
-
-  // Get folder-specific styling
-  const getFolderStyling = (folder: FolderType | null) => {
-    if (!folder) return {};
-    
-    return {
-      borderLeft: `4px solid ${folder.color}`,
-      backgroundColor: `${folder.color}08`, // Add very subtle background tint
-    };
-  };
-
-  // Helper function to convert hex to RGB
-  const hexToRgb = (hex: string) => {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-      r: parseInt(result[1], 16),
-      g: parseInt(result[2], 16),
-      b: parseInt(result[3], 16)
-    } : null;
-  };
-
   // Simple markdown-like formatting for display
   const formatContent = (content: string) => {
     return content
@@ -920,26 +875,29 @@ const FeedView: React.FC<FeedViewProps> = ({
 
   const renderFeedItem = (item: FeedItem) => {
     const isExpanded = expandedItems.has(item.id);
-    const folder = getCurrentFolder(item);
-    const folderStyling = getFolderStyling(folder);
-  
+    
     if (item.type === "task") {
       const task = item.data as Task;
+      
+      // FIXED: Get folder directly inside the render function like diaries do
+      const currentFolder = folders.find(
+        (folder) => folder.id === (task as any).folder_id
+      );
   
       return (
         <div key={item.id} className="space-y-2">
           {/* Feed context header */}
           <div className="flex items-center justify-between text-xs text-gray-500 px-1">
             <div className="flex items-center space-x-2">
-              {/* Folder indicator for tasks */}
-              {folder && (
+              {/* Folder indicator for tasks - SAME AS DIARIES */}
+              {currentFolder && (
                 <div className="flex items-center space-x-1">
                   <div
                     className="w-3 h-3 rounded"
-                    style={{ backgroundColor: folder.color }}
+                    style={{ backgroundColor: currentFolder.color }}
                   />
                   <span className="text-xs text-gray-600 font-medium">
-                    {folder.name}
+                    {currentFolder.name}
                   </span>
                 </div>
               )}
@@ -956,14 +914,13 @@ const FeedView: React.FC<FeedViewProps> = ({
             </div>
           </div>
   
-          {/* Wrapper with folder styling - ALWAYS apply the style object */}
+          {/* FIXED: Apply folder styling directly to the TaskCard container like diaries */}
           <div 
-            className="rounded-lg transition-all duration-200"
-            style={{
-              ...folderStyling,
-              // Ensure the styling is always applied even if empty
-              ...(Object.keys(folderStyling).length === 0 ? {} : folderStyling)
-            }}
+            className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all cursor-pointer"
+            style={currentFolder ? {
+              borderLeft: `4px solid ${currentFolder.color}`,
+              backgroundColor: `${currentFolder.color}08`,
+            } : {}}
           >
             <TaskCard
               task={task}
@@ -990,21 +947,26 @@ const FeedView: React.FC<FeedViewProps> = ({
       );
     } else if (item.type === "quest") {
       const quest = item.data as Quest;
+      
+      // FIXED: Get folder directly inside the render function like diaries do
+      const currentFolder = folders.find(
+        (folder) => folder.id === quest.folder_id
+      );
 
       return (
         <div key={item.id} className="space-y-2">
           {/* Feed context header */}
           <div className="flex items-center justify-between text-xs text-gray-500 px-1">
             <div className="flex items-center space-x-2">
-              {/* Folder indicator for quests */}
-              {folder && (
+              {/* Folder indicator for quests - SAME AS DIARIES */}
+              {currentFolder && (
                 <div className="flex items-center space-x-1">
                   <div
                     className="w-3 h-3 rounded"
-                    style={{ backgroundColor: folder.color }}
+                    style={{ backgroundColor: currentFolder.color }}
                   />
                   <span className="text-xs text-gray-600 font-medium">
-                    {folder.name}
+                    {currentFolder.name}
                   </span>
                 </div>
               )}
@@ -1021,10 +983,13 @@ const FeedView: React.FC<FeedViewProps> = ({
             </div>
           </div>
 
-          {/* Wrapper with folder styling */}
+          {/* FIXED: Apply folder styling directly to the QuestCard container like diaries */}
           <div 
-            className="rounded-lg transition-all duration-200 cursor-pointer"
-            style={folderStyling}
+            className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all cursor-pointer"
+            style={currentFolder ? {
+              borderLeft: `4px solid ${currentFolder.color}`,
+              backgroundColor: `${currentFolder.color}08`,
+            } : {}}
             onClick={() => handleViewQuest(quest)}
           >
             <QuestCard
@@ -1041,12 +1006,20 @@ const FeedView: React.FC<FeedViewProps> = ({
       );
     } else {
       const entry = item.data as DiaryEntry;
+      
+      // Get current folder - SAME PATTERN AS BEFORE (THIS WORKS)
+      const currentFolder = folders.find(
+        (folder) => folder.id === (entry as any).folder_id
+      );
 
       return (
         <div
           key={item.id}
           className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all cursor-pointer"
-          style={folderStyling}
+          style={currentFolder ? {
+            borderLeft: `4px solid ${currentFolder.color}`,
+            backgroundColor: `${currentFolder.color}08`,
+          } : {}}
           onClick={() => handleViewDiary(entry)}
         >
           <div className="p-4">
@@ -1059,14 +1032,14 @@ const FeedView: React.FC<FeedViewProps> = ({
                       Diary Entry
                     </span>
                     {/* Enhanced folder indicator */}
-                    {folder && (
+                    {currentFolder && (
                       <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-200">
                         <div
                           className="w-3 h-3 rounded-full border border-white shadow-sm"
-                          style={{ backgroundColor: folder.color }}
+                          style={{ backgroundColor: currentFolder.color }}
                         />
                         <span className="text-xs text-gray-700 font-medium">
-                          {folder.name}
+                          {currentFolder.name}
                         </span>
                       </div>
                     )}

@@ -183,7 +183,6 @@ const formatScheduledTime = (scheduledDate: string) => {
   }
 };
 
-
 // Task Edit Modal Component
 const TaskEditModal: React.FC<{
   isOpen: boolean;
@@ -728,7 +727,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
     return allTasks.find((t) => t.id === taskId);
   };
 
-  // Get current folder for display
+  // Get current folder for display - SAME AS DIARY PATTERN
   const getCurrentFolder = (): FolderType | null => {
     if (!folders || folders.length === 0) return null;
     const folderId = (task as any).folder_id;
@@ -971,7 +970,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
   return (
     <div
-      className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+      className="rounded-lg transition-all duration-200"
       style={indentStyle}
     >
        
@@ -981,15 +980,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
           <span className="text-sm font-medium text-sky-600">
                       Task Entry
            </span>
-                    {/* Enhanced folder indicator */}
+                    {/* Folder indicator - SAME AS DIARY PATTERN */}
             {currentFolder && (
-              <div 
-                className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-200"
-                style={{ 
-                  borderColor: currentFolder.color,
-                  backgroundColor: `${currentFolder.color}15` // Subtle background tint
-                }}
-              >
+              <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-200">
                 <div
                   className="w-3 h-3 rounded-full border border-white shadow-sm"
                   style={{ backgroundColor: currentFolder.color }}
@@ -1034,8 +1027,6 @@ const TaskCard: React.FC<TaskCardProps> = ({
                         : "Low"}
                     </span>
                   </div>
-
-
 
                   {/* Auto-completion indicator */}
                   {shouldAutoComplete && (
