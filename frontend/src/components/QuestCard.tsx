@@ -43,13 +43,13 @@ const QuestActionDropdown: React.FC<QuestActionDropdownProps> = ({
       <div className="fixed inset-0 z-40" onClick={onClose} />
 
       {/* Main Dropdown */}
-      <div className="absolute top-8 right-0 z-50 bg-white border border-gray-200 rounded-md shadow-xl min-w-[180px] py-1">
+      <div className="absolute top-8 right-0 z-50 bg-gray-800 border border-gray-600 rounded-md shadow-xl min-w-[180px] py-1">
         <button
           onClick={() => {
             onEdit();
             onClose();
           }}
-          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+          className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center space-x-2"
         >
           <Edit2 className="w-4 h-4" />
           <span>Edit Quest</span>
@@ -61,7 +61,7 @@ const QuestActionDropdown: React.FC<QuestActionDropdownProps> = ({
           onMouseEnter={() => setShowFolderSubmenu(true)}
           onMouseLeave={() => setShowFolderSubmenu(false)}
         >
-          <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between">
+          <button className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <FolderPlus className="w-4 h-4" />
               <span>Change Folder</span>
@@ -71,7 +71,7 @@ const QuestActionDropdown: React.FC<QuestActionDropdownProps> = ({
 
           {/* Folder submenu */}
           {showFolderSubmenu && (
-            <div className="absolute top-0 right-full ml-1 z-60 bg-white border border-gray-200 rounded-md shadow-xl min-w-[200px] py-1">
+            <div className="absolute top-0 right-full ml-1 z-60 bg-gray-800 border border-gray-600 rounded-md shadow-xl min-w-[200px] py-1">
               <button
                 onClick={() => {
                   onFolderSelect(null);
@@ -79,14 +79,14 @@ const QuestActionDropdown: React.FC<QuestActionDropdownProps> = ({
                 }}
                 className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-2 ${
                   currentFolderId === null
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-gray-700"
+                    ? "bg-blue-900 text-blue-300"
+                    : "text-gray-300"
                 }`}
               >
-                <div className="w-3 h-3 rounded bg-gray-300" />
+                <div className="w-3 h-3 rounded bg-gray-500" />
                 <span>No Folder</span>
                 {currentFolderId === null && (
-                  <span className="ml-auto text-blue-600">✓</span>
+                  <span className="ml-auto text-blue-400">✓</span>
                 )}
               </button>
               {(folders || []).map((folder) => (
@@ -96,10 +96,10 @@ const QuestActionDropdown: React.FC<QuestActionDropdownProps> = ({
                     onFolderSelect(folder.id);
                     onClose();
                   }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-2 ${
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 flex items-center space-x-2 ${
                     currentFolderId === folder.id
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-gray-700"
+                      ? "bg-blue-900 text-blue-300"
+                      : "text-gray-300"
                   }`}
                 >
                   <div
@@ -108,7 +108,7 @@ const QuestActionDropdown: React.FC<QuestActionDropdownProps> = ({
                   />
                   <span>{folder.name}</span>
                   {currentFolderId === folder.id && (
-                    <span className="ml-auto text-blue-600">✓</span>
+                    <span className="ml-auto text-blue-400">✓</span>
                   )}
                 </button>
               ))}
@@ -116,14 +116,14 @@ const QuestActionDropdown: React.FC<QuestActionDropdownProps> = ({
           )}
         </div>
 
-        <hr className="my-1" />
+        <hr className="my-1 border-gray-600" />
 
         <button
           onClick={() => {
             onDelete();
             onClose();
           }}
-          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+          className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-900/20 flex items-center space-x-2"
         >
           <Trash2 className="w-4 h-4" />
           <span>Delete Quest</span>
@@ -208,20 +208,20 @@ const QuestCard: React.FC<QuestCardProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+    <div className="bg-gray-800 rounded-lg shadow-sm border border-gray-600 hover:shadow-md transition-shadow">
       <div className="p-4">
         {/* Header with Quest indicator and folder */}
         <div className="flex items-center space-x-2 mb-3">
-          <Scroll className="w-5 h-5 text-orange-500" />
-          <span className="text-sm font-medium text-orange-700">Quest</span>
+          <Scroll className="w-5 h-5 text-orange-400" />
+          <span className="text-sm font-medium text-orange-300">Quest</span>
           {/* Folder indicator */}
           {currentFolder && (
-            <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-200">
+            <div className="flex items-center space-x-2 bg-gray-700/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-200">
               <div
-                className="w-3 h-3 rounded-full border border-white shadow-sm"
+                className="w-3 h-3 rounded-full border border-gray-500 shadow-sm"
                 style={{ backgroundColor: currentFolder.color }}
               />
-              <span className="text-xs text-gray-700 font-medium">
+              <span className="text-xs text-gray-300 font-medium">
                 {currentFolder.name}
               </span>
             </div>
@@ -238,7 +238,7 @@ const QuestCard: React.FC<QuestCardProps> = ({
                   type="text"
                   value={editingTitle}
                   onChange={(e) => setEditingTitle(e.target.value.slice(0, 200))}
-                  className="w-full text-lg font-medium border border-orange-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full text-lg font-medium border border-orange-600 bg-gray-700 text-white rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   maxLength={200}
                   autoFocus
                   onKeyDown={(e) => {
@@ -250,20 +250,20 @@ const QuestCard: React.FC<QuestCardProps> = ({
                   }}
                 />
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-gray-400">
                     {editingTitle.length}/200 characters
                   </span>
                   <div className="flex space-x-2">
                     <button
                       onClick={handleSaveTitle}
                       disabled={!editingTitle.trim() || editingTitle.length > 200}
-                      className="p-1 text-green-600 hover:text-green-800 disabled:opacity-50"
+                      className="p-1 text-green-400 hover:text-green-300 disabled:opacity-50"
                     >
                       <Save className="w-4 h-4" />
                     </button>
                     <button
                       onClick={handleCancelEditTitle}
-                      className="p-1 text-gray-400 hover:text-gray-600"
+                      className="p-1 text-gray-400 hover:text-gray-300"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -271,7 +271,7 @@ const QuestCard: React.FC<QuestCardProps> = ({
                 </div>
               </div>
             ) : (
-              <h3 className="text-lg font-medium text-gray-900">
+              <h3 className="text-lg font-medium text-white">
                 {questTitle}
               </h3>
             )}
@@ -300,7 +300,7 @@ const QuestCard: React.FC<QuestCardProps> = ({
             <div className="relative">
               <button
                 onClick={() => setShowActionDropdown(!showActionDropdown)}
-                className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                className="p-1 text-gray-400 hover:text-gray-300 rounded"
                 title="More actions"
               >
                 <MoreVertical className="w-5 h-5" />
@@ -358,13 +358,13 @@ const QuestCard: React.FC<QuestCardProps> = ({
           {questParagraphs
             .sort((a, b) => a.order_index - b.order_index)
             .map((paragraph, index) => (
-              <div key={paragraph.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+              <div key={paragraph.id} className="bg-gray-700 rounded-lg p-3 border border-gray-100">
                 {editingParagraphId === paragraph.id ? (
                   <div className="space-y-2">
                     <textarea
                       value={editingParagraphContent}
                       onChange={(e) => setEditingParagraphContent(e.target.value)}
-                      className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                      className="w-full border border-gray-600 text-white rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
                       rows={3}
                       autoFocus
                       onKeyDown={(e) => {
@@ -383,7 +383,7 @@ const QuestCard: React.FC<QuestCardProps> = ({
                       <button
                         onClick={handleSaveParagraph}
                         disabled={!editingParagraphContent.trim()}
-                        className="p-1 text-green-600 hover:text-green-800 disabled:opacity-50"
+                        className="p-1 text-green-400 hover:text-green-300 disabled:opacity-50"
                       >
                         <Save className="w-4 h-4" />
                       </button>
@@ -395,21 +395,21 @@ const QuestCard: React.FC<QuestCardProps> = ({
                       <div className="text-xs text-gray-500 mb-1">
                         Paragraph {index + 1}
                       </div>
-                      <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                      <p className="text-white leading-relaxed whitespace-pre-wrap">
                         {paragraph.content}
                       </p>
                     </div>
                     <div className="flex space-x-1 ml-3">
                       <button
                         onClick={() => handleEditParagraph(paragraph)}
-                        className="p-1 text-gray-400 hover:text-orange-600 rounded"
+                        className="p-1 text-gray-400 hover:text-orange-400 rounded"
                         title="Edit paragraph"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => onDeleteParagraph(quest.id, paragraph.id)}
-                        className="p-1 text-gray-400 hover:text-red-600 rounded"
+                        className="p-1 text-gray-400 hover:text-red-400 rounded"
                         title="Delete paragraph"
                       >
                         <Trash2 className="w-4 h-4" />
