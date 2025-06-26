@@ -45,16 +45,16 @@ const TaskActionDropdown: React.FC<{
   folders: FolderType[];
   currentFolderId: number | null;
   isSubtask: boolean; // Add this prop to control folder menu visibility
-}> = ({ 
-  isOpen, 
-  onClose, 
-  onEdit, 
-  onSchedule, 
-  onFolderSelect, 
-  onDelete, 
-  folders, 
+}> = ({
+  isOpen,
+  onClose,
+  onEdit,
+  onSchedule,
+  onFolderSelect,
+  onDelete,
+  folders,
   currentFolderId,
-  isSubtask
+  isSubtask,
 }) => {
   const [showFolderSubmenu, setShowFolderSubmenu] = useState(false);
 
@@ -64,7 +64,7 @@ const TaskActionDropdown: React.FC<{
     <>
       {/* Backdrop */}
       <div className="fixed inset-0 z-40" onClick={onClose} />
-      
+
       {/* Main Dropdown */}
       <div className="absolute top-8 right-0 z-50 bg-gray-800 border border-gray-600 rounded-md shadow-xl min-w-[180px] py-1">
         <button
@@ -77,7 +77,7 @@ const TaskActionDropdown: React.FC<{
           <Edit2 className="w-4 h-4" />
           <span>Edit Task</span>
         </button>
-        
+
         <button
           onClick={() => {
             onSchedule();
@@ -88,63 +88,71 @@ const TaskActionDropdown: React.FC<{
           <Calendar className="w-4 h-4" />
           <span>Schedule Task</span>
         </button>
-        
+
         {/* Only show folder menu for main tasks (not subtasks) */}
         {!isSubtask && (
-        <div 
-          className="relative"
-          onMouseEnter={() => setShowFolderSubmenu(true)}
-          onMouseLeave={() => setShowFolderSubmenu(false)}
-        >
-          <button className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <FolderPlus className="w-4 h-4" />
-              <span>Change Folder</span>
-            </div>
-            <ChevronLeftIcon className="w-4 h-4" />
-          </button>
-          
-          {/* Folder submenu */}
-          {showFolderSubmenu && (
-            <div className="absolute top-0 right-full ml-1 z-60 bg-gray-800 border border-gray-600 rounded-md shadow-xl min-w-[200px] py-1">
-              <button
-                onClick={() => {
-                  onFolderSelect(null);
-                  onClose();
-                }}
-                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 flex items-center space-x-2 ${
-                  currentFolderId === null ? 'bg-blue-900 text-blue-300' : 'text-gray-300'
-                }`}
-              >
-                <div className="w-3 h-3 rounded bg-gray-500" />
-                <span>No Folder</span>
-                {currentFolderId === null && <span className="ml-auto text-blue-400">✓</span>}
-              </button>
-              {folders.map((folder) => (
+          <div
+            className="relative"
+            onMouseEnter={() => setShowFolderSubmenu(true)}
+            onMouseLeave={() => setShowFolderSubmenu(false)}
+          >
+            <button className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <FolderPlus className="w-4 h-4" />
+                <span>Change Folder</span>
+              </div>
+              <ChevronLeftIcon className="w-4 h-4" />
+            </button>
+
+            {/* Folder submenu */}
+            {showFolderSubmenu && (
+              <div className="absolute top-0 right-full ml-1 z-60 bg-gray-800 border border-gray-600 rounded-md shadow-xl min-w-[200px] py-1">
                 <button
-                  key={folder.id}
                   onClick={() => {
-                    onFolderSelect(folder.id);
+                    onFolderSelect(null);
                     onClose();
                   }}
                   className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 flex items-center space-x-2 ${
-                    currentFolderId === folder.id ? 'bg-blue-900 text-blue-300' : 'text-gray-300'
+                    currentFolderId === null
+                      ? "bg-blue-900 text-blue-300"
+                      : "text-gray-300"
                   }`}
                 >
-                  <div
-                    className="w-3 h-3 rounded"
-                    style={{ backgroundColor: folder.color }}
-                  />
-                  <span>{folder.name}</span>
-                  {currentFolderId === folder.id && <span className="ml-auto text-blue-400">✓</span>}
+                  <div className="w-3 h-3 rounded bg-gray-500" />
+                  <span>No Folder</span>
+                  {currentFolderId === null && (
+                    <span className="ml-auto text-blue-400">✓</span>
+                  )}
                 </button>
-              ))}
-            </div>
-          )}
-        </div>
+                {folders.map((folder) => (
+                  <button
+                    key={folder.id}
+                    onClick={() => {
+                      onFolderSelect(folder.id);
+                      onClose();
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 flex items-center space-x-2 ${
+                      currentFolderId === folder.id
+                        ? "bg-blue-900 text-blue-300"
+                        : "text-gray-300"
+                    }`}
+                  >
+                    <div
+                      className="w-3 h-3 rounded"
+                      style={{ backgroundColor: folder.color }}
+                    />
+                    <span>{folder.name}</span>
+                    {currentFolderId === folder.id && (
+                      <span className="ml-auto text-blue-400">✓</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         )}
         <hr className="my-1 border-gray-600" />
-        
+
         <button
           onClick={() => {
             onDelete();
@@ -165,14 +173,20 @@ const formatScheduledTime = (scheduledDate: string) => {
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  
+
   const isToday = date.toDateString() === today.toDateString();
   const isTomorrow = date.toDateString() === tomorrow.toDateString();
-  
+
   if (isToday) {
-    return `Today ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    return `Today ${date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    })}`;
   } else if (isTomorrow) {
-    return `Tomorrow ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    return `Tomorrow ${date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    })}`;
   } else {
     return date.toLocaleDateString("en-US", {
       month: "short",
@@ -198,10 +212,12 @@ const TaskEditModal: React.FC<{
   const [dueDate, setDueDate] = useState(
     task.due_date ? new Date(task.due_date).toISOString().slice(0, 16) : ""
   );
-  const [isCalendarEvent, setIsCalendarEvent] = useState(task.is_calendar_event);
+  const [isCalendarEvent, setIsCalendarEvent] = useState(
+    task.is_calendar_event
+  );
   const [status, setStatus] = useState(task.status);
   const [folderId, setFolderId] = useState<number | null>(
-    (task as any).folder_id || null
+    task.folder_id || null
   );
 
   // Reset form when task changes
@@ -214,7 +230,7 @@ const TaskEditModal: React.FC<{
     );
     setIsCalendarEvent(task.is_calendar_event);
     setStatus(task.status);
-    setFolderId((task as any).folder_id || null);
+    setFolderId(task.folder_id || null);
   }, [task]);
 
   const handleSave = () => {
@@ -231,12 +247,15 @@ const TaskEditModal: React.FC<{
     // Remove unchanged fields to avoid unnecessary updates
     const changes: any = {};
     if (updates.title !== task.title) changes.title = updates.title;
-    if (updates.description !== (task.description || null)) changes.description = updates.description;
+    if (updates.description !== (task.description || null))
+      changes.description = updates.description;
     if (updates.priority !== task.priority) changes.priority = updates.priority;
     if (updates.status !== task.status) changes.status = updates.status;
     if (updates.due_date !== task.due_date) changes.due_date = updates.due_date;
-    if (updates.is_calendar_event !== task.is_calendar_event) changes.is_calendar_event = updates.is_calendar_event;
-    if (updates.folder_id !== (task as any).folder_id) changes.folder_id = updates.folder_id;
+    if (updates.is_calendar_event !== task.is_calendar_event)
+      changes.is_calendar_event = updates.is_calendar_event;
+    if (updates.folder_id !== task.folder_id)
+      changes.folder_id = updates.folder_id;
 
     if (Object.keys(changes).length > 0) {
       onSave(changes);
@@ -362,7 +381,11 @@ const TaskEditModal: React.FC<{
                   </label>
                   <select
                     value={folderId || ""}
-                    onChange={(e) => setFolderId(e.target.value ? parseInt(e.target.value) : null)}
+                    onChange={(e) =>
+                      setFolderId(
+                        e.target.value ? parseInt(e.target.value) : null
+                      )
+                    }
                     className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">No Folder</option>
@@ -639,7 +662,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const [editTaskId, setEditTaskId] = useState<number | null>(null);
 
   // Action dropdown state
-  const [showActionDropdown, setShowActionDropdown] = useState<string | null>(null);
+  const [showActionDropdown, setShowActionDropdown] = useState<string | null>(
+    null
+  );
 
   // Save to localStorage whenever hiddenSubtasks changes
   useEffect(() => {
@@ -890,9 +915,13 @@ const TaskCard: React.FC<TaskCardProps> = ({
               {/* Action dropdown for subtask */}
               <div className="relative">
                 <button
-                  onClick={() => setShowActionDropdown(
-                    showActionDropdown === `subtask-${subtask.id}` ? null : `subtask-${subtask.id}`
-                  )}
+                  onClick={() =>
+                    setShowActionDropdown(
+                      showActionDropdown === `subtask-${subtask.id}`
+                        ? null
+                        : `subtask-${subtask.id}`
+                    )
+                  }
                   className="p-1 text-gray-400 hover:text-gray-300 rounded"
                   title="More actions"
                 >
@@ -913,7 +942,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                     }}
                     onDelete={() => handleDeleteTask(subtask.id)}
                     folders={folders}
-                    currentFolderId={(subtask as any).folder_id || null}
+                    currentFolderId={subtask.folder_id || null}
                     isSubtask={true}
                   />
                 )}
@@ -969,16 +998,11 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const currentFolder = getCurrentFolder();
 
   return (
-    <div
-      className="rounded-lg transition-all duration-200"
-      style={indentStyle}
-    >
+    <div className="rounded-lg transition-all duration-200" style={indentStyle}>
       <div className="px-4">
         <div className="flex items-center space-x-2 py-4">
           <AlarmClockCheck className="w-4 h-4 text-sky-400" />
-          <span className="text-sm font-medium text-sky-300">
-            Task Entry
-          </span>
+          <span className="text-sm font-medium text-sky-300">Task Entry</span>
           {/* FIXED: Always show folder indicator if task has folder */}
           {currentFolder && (
             <div className="flex items-center space-x-2 bg-gray-700/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-600">
@@ -995,7 +1019,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-3 flex-1">
             {getStatusIcon(task.status, () => onToggleStatus(task))}
-             
+
             <div className="flex-1">
               <div className="space-y-2">
                 {/* Title row */}
@@ -1094,9 +1118,13 @@ const TaskCard: React.FC<TaskCardProps> = ({
             {/* Main action dropdown */}
             <div className="relative">
               <button
-                onClick={() => setShowActionDropdown(
-                  showActionDropdown === `task-${task.id}` ? null : `task-${task.id}`
-                )}
+                onClick={() =>
+                  setShowActionDropdown(
+                    showActionDropdown === `task-${task.id}`
+                      ? null
+                      : `task-${task.id}`
+                  )
+                }
                 className="p-1 text-gray-400 hover:text-gray-300 rounded"
                 title="More actions"
               >
@@ -1112,7 +1140,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                   onFolderSelect={handleFolderSelect}
                   onDelete={() => handleDeleteTask(task.id)}
                   folders={folders}
-                  currentFolderId={(task as any).folder_id || null}
+                  currentFolderId={task.folder_id || null}
                   isSubtask={!!task.parent_task_id}
                 />
               )}
@@ -1246,7 +1274,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
             {new Date(task.created_at).toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
-            })} 
+            })}
           </span>
         </div>
       </div>

@@ -1,7 +1,16 @@
-// Update frontend/src/components/CalendarView.tsx to include Quest support - Dark Mode
+// Fixed frontend/src/components/CalendarView.tsx - Date comparison bug fix
 
 import React, { useState } from "react";
-import { ChevronLeft, ChevronRight, Clock, BookOpen, CheckSquare, Calendar as CalendarIcon, CalendarDays, Scroll } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  BookOpen,
+  CheckSquare,
+  Calendar as CalendarIcon,
+  CalendarDays,
+  Scroll,
+} from "lucide-react";
 import { Task, DiaryEntry, Quest, FolderType } from "../types";
 import { TaskViewModal, DiaryViewModal, QuestViewModal } from "./";
 
@@ -13,7 +22,10 @@ interface CalendarViewProps {
   onToggleTaskStatus: (task: Task) => Promise<void>;
   onEditTask: (task: Task) => void;
   onScheduleTask: (taskId: number, updates: any) => Promise<void>;
-  onUpdateTaskFolder: (taskId: number, folderId: number | null) => Promise<void>;
+  onUpdateTaskFolder: (
+    taskId: number,
+    folderId: number | null
+  ) => Promise<void>;
   onDeleteTask: (taskId: number) => Promise<void>;
   onCreateSubtask: (parentTaskId: number) => Promise<void>;
   onEditDiary: (entry: DiaryEntry) => void;
@@ -21,7 +33,10 @@ interface CalendarViewProps {
   onUpdateDiaryFolder: (id: number, folderId: number | null) => Promise<void>;
   onDeleteDiary: (id: number) => Promise<void>;
   onEditQuest: (quest: Quest) => void;
-  onUpdateQuestFolder: (questId: number, folderId: number | null) => Promise<void>;
+  onUpdateQuestFolder: (
+    questId: number,
+    folderId: number | null
+  ) => Promise<void>;
   onDeleteQuest: (questId: number) => Promise<void>;
 }
 
@@ -59,7 +74,24 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   // Helper function to get folder by ID
   const getFolderById = (folderId: number | null | undefined) => {
     if (!folderId) return null;
-    return folders.find(folder => folder.id === folderId) || null;
+    return folders.find((folder) => folder.id === folderId) || null;
+  };
+
+  // FIXED: Proper date comparison functions
+  const isSameDate = (date1: Date, date2: Date): boolean => {
+    return (
+      date1.getFullYear() === date2.getFullYear() &&
+      date1.getMonth() === date2.getMonth() &&
+      date1.getDate() === date2.getDate()
+    );
+  };
+
+  const getDateString = (date: Date): string => {
+    // Use local date string in YYYY-MM-DD format
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   };
 
   // Calendar helper functions
@@ -86,36 +118,52 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     return days;
   };
 
+  // FIXED: Proper date comparison for tasks
   const getTasksForDate = (date: Date) => {
     if (!date) return [];
-    const dateStr = date.toISOString().split("T")[0];
-    return tasks.filter(
-      (task) => task.due_date && 
-                task.due_date.startsWith(dateStr) && 
-                !task.parent_task_id // Only show main tasks, not subtasks
-    );
+    const dateStr = getDateString(date);
+
+    return tasks.filter((task) => {
+      if (!task.due_date || task.parent_task_id) return false;
+
+      // Parse the task due date and compare dates properly
+      const taskDate = new Date(task.due_date);
+      const taskDateStr = getDateString(taskDate);
+
+      return taskDateStr === dateStr;
+    });
   };
 
+  // FIXED: Proper date comparison for diary entries
   const getDiaryEntriesForDate = (date: Date) => {
     if (!date) return [];
-    const dateStr = date.toISOString().split("T")[0];
-    return diaryEntries.filter(
-      (entry) =>
-        entry.is_scheduled &&
-        entry.scheduled_date &&
-        entry.scheduled_date.startsWith(dateStr)
-    );
+    const dateStr = getDateString(date);
+
+    return diaryEntries.filter((entry) => {
+      if (!entry.is_scheduled || !entry.scheduled_date) return false;
+
+      // Parse the scheduled date and compare dates properly
+      const scheduledDate = new Date(entry.scheduled_date);
+      const scheduledDateStr = getDateString(scheduledDate);
+
+      return scheduledDateStr === dateStr;
+    });
   };
 
-  // Note: Quests don't have dates by default, but we can show them if they're created on a specific day
+  // FIXED: Proper date comparison for quests
   const getQuestsForDate = (date: Date) => {
     if (!date) return [];
-    const dateStr = date.toISOString().split("T")[0];
-    return quests.filter(
-      (quest) =>
-        quest.created_at &&
-        quest.created_at.startsWith(dateStr)
-    );
+    const dateStr = getDateString(date);
+
+    return quests.filter((quest) => {
+      if (!quest.created_at) return false;
+
+      // Parse the creation date and compare dates properly
+      const createdDate = new Date(quest.created_at);
+      const createdDateStr = getDateString(createdDate);
+
+      return createdDateStr === dateStr;
+    });
   };
 
   const getItemsForDate = (date: Date) => {
@@ -137,9 +185,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   // Navigation functions for selected day
-  const navigateDay = (direction: 'prev' | 'next') => {
+  const navigateDay = (direction: "prev" | "next") => {
     const newDate = new Date(selectedDayDate);
-    if (direction === 'prev') {
+    if (direction === "prev") {
       newDate.setDate(newDate.getDate() - 1);
     } else {
       newDate.setDate(newDate.getDate() + 1);
@@ -155,11 +203,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    if (date.toDateString() === today.toDateString()) {
+    if (isSameDate(date, today)) {
       return "Today";
-    } else if (date.toDateString() === tomorrow.toDateString()) {
+    } else if (isSameDate(date, tomorrow)) {
       return "Tomorrow";
-    } else if (date.toDateString() === yesterday.toDateString()) {
+    } else if (isSameDate(date, yesterday)) {
       return "Yesterday";
     } else {
       return date.toLocaleDateString("en-US", {
@@ -237,7 +285,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     handleDiaryModalClose();
   };
 
-  const handleDiaryFolderChange = (entryId: number, folderId: number | null) => {
+  const handleDiaryFolderChange = (
+    entryId: number,
+    folderId: number | null
+  ) => {
     onUpdateDiaryFolder(entryId, folderId);
   };
 
@@ -252,7 +303,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     handleQuestModalClose();
   };
 
-  const handleQuestFolderChange = (questId: number, folderId: number | null) => {
+  const handleQuestFolderChange = (
+    questId: number,
+    folderId: number | null
+  ) => {
     onUpdateQuestFolder(questId, folderId);
   };
 
@@ -262,26 +316,39 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   // Render individual item in day feed
-  const renderDayFeedItem = (item: { type: "task" | "diary" | "quest"; item: Task | DiaryEntry | Quest }) => {
+  const renderDayFeedItem = (item: {
+    type: "task" | "diary" | "quest";
+    item: Task | DiaryEntry | Quest;
+  }) => {
     if (item.type === "task") {
       const task = item.item as Task;
       const folder = getFolderById((task as any).folder_id);
-      
+
       return (
-        <div 
-          key={`task-${task.id}`} 
+        <div
+          key={`task-${task.id}`}
           className="flex items-center space-x-4 p-4 bg-blue-900/20 rounded-lg border border-blue-600/30 hover:bg-blue-900/30 transition-colors cursor-pointer"
           onClick={(e) => handleTaskClick(task, e)}
         >
-          <div className={`w-3 h-3 rounded-full ${task.status === "completed" ? "bg-green-400" : "bg-blue-400"}`} />
+          <div
+            className={`w-3 h-3 rounded-full ${
+              task.status === "completed" ? "bg-green-400" : "bg-blue-400"
+            }`}
+          />
           <CheckSquare className="w-5 h-5 text-blue-400 flex-shrink-0" />
           <div className="flex-1">
             <div className="flex items-center space-x-2">
-              <h4 className={`font-medium text-lg ${task.status === "completed" ? "line-through text-gray-500" : "text-white"}`}>
+              <h4
+                className={`font-medium text-lg ${
+                  task.status === "completed"
+                    ? "line-through text-gray-500"
+                    : "text-white"
+                }`}
+              >
                 {task.title}
               </h4>
               {folder && (
-                <span 
+                <span
                   className="inline-block px-2 py-1 text-xs font-medium rounded-full text-white"
                   style={{ backgroundColor: folder.color }}
                 >
@@ -309,19 +376,27 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 onToggleTaskStatus(task);
               }}
               className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                task.status === "completed" 
-                  ? "bg-green-900/30 text-green-300 hover:bg-green-900/50" 
+                task.status === "completed"
+                  ? "bg-green-900/30 text-green-300 hover:bg-green-900/50"
                   : "bg-gray-700 text-gray-300 hover:bg-gray-600"
               }`}
             >
               {task.status === "completed" ? "✓ Done" : "Mark Done"}
             </button>
-            <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-              task.priority === 3 ? "bg-red-900/30 text-red-300" :
-              task.priority === 2 ? "bg-yellow-900/30 text-yellow-300" :
-              "bg-green-900/30 text-green-300"
-            }`}>
-              {task.priority === 3 ? "High" : task.priority === 2 ? "Medium" : "Low"}
+            <div
+              className={`px-3 py-1 rounded-full text-sm font-medium ${
+                task.priority === 3
+                  ? "bg-red-900/30 text-red-300"
+                  : task.priority === 2
+                  ? "bg-yellow-900/30 text-yellow-300"
+                  : "bg-green-900/30 text-green-300"
+              }`}
+            >
+              {task.priority === 3
+                ? "High"
+                : task.priority === 2
+                ? "Medium"
+                : "Low"}
             </div>
           </div>
         </div>
@@ -332,10 +407,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       // Safe access to quest properties with fallbacks
       const questParagraphs = quest.paragraphs || [];
       const questTitle = quest.title || "Untitled Quest";
-      
+
       return (
-        <div 
-          key={`quest-${quest.id}`} 
+        <div
+          key={`quest-${quest.id}`}
           className="flex items-center space-x-4 p-4 bg-orange-900/20 rounded-lg border border-orange-600/30 hover:bg-orange-900/30 transition-colors cursor-pointer"
           onClick={(e) => handleQuestClick(quest, e)}
         >
@@ -345,7 +420,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             <div className="flex items-center space-x-2">
               <h4 className="font-medium text-lg text-white">{questTitle}</h4>
               {folder && (
-                <span 
+                <span
                   className="inline-block px-2 py-1 text-xs font-medium rounded-full text-white"
                   style={{ backgroundColor: folder.color }}
                 >
@@ -354,12 +429,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               )}
             </div>
             <p className="text-sm text-orange-300 font-medium">
-              📝 {questParagraphs.length} paragraph{questParagraphs.length !== 1 ? "s" : ""}
+              📝 {questParagraphs.length} paragraph
+              {questParagraphs.length !== 1 ? "s" : ""}
             </p>
             {questParagraphs.length > 0 && (
               <p className="text-sm text-gray-300 mt-2">
-                {questParagraphs[0].content.length > 100 
-                  ? `${questParagraphs[0].content.substring(0, 100)}...` 
+                {questParagraphs[0].content.length > 100
+                  ? `${questParagraphs[0].content.substring(0, 100)}...`
                   : questParagraphs[0].content}
               </p>
             )}
@@ -369,10 +445,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     } else {
       const entry = item.item as DiaryEntry;
       const folder = getFolderById((entry as any).folder_id);
-      
+
       return (
-        <div 
-          key={`diary-${entry.id}`} 
+        <div
+          key={`diary-${entry.id}`}
           className="flex items-center space-x-4 p-4 bg-purple-900/20 rounded-lg border border-purple-600/30 hover:bg-purple-900/30 transition-colors cursor-pointer"
           onClick={(e) => handleDiaryClick(entry, e)}
         >
@@ -380,9 +456,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           <BookOpen className="w-5 h-5 text-purple-400 flex-shrink-0" />
           <div className="flex-1">
             <div className="flex items-center space-x-2">
-              <h4 className="font-medium text-lg text-white">{entry.title || "Diary Entry"}</h4>
+              <h4 className="font-medium text-lg text-white">
+                {entry.title || "Diary Entry"}
+              </h4>
               {folder && (
-                <span 
+                <span
                   className="inline-block px-2 py-1 text-xs font-medium rounded-full text-white"
                   style={{ backgroundColor: folder.color }}
                 >
@@ -400,7 +478,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               </p>
             )}
             <p className="text-sm text-gray-300 mt-2">
-              {entry.content.length > 150 ? `${entry.content.substring(0, 150)}...` : entry.content}
+              {entry.content.length > 150
+                ? `${entry.content.substring(0, 150)}...`
+                : entry.content}
             </p>
           </div>
         </div>
@@ -410,15 +490,33 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   const days = getDaysInMonth(currentDate);
   const monthNames = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   const selectedDayItems = getItemsForDate(selectedDayDate);
 
   // Tab component
-  const TabButton = ({ id, label, icon: Icon }: { id: "day" | "month", label: string, icon: any }) => (
+  const TabButton = ({
+    id,
+    label,
+    icon: Icon,
+  }: {
+    id: "day" | "month";
+    label: string;
+    icon: any;
+  }) => (
     <button
       onClick={() => setActiveTab(id)}
       className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -450,7 +548,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => navigateDay('prev')}
+                onClick={() => navigateDay("prev")}
                 className="p-3 hover:bg-gray-700 rounded-full transition-colors"
                 title="Previous day"
               >
@@ -469,14 +567,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 </p>
               </div>
               <button
-                onClick={() => navigateDay('next')}
+                onClick={() => navigateDay("next")}
                 className="p-3 hover:bg-gray-700 rounded-full transition-colors"
                 title="Next day"
               >
                 <ChevronRight className="w-6 h-6 text-gray-300" />
               </button>
             </div>
-            
+
             <button
               onClick={() => setSelectedDayDate(new Date())}
               className="flex items-center space-x-2 px-4 py-2 bg-gray-700 text-gray-300 shadow-sm rounded-md text-sm transition-colors font-medium hover:text-white hover:bg-gray-600"
@@ -492,7 +590,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               <>
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-semibold text-white">
-                    {selectedDayItems.length} item{selectedDayItems.length !== 1 ? 's' : ''} scheduled
+                    {selectedDayItems.length} item
+                    {selectedDayItems.length !== 1 ? "s" : ""} scheduled
                   </h2>
                   <div className="flex items-center space-x-3 text-sm text-gray-400">
                     <div className="flex items-center space-x-1">
@@ -509,20 +608,28 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="space-y-4 max-h-[calc(100vh-300px)] overflow-y-auto">
                   {selectedDayItems
                     .sort((a, b) => {
                       // Sort by time if available, then by type priority
-                      const aTime = a.type === "task" ? (a.item as Task).due_date : 
-                                   a.type === "diary" ? (a.item as DiaryEntry).scheduled_date :
-                                   (a.item as Quest).created_at;
-                      const bTime = b.type === "task" ? (b.item as Task).due_date : 
-                                   b.type === "diary" ? (b.item as DiaryEntry).scheduled_date :
-                                   (b.item as Quest).created_at;
-                      
+                      const aTime =
+                        a.type === "task"
+                          ? (a.item as Task).due_date
+                          : a.type === "diary"
+                          ? (a.item as DiaryEntry).scheduled_date
+                          : (a.item as Quest).created_at;
+                      const bTime =
+                        b.type === "task"
+                          ? (b.item as Task).due_date
+                          : b.type === "diary"
+                          ? (b.item as DiaryEntry).scheduled_date
+                          : (b.item as Quest).created_at;
+
                       if (aTime && bTime) {
-                        return new Date(aTime).getTime() - new Date(bTime).getTime();
+                        return (
+                          new Date(aTime).getTime() - new Date(bTime).getTime()
+                        );
                       }
                       return 0;
                     })
@@ -532,12 +639,15 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             ) : (
               <div className="text-center py-16">
                 <CalendarIcon className="w-16 h-16 text-gray-500 mx-auto mb-6" />
-                <h2 className="text-xl font-semibold text-white mb-3">No items scheduled</h2>
+                <h2 className="text-xl font-semibold text-white mb-3">
+                  No items scheduled
+                </h2>
                 <p className="text-gray-400 text-lg">
-                  {selectedDayDate.toDateString() === new Date().toDateString() 
+                  {isSameDate(selectedDayDate, new Date())
                     ? "No tasks, diary entries, or quests scheduled for today"
-                    : `No items scheduled for ${getFormattedDate(selectedDayDate).toLowerCase()}`
-                  }
+                    : `No items scheduled for ${getFormattedDate(
+                        selectedDayDate
+                      ).toLowerCase()}`}
                 </p>
               </div>
             )}
@@ -552,7 +662,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               <button
                 onClick={() =>
                   setCurrentDate(
-                    new Date(currentDate.getFullYear(), currentDate.getMonth() - 1)
+                    new Date(
+                      currentDate.getFullYear(),
+                      currentDate.getMonth() - 1
+                    )
                   )
                 }
                 className="p-2 hover:bg-gray-700 rounded text-gray-300"
@@ -565,7 +678,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               <button
                 onClick={() =>
                   setCurrentDate(
-                    new Date(currentDate.getFullYear(), currentDate.getMonth() + 1)
+                    new Date(
+                      currentDate.getFullYear(),
+                      currentDate.getMonth() + 1
+                    )
                   )
                 }
                 className="p-2 hover:bg-gray-700 rounded text-gray-300"
@@ -616,17 +732,19 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             <div className="grid grid-cols-7 gap-0">
               {days.map((day, index) => {
                 const itemsForDay = day ? getItemsForDate(day) : [];
-                const isToday =
-                  day && day.toDateString() === new Date().toDateString();
-                const isSelected =
-                  day && day.toDateString() === selectedDayDate.toDateString();
+                const isToday = day && isSameDate(day, new Date());
+                const isSelected = day && isSameDate(day, selectedDayDate);
 
                 return (
                   <div
                     key={index}
                     className={`min-h-[120px] p-2 border-r border-b border-gray-600 last:border-r-0 cursor-pointer transition-colors ${
                       day ? "bg-gray-800 hover:bg-gray-700" : "bg-gray-700"
-                    } ${isToday ? "bg-blue-900/20" : ""} ${isSelected ? "bg-yellow-900/20 ring-2 ring-yellow-600" : ""}`}
+                    } ${isToday ? "bg-blue-900/20" : ""} ${
+                      isSelected
+                        ? "bg-yellow-900/20 ring-2 ring-yellow-600"
+                        : ""
+                    }`}
                     onClick={() => {
                       if (day) {
                         setSelectedDayDate(day);
@@ -638,8 +756,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       <>
                         <div
                           className={`text-sm font-medium mb-2 ${
-                            isToday ? "text-blue-300" : 
-                            isSelected ? "text-yellow-300" : "text-white"
+                            isToday
+                              ? "text-blue-300"
+                              : isSelected
+                              ? "text-yellow-300"
+                              : "text-white"
                           }`}
                         >
                           {day.getDate()}
@@ -662,7 +783,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                                     onClick={(e) => handleTaskClick(task, e)}
                                   >
                                     <Clock className="w-3 h-3 flex-shrink-0" />
-                                    <span className="truncate">{task.title}</span>
+                                    <span className="truncate">
+                                      {task.title}
+                                    </span>
                                   </div>
                                 );
                               } else if (calendarItem.type === "quest") {
@@ -675,7 +798,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                                     onClick={(e) => handleQuestClick(quest, e)}
                                   >
                                     <Scroll className="w-3 h-3 flex-shrink-0" />
-                                    <span className="truncate">{quest.title}</span>
+                                    <span className="truncate">
+                                      {quest.title}
+                                    </span>
                                   </div>
                                 );
                               } else {
@@ -684,7 +809,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                                   <div
                                     key={`diary-${entry.id}`}
                                     className="text-xs p-1 rounded truncate flex items-center space-x-1 bg-purple-900/30 text-purple-300 hover:bg-purple-900/50 cursor-pointer"
-                                    title={`Diary: ${entry.title || "Untitled"}`}
+                                    title={`Diary: ${
+                                      entry.title || "Untitled"
+                                    }`}
                                     onClick={(e) => handleDiaryClick(entry, e)}
                                   >
                                     <BookOpen className="w-3 h-3 flex-shrink-0" />
@@ -772,7 +899,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   <span className="font-medium text-green-400">
                     {
                       tasks.filter((task) => {
-                        if (!task.due_date || task.status !== "completed" || task.parent_task_id) return false; // Exclude subtasks
+                        if (
+                          !task.due_date ||
+                          task.status !== "completed" ||
+                          task.parent_task_id
+                        )
+                          return false; // Exclude subtasks
                         const taskDate = new Date(task.due_date);
                         return (
                           taskDate.getMonth() === currentDate.getMonth() &&
@@ -843,7 +975,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   <span className="font-medium text-red-400">
                     {
                       tasks.filter((task) => {
-                        if (!task.due_date || task.status === "completed" || task.parent_task_id) return false; // Exclude subtasks
+                        if (
+                          !task.due_date ||
+                          task.status === "completed" ||
+                          task.parent_task_id
+                        )
+                          return false; // Exclude subtasks
                         const taskDate = new Date(task.due_date);
                         const today = new Date();
                         today.setHours(0, 0, 0, 0);

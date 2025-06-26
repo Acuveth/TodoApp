@@ -1,3 +1,5 @@
+// Fixed frontend/src/App.tsx - Folder filtering bug fix
+
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Calendar as CalendarIcon,
@@ -12,14 +14,17 @@ import {
 } from "lucide-react";
 
 // Component imports
-import {
-  Modal,
-  CalendarView,
-  FeedView,
-} from "./components";
+import { Modal, CalendarView, FeedView } from "./components";
 
 // Type and API imports
-import { Task, FolderType, DiaryEntry, Quest, NewTask, NewFolder } from "./types";
+import {
+  Task,
+  FolderType,
+  DiaryEntry,
+  Quest,
+  NewTask,
+  NewFolder,
+} from "./types";
 import { api } from "./utils";
 
 // Folder Management Modal Component
@@ -30,13 +35,22 @@ const FolderManagementModal: React.FC<{
   onCreateFolder: (folder: NewFolder) => Promise<void>;
   onUpdateFolder: (id: number, folder: Partial<NewFolder>) => Promise<void>;
   onDeleteFolder: (id: number) => Promise<void>;
-}> = ({ isOpen, onClose, folders, onCreateFolder, onUpdateFolder, onDeleteFolder }) => {
+}> = ({
+  isOpen,
+  onClose,
+  folders,
+  onCreateFolder,
+  onUpdateFolder,
+  onDeleteFolder,
+}) => {
   const [newFolder, setNewFolder] = useState<NewFolder>({
     name: "",
     color: "#3B82F6",
   });
   const [editingFolder, setEditingFolder] = useState<FolderType | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(
+    null
+  );
 
   const handleCreateFolder = async () => {
     if (newFolder.name.trim() && newFolder.name.length <= 16) {
@@ -50,7 +64,11 @@ const FolderManagementModal: React.FC<{
   };
 
   const handleUpdateFolder = async () => {
-    if (editingFolder && editingFolder.name.trim() && editingFolder.name.length <= 16) {
+    if (
+      editingFolder &&
+      editingFolder.name.trim() &&
+      editingFolder.name.length <= 16
+    ) {
       try {
         await onUpdateFolder(editingFolder.id, {
           name: editingFolder.name,
@@ -108,7 +126,7 @@ const FolderManagementModal: React.FC<{
                     value={newFolder.name}
                     onChange={(e) => {
                       const value = e.target.value.slice(0, 16); // Limit to 12 characters
-                      setNewFolder(prev => ({ ...prev, name: value }));
+                      setNewFolder((prev) => ({ ...prev, name: value }));
                     }}
                     className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-2"
                     maxLength={12}
@@ -120,12 +138,16 @@ const FolderManagementModal: React.FC<{
                 <input
                   type="color"
                   value={newFolder.color}
-                  onChange={(e) => setNewFolder(prev => ({ ...prev, color: e.target.value }))}
+                  onChange={(e) =>
+                    setNewFolder((prev) => ({ ...prev, color: e.target.value }))
+                  }
                   className="w-full border border-gray-600 bg-gray-700 rounded-md px-3 py-2 h-10"
                 />
                 <button
                   onClick={handleCreateFolder}
-                  disabled={!newFolder.name.trim() || newFolder.name.length > 16}
+                  disabled={
+                    !newFolder.name.trim() || newFolder.name.length > 16
+                  }
                   className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Create Folder
@@ -135,7 +157,9 @@ const FolderManagementModal: React.FC<{
 
             {/* Existing Folders */}
             <div className="space-y-4">
-              <h4 className="font-medium text-white">Existing Folders ({folders.length})</h4>
+              <h4 className="font-medium text-white">
+                Existing Folders ({folders.length})
+              </h4>
               <div className="max-h-60 overflow-y-auto space-y-2">
                 {folders.map((folder) => (
                   <div
@@ -150,7 +174,9 @@ const FolderManagementModal: React.FC<{
                           value={editingFolder.name}
                           onChange={(e) => {
                             const value = e.target.value.slice(0, 16);
-                            setEditingFolder(prev => prev ? { ...prev, name: value } : null);
+                            setEditingFolder((prev) =>
+                              prev ? { ...prev, name: value } : null
+                            );
                           }}
                           className="flex-1 border border-gray-600 bg-gray-700 text-white rounded-md px-2 py-1 text-sm"
                           maxLength={12}
@@ -158,12 +184,19 @@ const FolderManagementModal: React.FC<{
                         <input
                           type="color"
                           value={editingFolder.color}
-                          onChange={(e) => setEditingFolder(prev => prev ? { ...prev, color: e.target.value } : null)}
+                          onChange={(e) =>
+                            setEditingFolder((prev) =>
+                              prev ? { ...prev, color: e.target.value } : null
+                            )
+                          }
                           className="w-8 h-8 border border-gray-600 rounded"
                         />
                         <button
                           onClick={handleUpdateFolder}
-                          disabled={!editingFolder.name.trim() || editingFolder.name.length > 16}
+                          disabled={
+                            !editingFolder.name.trim() ||
+                            editingFolder.name.length > 16
+                          }
                           className="p-1 text-green-400 hover:text-green-300 disabled:opacity-50"
                         >
                           <Save className="w-4 h-4" />
@@ -183,7 +216,9 @@ const FolderManagementModal: React.FC<{
                             className="w-4 h-4 rounded"
                             style={{ backgroundColor: folder.color }}
                           />
-                          <span className="font-medium text-white">{folder.name}</span>
+                          <span className="font-medium text-white">
+                            {folder.name}
+                          </span>
                           <span className="text-xs text-gray-400">
                             ({folder.name.length}/12)
                           </span>
@@ -209,7 +244,9 @@ const FolderManagementModal: React.FC<{
                   </div>
                 ))}
                 {folders.length === 0 && (
-                  <p className="text-gray-400 text-center py-4">No folders created yet</p>
+                  <p className="text-gray-400 text-center py-4">
+                    No folders created yet
+                  </p>
                 )}
               </div>
             </div>
@@ -230,7 +267,10 @@ const FolderManagementModal: React.FC<{
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-60 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
-            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+            <div
+              className="fixed inset-0 transition-opacity"
+              aria-hidden="true"
+            >
               <div
                 className="absolute inset-0 bg-black opacity-75"
                 onClick={() => setShowDeleteConfirm(null)}
@@ -248,7 +288,9 @@ const FolderManagementModal: React.FC<{
                     </h3>
                     <div className="mt-2">
                       <p className="text-sm text-gray-400">
-                        Are you sure you want to delete this folder? Tasks and diary entries in this folder will be moved to "No Folder".
+                        Are you sure you want to delete this folder? Tasks and
+                        diary entries in this folder will be moved to "No
+                        Folder".
                       </p>
                     </div>
                   </div>
@@ -289,7 +331,8 @@ function TodoApp() {
   const [loading, setLoading] = useState(false);
   const [backendStatus, setBackendStatus] = useState("checking");
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
-  const [showFolderManagementModal, setShowFolderManagementModal] = useState(false);
+  const [showFolderManagementModal, setShowFolderManagementModal] =
+    useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   // Form states
@@ -309,32 +352,39 @@ function TodoApp() {
     }
   }, []);
 
-  // Load all data for feed view
+  // FIXED: Load all data for feed view - don't filter by folder in API call
   const loadAllData = useCallback(async () => {
     setLoading(true);
     try {
+      // IMPORTANT: Always load ALL data, filter in frontend
       const [tasksData, entriesData, questsData] = await Promise.all([
-        api.getTasks(selectedFolder?.id || null),
-        api.getDiaryEntries(undefined, selectedFolder?.id || undefined),
-        api.getQuests(selectedFolder?.id || null),
+        api.getTasks(null), // Pass null to get ALL tasks
+        api.getDiaryEntries(undefined, undefined), // Get ALL diary entries
+        api.getQuests(null), // Get ALL quests
       ]);
-      
+
       // Ensure all data has proper typing and folder references
-      const processedTasks = Array.isArray(tasksData) ? tasksData.map(task => ({
-        ...task,
-        folder_id: task.folder_id || null // Ensure folder_id is always present
-      })) : [];
-      
-      const processedEntries = Array.isArray(entriesData) ? entriesData.map(entry => ({
-        ...entry,
-        folder_id: entry.folder_id || null
-      })) : [];
-      
-      const processedQuests = Array.isArray(questsData) ? questsData.map(quest => ({
-        ...quest,
-        folder_id: quest.folder_id || null
-      })) : [];
-      
+      const processedTasks = Array.isArray(tasksData)
+        ? tasksData.map((task) => ({
+            ...task,
+            folder_id: task.folder_id || null, // Ensure folder_id is always present
+          }))
+        : [];
+
+      const processedEntries = Array.isArray(entriesData)
+        ? entriesData.map((entry) => ({
+            ...entry,
+            folder_id: entry.folder_id || null,
+          }))
+        : [];
+
+      const processedQuests = Array.isArray(questsData)
+        ? questsData.map((quest) => ({
+            ...quest,
+            folder_id: quest.folder_id || null,
+          }))
+        : [];
+
       setTasks(processedTasks);
       setDiaryEntries(processedEntries);
       setQuests(processedQuests);
@@ -347,7 +397,7 @@ function TodoApp() {
     } finally {
       setLoading(false);
     }
-  }, [selectedFolder?.id]);
+  }, []); // Remove selectedFolder dependency
 
   // Initial connection and data loading
   useEffect(() => {
@@ -371,14 +421,7 @@ function TodoApp() {
         loadAllData();
       });
     }
-  }, [
-    currentView,
-    selectedFolder,
-    selectedDate,
-    backendStatus,
-    loadFolders,
-    loadAllData,
-  ]);
+  }, [currentView, selectedDate, backendStatus, loadFolders, loadAllData]); // Remove selectedFolder dependency
 
   // Folder handlers with character limit
   const handleFolderNameChange = useCallback((value: string) => {
@@ -395,30 +438,38 @@ function TodoApp() {
     try {
       const dataToUse = folderData || newFolder;
       if (!dataToUse.name.trim() || dataToUse.name.length > 12) {
-        console.error("Folder name is required and must be 12 characters or less");
+        console.error(
+          "Folder name is required and must be 12 characters or less"
+        );
         return;
       }
-      
+
       await api.createFolder(dataToUse);
-      
+
       if (!folderData) {
         setNewFolder({ name: "", color: "#3B82F6" });
         setShowNewFolderModal(false);
       }
-      
+
       loadFolders();
     } catch (error) {
       console.error("Error creating folder:", error);
     }
   };
 
-  const handleUpdateFolder = async (id: number, updates: Partial<NewFolder>) => {
+  const handleUpdateFolder = async (
+    id: number,
+    updates: Partial<NewFolder>
+  ) => {
     try {
-      if (updates.name && (updates.name.length === 0 || updates.name.length > 12)) {
+      if (
+        updates.name &&
+        (updates.name.length === 0 || updates.name.length > 12)
+      ) {
         console.error("Folder name must be between 1 and 12 characters");
         return;
       }
-      
+
       await api.updateFolder(id, updates);
       loadFolders();
     } catch (error) {
@@ -429,12 +480,12 @@ function TodoApp() {
   const handleDeleteFolder = async (id: number) => {
     try {
       await api.deleteFolder(id);
-      
+
       // If the deleted folder was selected, reset to "All"
       if (selectedFolder?.id === id) {
         setSelectedFolder(null);
       }
-      
+
       loadFolders();
       loadAllData();
     } catch (error) {
@@ -563,7 +614,11 @@ function TodoApp() {
     }
   };
 
-  const handleUpdateQuestParagraph = async (questId: number, paragraphId: number, content: string) => {
+  const handleUpdateQuestParagraph = async (
+    questId: number,
+    paragraphId: number,
+    content: string
+  ) => {
     try {
       await api.updateQuestParagraph(questId, paragraphId, { content });
       loadAllData();
@@ -572,7 +627,10 @@ function TodoApp() {
     }
   };
 
-  const handleDeleteQuestParagraph = async (questId: number, paragraphId: number) => {
+  const handleDeleteQuestParagraph = async (
+    questId: number,
+    paragraphId: number
+  ) => {
     try {
       await api.deleteQuestParagraph(questId, paragraphId);
       loadAllData();
@@ -868,6 +926,31 @@ function TodoApp() {
     return null;
   };
 
+  // FIXED: Filter data in frontend based on selected folder
+  const getFilteredData = () => {
+    if (!selectedFolder) {
+      // Return all data when no folder is selected
+      return { tasks, diaryEntries, quests };
+    }
+
+    // Filter data by selected folder
+    const filteredTasks = tasks.filter(
+      (task) => task.folder_id === selectedFolder.id
+    );
+    const filteredDiaryEntries = diaryEntries.filter(
+      (entry) => (entry as any).folder_id === selectedFolder.id
+    );
+    const filteredQuests = quests.filter(
+      (quest) => quest.folder_id === selectedFolder.id
+    );
+
+    return {
+      tasks: filteredTasks,
+      diaryEntries: filteredDiaryEntries,
+      quests: filteredQuests,
+    };
+  };
+
   // Sidebar component
   const Sidebar = () => (
     <div className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col h-full">
@@ -957,13 +1040,15 @@ function TodoApp() {
 
   // Render different views
   const renderCurrentView = () => {
+    const filteredData = getFilteredData();
+
     switch (currentView) {
       case "feed":
         return (
           <FeedView
-            tasks={tasks}
-            diaryEntries={diaryEntries}
-            quests={quests}
+            tasks={filteredData.tasks}
+            diaryEntries={filteredData.diaryEntries}
+            quests={filteredData.quests}
             folders={folders}
             loading={loading}
             onCreateTask={handleCreateTask}
@@ -987,10 +1072,10 @@ function TodoApp() {
         );
       case "calendar":
         return (
-          <CalendarView 
-            tasks={tasks} 
-            diaryEntries={diaryEntries}
-            quests={quests}
+          <CalendarView
+            tasks={filteredData.tasks}
+            diaryEntries={filteredData.diaryEntries}
+            quests={filteredData.quests}
             folders={folders}
             onToggleTaskStatus={toggleTaskStatus}
             onEditTask={(task: Task) => {
@@ -998,7 +1083,9 @@ function TodoApp() {
               console.log("Edit task:", task);
             }}
             onScheduleTask={handleUpdateTask}
-            onUpdateTaskFolder={(taskId: number, folderId: number | null) => handleUpdateTask(taskId, { folder_id: folderId })}
+            onUpdateTaskFolder={(taskId: number, folderId: number | null) =>
+              handleUpdateTask(taskId, { folder_id: folderId })
+            }
             onDeleteTask={handleDeleteTask}
             onCreateSubtask={handleCreateSubtask}
             onEditDiary={(entry: DiaryEntry) => {
@@ -1012,16 +1099,18 @@ function TodoApp() {
               // Handle quest editing from calendar
               console.log("Edit quest:", quest);
             }}
-            onUpdateQuestFolder={(questId: number, folderId: number | null) => handleUpdateQuest(questId, { folder_id: folderId })}
+            onUpdateQuestFolder={(questId: number, folderId: number | null) =>
+              handleUpdateQuest(questId, { folder_id: folderId })
+            }
             onDeleteQuest={handleDeleteQuest}
           />
         );
       default:
         return (
           <FeedView
-            tasks={tasks}
-            diaryEntries={diaryEntries}
-            quests={quests}
+            tasks={filteredData.tasks}
+            diaryEntries={filteredData.diaryEntries}
+            quests={filteredData.quests}
             folders={folders}
             loading={loading}
             onCreateTask={handleCreateTask}

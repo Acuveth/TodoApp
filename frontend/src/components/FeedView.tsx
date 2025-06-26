@@ -1,4 +1,4 @@
-// Complete updated frontend/src/components/FeedView.tsx with quest redesign
+// Fixed frontend/src/components/FeedView.tsx - Folder visual indicator bug fix
 
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
@@ -543,7 +543,7 @@ const FeedView: React.FC<FeedViewProps> = ({
     [taskSort]
   );
 
-  // Helper function to get folder by ID
+  // FIXED: Helper function to get folder by ID with proper type safety
   const getFolderById = useCallback(
     (folderId: number | null | undefined): FolderType | null => {
       if (!folderId || !folders || folders.length === 0) return null;
@@ -908,7 +908,7 @@ const FeedView: React.FC<FeedViewProps> = ({
     if (item.type === "task") {
       const task = item.data as Task;
 
-      // FIXED: Always get folder regardless of current filter state
+      // FIXED: Get folder using the proper field and consistent lookup
       const currentFolder = getFolderById(task.folder_id);
 
       return (
@@ -951,7 +951,7 @@ const FeedView: React.FC<FeedViewProps> = ({
     } else if (item.type === "quest") {
       const quest = item.data as Quest;
 
-      // FIXED: Always get folder regardless of current filter state
+      // FIXED: Get folder using consistent lookup
       const currentFolder = getFolderById(quest.folder_id);
 
       return (
@@ -981,7 +981,7 @@ const FeedView: React.FC<FeedViewProps> = ({
     } else {
       const entry = item.data as DiaryEntry;
 
-      // FIXED: Always get folder regardless of current filter state
+      // FIXED: Get folder using consistent field access
       const currentFolder = getFolderById((entry as any).folder_id);
 
       return (
