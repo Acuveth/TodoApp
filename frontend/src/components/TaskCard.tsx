@@ -727,10 +727,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
     return allTasks.find((t) => t.id === taskId);
   };
 
-  // FIXED: Get current folder using SAME PATTERN as diary entries
+  // FIXED: Get current folder using consistent lookup function
   const getCurrentFolder = (): FolderType | null => {
-    if (!folders || folders.length === 0) return null;
-    // Use direct property access since folder_id is now properly typed
+    if (!folders || folders.length === 0 || !task.folder_id) return null;
     return folders.find((folder) => folder.id === task.folder_id) || null;
   };
 
@@ -965,33 +964,32 @@ const TaskCard: React.FC<TaskCardProps> = ({
     marginLeft: `${task.indent_level * 24}px`,
   };
 
+  // FIXED: Always get the current folder for this task
   const currentFolder = getCurrentFolder();
-
 
   return (
     <div
       className="rounded-lg transition-all duration-200"
       style={indentStyle}
     >
-       
       <div className="px-4">
         <div className="flex items-center space-x-2 py-4">
           <AlarmClockCheck className="w-4 h-4 text-sky-600" />
           <span className="text-sm font-medium text-sky-600">
             Task Entry
           </span>
-          {/* FIXED: Folder indicator using SAME PATTERN as diary entries */}
+          {/* FIXED: Always show folder indicator if task has folder */}
           {currentFolder && (
-          <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-200">
-            <div
-              className="w-3 h-3 rounded-full border border-white shadow-sm"
-              style={{ backgroundColor: currentFolder.color }}
-            />
-            <span className="text-xs text-gray-700 font-medium">
-              {currentFolder.name}
-            </span>
-          </div>
-        )}
+            <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-200">
+              <div
+                className="w-3 h-3 rounded-full border border-white shadow-sm"
+                style={{ backgroundColor: currentFolder.color }}
+              />
+              <span className="text-xs text-gray-700 font-medium">
+                {currentFolder.name}
+              </span>
+            </div>
+          )}
         </div>
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-3 flex-1">

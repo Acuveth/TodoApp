@@ -1,4 +1,4 @@
-// Fixed frontend/src/components/FeedView.tsx - Using Same Folder Pattern for Tasks as Diaries
+// Fixed frontend/src/components/FeedView.tsx - Always Show Folder Visual Indicators
 
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
@@ -511,6 +511,12 @@ const FeedView: React.FC<FeedViewProps> = ({
     });
   }, [taskSort]);
 
+  // Helper function to get folder by ID
+  const getFolderById = useCallback((folderId: number | null | undefined): FolderType | null => {
+    if (!folderId || !folders || folders.length === 0) return null;
+    return folders.find(folder => folder.id === folderId) || null;
+  }, [folders]);
+
   // Combine and sort items by creation time
   const createFeedItems = useCallback((): FeedItem[] => {
     const feedItems: FeedItem[] = [];
@@ -880,9 +886,7 @@ const FeedView: React.FC<FeedViewProps> = ({
       const task = item.data as Task;
       
       // FIXED: Always get folder regardless of current filter state
-      const currentFolder = folders.find(
-        (folder) => folder.id === task.folder_id
-      );
+      const currentFolder = getFolderById(task.folder_id);
   
       return (
         <div key={item.id} className="space-y-2">
@@ -949,9 +953,7 @@ const FeedView: React.FC<FeedViewProps> = ({
       const quest = item.data as Quest;
       
       // FIXED: Always get folder regardless of current filter state
-      const currentFolder = folders.find(
-        (folder) => folder.id === quest.folder_id
-      );
+      const currentFolder = getFolderById(quest.folder_id);
   
       return (
         <div key={item.id} className="space-y-2">
@@ -1008,118 +1010,132 @@ const FeedView: React.FC<FeedViewProps> = ({
       const entry = item.data as DiaryEntry;
       
       // FIXED: Always get folder regardless of current filter state
-      const currentFolder = folders.find(
-        (folder) => folder.id === (entry as any).folder_id
-      );
+      const currentFolder = getFolderById((entry as any).folder_id);
   
       return (
-        <div
-          key={item.id}
-          className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all cursor-pointer"
-          style={currentFolder ? {
-            borderLeft: `4px solid ${currentFolder.color}`,
-            backgroundColor: `${currentFolder.color}08`,
-          } : {}}
-          onClick={() => handleViewDiary(entry)}
-        >
-          <div className="p-4">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center space-x-2">
-                    <BookOpen className="w-4 h-4 text-purple-500" />
-                    <span className="text-sm font-medium text-purple-700">
-                      Diary Entry
-                    </span>
-                    {/* FIXED: Always show folder indicator if entry has folder */}
-                    {currentFolder && (
-                      <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-200">
-                        <div
-                          className="w-3 h-3 rounded-full border border-white shadow-sm"
-                          style={{ backgroundColor: currentFolder.color }}
-                        />
-                        <span className="text-xs text-gray-700 font-medium">
-                          {currentFolder.name}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-  
-                  {/* Schedule indicator and action dropdown in top right */}
-                  <div className="flex items-center space-x-2">
-                    {/* Scheduling indicator */}
-                    {entry.is_scheduled && entry.scheduled_date && (
-                      <div className="flex items-center space-x-1 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full">
-                        <Clock className="w-3 h-3" />
-                        <span>{formatScheduledTime(entry.scheduled_date)}</span>
-                      </div>
-                    )}
-  
-                    {/* Action dropdown */}
-                    <div className="relative action-dropdown-container">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowActionDropdown(
-                            showActionDropdown === item.id ? null : item.id
-                          );
-                        }}
-                        className="p-1 text-gray-400 hover:text-gray-600 rounded"
-                        title="More actions"
-                      >
-                        <MoreVertical className="w-5 h-5" />
-                      </button>
-  
-                      {showActionDropdown === item.id && (
-                        <DiaryActionDropdown
-                          isOpen={true}
-                          onClose={() => setShowActionDropdown(null)}
-                          onEdit={() => handleEditDiary(entry)}
-                          onSchedule={() => handleScheduleEntry(entry)}
-                          onFolderSelect={(folderId) => handleFolderSelect(item.id, folderId)}
-                          onDelete={() => onDeleteDiaryEntry(entry.id)}
-                          isScheduled={entry.is_scheduled}
-                          folders={folders}
-                          currentFolderId={(entry as any).folder_id || null}
-                        />
+        <div key={item.id} className="space-y-2">
+          {/* Feed context header - ALWAYS show if entry has folder */}
+          <div className="flex items-center justify-between text-xs text-gray-500 px-1">
+            <div className="flex items-center space-x-2">
+              {/* FIXED: Always show folder indicator if entry has folder */}
+              {currentFolder && (
+                <div className="flex items-center space-x-1">
+                  <div
+                    className="w-3 h-3 rounded"
+                    style={{ backgroundColor: currentFolder.color }}
+                  />
+                  <span className="text-xs text-gray-600 font-medium">
+                    {currentFolder.name}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center space-x-1">
+              <Clock className="w-3 h-3" />
+              <span>
+                {new Date(entry.created_at).toLocaleDateString()}{" "}
+                {new Date(entry.created_at).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
+          </div>
+
+          <div
+            className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all cursor-pointer"
+            style={currentFolder ? {
+              borderLeft: `4px solid ${currentFolder.color}`,
+              backgroundColor: `${currentFolder.color}08`,
+            } : {}}
+            onClick={() => handleViewDiary(entry)}
+          >
+            <div className="p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <BookOpen className="w-4 h-4 text-purple-500" />
+                      <span className="text-sm font-medium text-purple-700">
+                        Diary Entry
+                      </span>
+                      {/* FIXED: Always show folder indicator if entry has folder */}
+                      {currentFolder && (
+                        <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-200">
+                          <div
+                            className="w-3 h-3 rounded-full border border-white shadow-sm"
+                            style={{ backgroundColor: currentFolder.color }}
+                          />
+                          <span className="text-xs text-gray-700 font-medium">
+                            {currentFolder.name}
+                          </span>
+                        </div>
                       )}
                     </div>
+    
+                    {/* Schedule indicator and action dropdown in top right */}
+                    <div className="flex items-center space-x-2">
+                      {/* Scheduling indicator */}
+                      {entry.is_scheduled && entry.scheduled_date && (
+                        <div className="flex items-center space-x-1 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full">
+                          <Clock className="w-3 h-3" />
+                          <span>{formatScheduledTime(entry.scheduled_date)}</span>
+                        </div>
+                      )}
+    
+                      {/* Action dropdown */}
+                      <div className="relative action-dropdown-container">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowActionDropdown(
+                              showActionDropdown === item.id ? null : item.id
+                            );
+                          }}
+                          className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                          title="More actions"
+                        >
+                          <MoreVertical className="w-5 h-5" />
+                        </button>
+    
+                        {showActionDropdown === item.id && (
+                          <DiaryActionDropdown
+                            isOpen={true}
+                            onClose={() => setShowActionDropdown(null)}
+                            onEdit={() => handleEditDiary(entry)}
+                            onSchedule={() => handleScheduleEntry(entry)}
+                            onFolderSelect={(folderId) => handleFolderSelect(item.id, folderId)}
+                            onDelete={() => onDeleteDiaryEntry(entry.id)}
+                            isScheduled={entry.is_scheduled}
+                            folders={folders}
+                            currentFolderId={(entry as any).folder_id || null}
+                          />
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-  
-                {entry.title && (
-                  <h3 className="font-medium text-lg text-gray-900 mb-2">
-                    {entry.title}
-                  </h3>
-                )}
-  
-                <div className="text-gray-600 mb-2">
-                  {isExpanded ? (
-                    <div
-                      className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{
-                        __html: formatContent(entry.content),
-                      }}
-                    />
-                  ) : (
-                    <p className="line-clamp-3">
-                      {entry.content.length > 200
-                        ? `${entry.content.substring(0, 200)}...`
-                        : entry.content}
-                    </p>
+    
+                  {entry.title && (
+                    <h3 className="font-medium text-lg text-gray-900 mb-2">
+                      {entry.title}
+                    </h3>
                   )}
-                </div>
-  
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-1 text-xs text-gray-500">
-                    <Clock className="w-3 h-3" />
-                    <span>
-                      {new Date(entry.created_at).toLocaleDateString()}{" "}
-                      {new Date(entry.created_at).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
+    
+                  <div className="text-gray-600 mb-2">
+                    {isExpanded ? (
+                      <div
+                        className="prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={{
+                          __html: formatContent(entry.content),
+                        }}
+                      />
+                    ) : (
+                      <p className="line-clamp-3">
+                        {entry.content.length > 200
+                          ? `${entry.content.substring(0, 200)}...`
+                          : entry.content}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
