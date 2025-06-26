@@ -663,6 +663,9 @@ const FeedView: React.FC<FeedViewProps> = ({
     setNewTask((prev) => ({ ...prev, is_calendar_event: value }));
   }, []);
 
+
+
+  
   const handleCreateTask = async () => {
     try {
       const taskData = {
@@ -867,32 +870,33 @@ const FeedView: React.FC<FeedViewProps> = ({
 
   // Enhanced folder helpers with visual styling
   const getCurrentFolder = (item: FeedItem): FolderType | null => {
+    if (!item || !folders) return null;
+    
+    let folderId: number | null = null;
+    
     if (item.type === "diary") {
       const entry = item.data as DiaryEntry;
-      return folders.find((folder) => folder.id === (entry as any).folder_id) || null;
+      folderId = (entry as any).folder_id || null;
     } else if (item.type === "task") {
       const task = item.data as Task;
-      return folders.find((folder) => folder.id === (task as any).folder_id) || null;
+      folderId = (task as any).folder_id || null;
     } else if (item.type === "quest") {
       const quest = item.data as Quest;
-      return folders.find((folder) => folder.id === quest.folder_id) || null;
+      folderId = quest.folder_id || null;
     }
-    return null;
+    
+    if (!folderId) return null;
+    
+    return folders.find((folder) => folder.id === folderId) || null;
   };
 
   // Get folder-specific styling
   const getFolderStyling = (folder: FolderType | null) => {
-    if (!folder) return { backgroundColor: 'transparent', borderColor: 'transparent' };
-    
-    // Create a lighter version of the folder color for background
-    const color = folder.color;
-    const rgb = hexToRgb(color);
-    if (!rgb) return { backgroundColor: 'transparent', borderColor: color };
+    if (!folder) return {};
     
     return {
-      borderLeftColor: color,
-      borderLeftWidth: '4px',
-      borderLeftStyle: 'solid' as const,
+      borderLeft: `4px solid ${folder.color}`,
+      backgroundColor: `${folder.color}08`, // Add very subtle background tint
     };
   };
 
@@ -918,21 +922,49 @@ const FeedView: React.FC<FeedViewProps> = ({
     const isExpanded = expandedItems.has(item.id);
     const folder = getCurrentFolder(item);
     const folderStyling = getFolderStyling(folder);
-
+  
     if (item.type === "task") {
       const task = item.data as Task;
-
-      // Add a type indicator and timestamp above the TaskCard for feed context
+  
       return (
         <div key={item.id} className="space-y-2">
-
-
-          {/* Wrapper with folder styling */}
+          {/* Feed context header */}
+          <div className="flex items-center justify-between text-xs text-gray-500 px-1">
+            <div className="flex items-center space-x-2">
+              {/* Folder indicator for tasks */}
+              {folder && (
+                <div className="flex items-center space-x-1">
+                  <div
+                    className="w-3 h-3 rounded"
+                    style={{ backgroundColor: folder.color }}
+                  />
+                  <span className="text-xs text-gray-600 font-medium">
+                    {folder.name}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center space-x-1">
+              <Clock className="w-3 h-3" />
+              <span>
+                {new Date(task.created_at).toLocaleDateString()}{" "}
+                {new Date(task.created_at).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
+          </div>
+  
+          {/* Wrapper with folder styling - ALWAYS apply the style object */}
           <div 
             className="rounded-lg transition-all duration-200"
-            style={folderStyling}
+            style={{
+              ...folderStyling,
+              // Ensure the styling is always applied even if empty
+              ...(Object.keys(folderStyling).length === 0 ? {} : folderStyling)
+            }}
           >
-            {/* Use the full TaskCard component */}
             <TaskCard
               task={task}
               isExpanded={expandedItems.has(task.id.toString())}

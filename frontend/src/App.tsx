@@ -318,9 +318,26 @@ function TodoApp() {
         api.getDiaryEntries(undefined, selectedFolder?.id || undefined),
         api.getQuests(selectedFolder?.id || null),
       ]);
-      setTasks(Array.isArray(tasksData) ? tasksData : []);
-      setDiaryEntries(Array.isArray(entriesData) ? entriesData : []);
-      setQuests(Array.isArray(questsData) ? questsData : []);
+      
+      // Ensure all data has proper typing and folder references
+      const processedTasks = Array.isArray(tasksData) ? tasksData.map(task => ({
+        ...task,
+        folder_id: task.folder_id || null // Ensure folder_id is always present
+      })) : [];
+      
+      const processedEntries = Array.isArray(entriesData) ? entriesData.map(entry => ({
+        ...entry,
+        folder_id: entry.folder_id || null
+      })) : [];
+      
+      const processedQuests = Array.isArray(questsData) ? questsData.map(quest => ({
+        ...quest,
+        folder_id: quest.folder_id || null
+      })) : [];
+      
+      setTasks(processedTasks);
+      setDiaryEntries(processedEntries);
+      setQuests(processedQuests);
     } catch (error) {
       console.error("Error loading data:", error);
       // Set to empty arrays on error
@@ -349,13 +366,17 @@ function TodoApp() {
 
   useEffect(() => {
     if (backendStatus === "connected") {
-      loadAllData();
+      // Load folders first, then load other data
+      loadFolders().then(() => {
+        loadAllData();
+      });
     }
   }, [
     currentView,
     selectedFolder,
     selectedDate,
     backendStatus,
+    loadFolders,
     loadAllData,
   ]);
 

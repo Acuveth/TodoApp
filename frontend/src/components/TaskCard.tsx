@@ -729,8 +729,11 @@ const TaskCard: React.FC<TaskCardProps> = ({
   };
 
   // Get current folder for display
-  const getCurrentFolder = () => {
-    return folders.find((folder) => folder.id === (task as any).folder_id);
+  const getCurrentFolder = (): FolderType | null => {
+    if (!folders || folders.length === 0) return null;
+    const folderId = (task as any).folder_id;
+    if (!folderId) return null;
+    return folders.find((folder) => folder.id === folderId) || null;
   };
 
   // Calculate substep progress (traditional substeps)
@@ -979,17 +982,23 @@ const TaskCard: React.FC<TaskCardProps> = ({
                       Task Entry
            </span>
                     {/* Enhanced folder indicator */}
-                    {currentFolder && (
-                      <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-200">
-                        <div
-                          className="w-3 h-3 rounded-full border border-white shadow-sm"
-                          style={{ backgroundColor: currentFolder.color }}
-                        />
-                        <span className="text-xs text-gray-700 font-medium">
-                          {currentFolder.name}
-                        </span>
-                      </div>
-                    )}
+            {currentFolder && (
+              <div 
+                className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-200"
+                style={{ 
+                  borderColor: currentFolder.color,
+                  backgroundColor: `${currentFolder.color}15` // Subtle background tint
+                }}
+              >
+                <div
+                  className="w-3 h-3 rounded-full border border-white shadow-sm"
+                  style={{ backgroundColor: currentFolder.color }}
+                />
+                <span className="text-xs text-gray-700 font-medium">
+                  {currentFolder.name}
+                </span>
+              </div>
+            )}
           </div>
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-3 flex-1">
