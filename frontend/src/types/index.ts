@@ -11,6 +11,7 @@ export interface Task {
   indent_level: number; // Indentation level
   order_index: number; // Ordering within level
   created_at: string;
+  folder_id?: number; // ADD THIS LINE
   progress?: number; // Calculated progress from subtasks
   auto_completed?: boolean; // Auto-completed based on subtasks
   substeps?: TaskSubstep[];

@@ -199,6 +199,7 @@ class TaskResponse(BaseModel):
     indent_level: int
     order_index: int
     created_at: datetime
+    folder_id: Optional[int] = None
     
     class Config:
         from_attributes = True

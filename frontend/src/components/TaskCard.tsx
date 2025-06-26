@@ -727,12 +727,11 @@ const TaskCard: React.FC<TaskCardProps> = ({
     return allTasks.find((t) => t.id === taskId);
   };
 
-  // Get current folder for display - SAME AS DIARY PATTERN
+  // FIXED: Get current folder using SAME PATTERN as diary entries
   const getCurrentFolder = (): FolderType | null => {
     if (!folders || folders.length === 0) return null;
-    const folderId = (task as any).folder_id;
-    if (!folderId) return null;
-    return folders.find((folder) => folder.id === folderId) || null;
+    // Use direct property access since folder_id is now properly typed
+    return folders.find((folder) => folder.id === task.folder_id) || null;
   };
 
   // Calculate substep progress (traditional substeps)
@@ -968,6 +967,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
   const currentFolder = getCurrentFolder();
 
+
   return (
     <div
       className="rounded-lg transition-all duration-200"
@@ -975,24 +975,24 @@ const TaskCard: React.FC<TaskCardProps> = ({
     >
        
       <div className="px-4">
-      <div className="flex items-center space-x-2 py-4">
-      <AlarmClockCheck className="w-4 h-4 text-sky-600" />
+        <div className="flex items-center space-x-2 py-4">
+          <AlarmClockCheck className="w-4 h-4 text-sky-600" />
           <span className="text-sm font-medium text-sky-600">
-                      Task Entry
-           </span>
-                    {/* Folder indicator - SAME AS DIARY PATTERN */}
-            {currentFolder && (
-              <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-200">
-                <div
-                  className="w-3 h-3 rounded-full border border-white shadow-sm"
-                  style={{ backgroundColor: currentFolder.color }}
-                />
-                <span className="text-xs text-gray-700 font-medium">
-                  {currentFolder.name}
-                </span>
-              </div>
-            )}
+            Task Entry
+          </span>
+          {/* FIXED: Folder indicator using SAME PATTERN as diary entries */}
+          {currentFolder && (
+          <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-200">
+            <div
+              className="w-3 h-3 rounded-full border border-white shadow-sm"
+              style={{ backgroundColor: currentFolder.color }}
+            />
+            <span className="text-xs text-gray-700 font-medium">
+              {currentFolder.name}
+            </span>
           </div>
+        )}
+        </div>
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-3 flex-1">
             {getStatusIcon(task.status, () => onToggleStatus(task))}
@@ -1001,16 +1001,16 @@ const TaskCard: React.FC<TaskCardProps> = ({
               <div className="space-y-2">
                 {/* Title row */}
                 <div className="flex flex-row space-x-2">
-                <h3
-                  className={`font-medium cursor-pointer leading-relaxed ${
-                    task.status === "completed"
-                      ? "line-through text-gray-500"
-                      : "text-gray-900"
-                  } ${shouldAutoComplete ? "text-green-600" : ""}`}
-                  onClick={() => onToggleExpansion(task.id)}
-                >
-                  {task.title}
-                </h3>
+                  <h3
+                    className={`font-medium cursor-pointer leading-relaxed ${
+                      task.status === "completed"
+                        ? "line-through text-gray-500"
+                        : "text-gray-900"
+                    } ${shouldAutoComplete ? "text-green-600" : ""}`}
+                    onClick={() => onToggleExpansion(task.id)}
+                  >
+                    {task.title}
+                  </h3>
                 </div>
 
                 {/* Metadata row - priority, date/time, folder, and status indicators */}
@@ -1083,13 +1083,13 @@ const TaskCard: React.FC<TaskCardProps> = ({
               )}
             </div>
           </div>
-            {/* Show calendar icon and date/time if task has due date */}
-            {task.due_date && (
-              <div className="flex items-center space-x-1 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full mr-2">
+          {/* Show calendar icon and date/time if task has due date */}
+          {task.due_date && (
+            <div className="flex items-center space-x-1 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full mr-2">
               <Clock className="w-3 h-3" />
-                <span>{formatScheduledTime(task.due_date)}</span>
-                </div>
-                )}
+              <span>{formatScheduledTime(task.due_date)}</span>
+            </div>
+          )}
           {/* Action buttons */}
           <div className="flex items-center space-x-1">
             {/* Main action dropdown */}
@@ -1238,19 +1238,19 @@ const TaskCard: React.FC<TaskCardProps> = ({
             : false
         }
       />
-        {/* Feed context header */}
-          <div className="flex items-center space-x-1 text-xs text-gray-500 p-3 px-4">
-                  <div className="flex items-center space-x-1">
-                    <Clock className="w-3 h-3" />
-                    <span>
-                      {new Date(task.created_at).toLocaleDateString()}{" "}
-                      {new Date(task.created_at).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })} 
-                    </span>
-                  </div>
-            </div>
+      {/* Feed context header */}
+      <div className="flex items-center space-x-1 text-xs text-gray-500 p-3 px-4">
+        <div className="flex items-center space-x-1">
+          <Clock className="w-3 h-3" />
+          <span>
+            {new Date(task.created_at).toLocaleDateString()}{" "}
+            {new Date(task.created_at).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })} 
+          </span>
+        </div>
+      </div>
     </div>
   );
 };

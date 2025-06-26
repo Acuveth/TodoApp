@@ -1,4 +1,4 @@
-// Fixed frontend/src/components/FeedView.tsx - Using Diary Folder Pattern for Tasks
+// Fixed frontend/src/components/FeedView.tsx - Using Same Folder Pattern for Tasks as Diaries
 
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
@@ -879,17 +879,17 @@ const FeedView: React.FC<FeedViewProps> = ({
     if (item.type === "task") {
       const task = item.data as Task;
       
-      // FIXED: Get folder directly inside the render function like diaries do
+      // FIXED: Always get folder regardless of current filter state
       const currentFolder = folders.find(
-        (folder) => folder.id === (task as any).folder_id
+        (folder) => folder.id === task.folder_id
       );
   
       return (
         <div key={item.id} className="space-y-2">
-          {/* Feed context header */}
+          {/* Feed context header - ALWAYS show if task has folder */}
           <div className="flex items-center justify-between text-xs text-gray-500 px-1">
             <div className="flex items-center space-x-2">
-              {/* Folder indicator for tasks - SAME AS DIARIES */}
+              {/* FIXED: Always show folder indicator if task has folder */}
               {currentFolder && (
                 <div className="flex items-center space-x-1">
                   <div
@@ -914,7 +914,7 @@ const FeedView: React.FC<FeedViewProps> = ({
             </div>
           </div>
   
-          {/* FIXED: Apply folder styling directly to the TaskCard container like diaries */}
+          {/* FIXED: Always apply folder styling if task has folder */}
           <div 
             className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all cursor-pointer"
             style={currentFolder ? {
@@ -948,17 +948,17 @@ const FeedView: React.FC<FeedViewProps> = ({
     } else if (item.type === "quest") {
       const quest = item.data as Quest;
       
-      // FIXED: Get folder directly inside the render function like diaries do
+      // FIXED: Always get folder regardless of current filter state
       const currentFolder = folders.find(
         (folder) => folder.id === quest.folder_id
       );
-
+  
       return (
         <div key={item.id} className="space-y-2">
-          {/* Feed context header */}
+          {/* Feed context header - ALWAYS show if quest has folder */}
           <div className="flex items-center justify-between text-xs text-gray-500 px-1">
             <div className="flex items-center space-x-2">
-              {/* Folder indicator for quests - SAME AS DIARIES */}
+              {/* FIXED: Always show folder indicator if quest has folder */}
               {currentFolder && (
                 <div className="flex items-center space-x-1">
                   <div
@@ -982,8 +982,8 @@ const FeedView: React.FC<FeedViewProps> = ({
               </span>
             </div>
           </div>
-
-          {/* FIXED: Apply folder styling directly to the QuestCard container like diaries */}
+  
+          {/* FIXED: Always apply folder styling if quest has folder */}
           <div 
             className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all cursor-pointer"
             style={currentFolder ? {
@@ -1007,11 +1007,11 @@ const FeedView: React.FC<FeedViewProps> = ({
     } else {
       const entry = item.data as DiaryEntry;
       
-      // Get current folder - SAME PATTERN AS BEFORE (THIS WORKS)
+      // FIXED: Always get folder regardless of current filter state
       const currentFolder = folders.find(
         (folder) => folder.id === (entry as any).folder_id
       );
-
+  
       return (
         <div
           key={item.id}
@@ -1031,7 +1031,7 @@ const FeedView: React.FC<FeedViewProps> = ({
                     <span className="text-sm font-medium text-purple-700">
                       Diary Entry
                     </span>
-                    {/* Enhanced folder indicator */}
+                    {/* FIXED: Always show folder indicator if entry has folder */}
                     {currentFolder && (
                       <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-200">
                         <div
@@ -1044,7 +1044,7 @@ const FeedView: React.FC<FeedViewProps> = ({
                       </div>
                     )}
                   </div>
-
+  
                   {/* Schedule indicator and action dropdown in top right */}
                   <div className="flex items-center space-x-2">
                     {/* Scheduling indicator */}
@@ -1054,7 +1054,7 @@ const FeedView: React.FC<FeedViewProps> = ({
                         <span>{formatScheduledTime(entry.scheduled_date)}</span>
                       </div>
                     )}
-
+  
                     {/* Action dropdown */}
                     <div className="relative action-dropdown-container">
                       <button
@@ -1069,7 +1069,7 @@ const FeedView: React.FC<FeedViewProps> = ({
                       >
                         <MoreVertical className="w-5 h-5" />
                       </button>
-
+  
                       {showActionDropdown === item.id && (
                         <DiaryActionDropdown
                           isOpen={true}
@@ -1086,13 +1086,13 @@ const FeedView: React.FC<FeedViewProps> = ({
                     </div>
                   </div>
                 </div>
-
+  
                 {entry.title && (
                   <h3 className="font-medium text-lg text-gray-900 mb-2">
                     {entry.title}
                   </h3>
                 )}
-
+  
                 <div className="text-gray-600 mb-2">
                   {isExpanded ? (
                     <div
@@ -1109,7 +1109,7 @@ const FeedView: React.FC<FeedViewProps> = ({
                     </p>
                   )}
                 </div>
-
+  
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-1 text-xs text-gray-500">
                     <Clock className="w-3 h-3" />
