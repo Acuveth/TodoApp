@@ -327,7 +327,6 @@ function TodoApp() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([]);
   const [quests, setQuests] = useState<Quest[]>([]);
-  const [expandedTasks, setExpandedTasks] = useState(new Set<number>());
   const [loading, setLoading] = useState(false);
   const [backendStatus, setBackendStatus] = useState("checking");
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -884,19 +883,6 @@ function TodoApp() {
       loadAllData();
     }
   };
-
-  const toggleTaskExpansion = useCallback(
-    (taskId: number) => {
-      const newExpanded = new Set(expandedTasks);
-      if (newExpanded.has(taskId)) {
-        newExpanded.delete(taskId);
-      } else {
-        newExpanded.add(taskId);
-      }
-      setExpandedTasks(newExpanded);
-    },
-    [expandedTasks]
-  );
 
   // Connection status component
   const ConnectionStatus = () => {

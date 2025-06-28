@@ -513,6 +513,44 @@ const FeedView: React.FC<FeedViewProps> = ({
   // Get today's date in YYYY-MM-DD format
   const today = new Date().toISOString().split("T")[0];
 
+  // FIXED: Optimized folder lookup with stable function reference and memoization
+  const folderMap = useMemo(() => {
+    const map = new Map<number, FolderType>();
+    folders.forEach(folder => map.set(folder.id, folder));
+    return map;
+  }, [folders]);
+
+  const getFolderById = useCallback((id: number | null | undefined): FolderType | null => {
+    if (!id) return null;
+    return folderMap.get(id) || null;
+  }, [folderMap]);
+
+  // FIXED: Unified folder ID accessor for consistent behavior
+  const getFolderId = useCallback((entity: any): number | null => {
+    return entity?.folder_id || null;
+  }, []);
+
+  // FIXED: Folder styling calculator - returns style and class props for consistency
+  const getFolderStyling = useCallback((folderId: number | null) => {
+    const folder = getFolderById(folderId);
+    if (!folder) {
+      return {
+        folderData: null,
+        folderStyle: {},
+        className: "",
+      };
+    }
+
+    return {
+      folderData: folder,
+      folderStyle: {
+        borderLeft: `4px solid ${folder.color}`,
+        backgroundColor: `${folder.color}08`,
+      },
+      className: "has-folder",
+    };
+  }, [getFolderById]);
+
   // Helper functions for sorting only
   const sortTasks = useCallback(
     (taskList: Task[]): Task[] => {
@@ -541,15 +579,6 @@ const FeedView: React.FC<FeedViewProps> = ({
       });
     },
     [taskSort]
-  );
-
-  // FIXED: Helper function to get folder by ID with proper type safety
-  const getFolderById = useCallback(
-    (folderId: number | null | undefined): FolderType | null => {
-      if (!folderId || !folders || folders.length === 0) return null;
-      return folders.find((folder) => folder.id === folderId) || null;
-    },
-    [folders]
   );
 
   // Combine and sort items by creation time
@@ -908,64 +937,46 @@ const FeedView: React.FC<FeedViewProps> = ({
     if (item.type === "task") {
       const task = item.data as Task;
 
-      // FIXED: Get folder using the proper field and consistent lookup
-      const currentFolder = getFolderById(task.folder_id);
+      // FIXED: Get folder styling using consolidated function
+      const taskFolderId = getFolderId(task);
+      const { folderData, folderStyle, className } = getFolderStyling(taskFolderId);
 
       return (
         <div key={item.id} className="space-y-2">
-          {/* FIXED: Always apply folder styling if task has folder */}
-          <div
-            className="bg-gray-800 rounded-lg shadow-sm border-2 border-gray-600 hover:shadow-md transition-all cursor-pointer"
-            style={
-              currentFolder
-                ? {
-                    borderLeft: `4px solid ${currentFolder.color}`,
-                    backgroundColor: `${currentFolder.color}08`,
-                  }
-                : {}
-            }
-          >
-            <TaskCard
-              task={task}
-              isExpanded={expandedItems.has(task.id.toString())}
-              onToggleExpansion={(taskId) => {
-                const newExpanded = new Set(expandedItems);
-                const taskIdStr = taskId.toString();
-                if (newExpanded.has(taskIdStr)) {
-                  newExpanded.delete(taskIdStr);
-                } else {
-                  newExpanded.add(taskIdStr);
-                }
-                setExpandedItems(newExpanded);
-              }}
-              onToggleStatus={onToggleTaskStatus}
-              onCreateSubtask={onCreateSubtask}
-              onUpdateTask={onUpdateTask}
-              onDeleteTask={onDeleteTask}
-              allTasks={tasks}
-              folders={folders}
-            />
-          </div>
+          {/* FIXED: Pass folder styling as props to TaskCard */}
+          <TaskCard
+            task={task}
+            isExpanded={expandedItems.has(task.id.toString())}
+            onToggleExpansion={(taskId) => {
+              const newExpanded = new Set(expandedItems);
+              const taskIdStr = taskId.toString();
+              if (newExpanded.has(taskIdStr)) {
+                newExpanded.delete(taskIdStr);
+              } else {
+                newExpanded.add(taskIdStr);
+              }
+              setExpandedItems(newExpanded);
+            }}
+            onToggleStatus={onToggleTaskStatus}
+            onCreateSubtask={onCreateSubtask}
+            onUpdateTask={onUpdateTask}
+            onDeleteTask={onDeleteTask}
+            allTasks={tasks}
+            folders={folders}
+            // FIXED: Pass computed folder data as props
+            folderData={folderData}
+            folderStyle={folderStyle}
+            className={className}
+          />
         </div>
       );
     } else if (item.type === "quest") {
       const quest = item.data as Quest;
 
-      // FIXED: Get folder using consistent lookup
-      const currentFolder = getFolderById(quest.folder_id);
 
       return (
         <div key={item.id} className="space-y-2">
-          {/* FIXED: Always apply folder styling if quest has folder */}
-          <div
-            style={
-              currentFolder
-                ? {
-                    backgroundColor: `${currentFolder.color}08`,
-                  }
-                : {}
-            }
-          >
+          {/* FIXED: Apply folder styling consistently */}
             <QuestCard
               quest={quest}
               folders={folders}
@@ -975,28 +986,21 @@ const FeedView: React.FC<FeedViewProps> = ({
               onUpdateParagraph={onUpdateQuestParagraph}
               onDeleteParagraph={onDeleteQuestParagraph}
             />
-          </div>
         </div>
       );
     } else {
       const entry = item.data as DiaryEntry;
 
-      // FIXED: Get folder using consistent field access
-      const currentFolder = getFolderById((entry as any).folder_id);
+      // FIXED: Get folder styling using consolidated function  
+      const diaryFolderId = getFolderId(entry);
+      const { folderData, folderStyle } = getFolderStyling(diaryFolderId);
 
       return (
         <div key={item.id} className="space-y-2">
-          {/* Feed context header - ALWAYS show if entry has folder */}
+          {/* FIXED: Apply folder styling consistently */}
           <div
             className="bg-gray-800 rounded-lg shadow-sm border-2 border-gray-600 hover:shadow-md transition-all cursor-pointer"
-            style={
-              currentFolder
-                ? {
-                    borderLeft: `4px solid ${currentFolder.color}`,
-                    backgroundColor: `${currentFolder.color}08`,
-                  }
-                : {}
-            }
+            style={folderStyle}
             onClick={() => handleViewDiary(entry)}
           >
             <div className="p-4">
@@ -1009,14 +1013,14 @@ const FeedView: React.FC<FeedViewProps> = ({
                         Diary Entry
                       </span>
                       {/* FIXED: Always show folder indicator if entry has folder */}
-                      {currentFolder && (
+                      {folderData && (
                         <div className="flex items-center space-x-2 bg-gray-700/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-600">
                           <div
                             className="w-3 h-3 rounded-full border border-gray-500 shadow-sm"
-                            style={{ backgroundColor: currentFolder.color }}
+                            style={{ backgroundColor: folderData.color }}
                           />
                           <span className="text-xs text-gray-300 font-medium">
-                            {currentFolder.name}
+                            {folderData.name}
                           </span>
                         </div>
                       )}
@@ -1061,7 +1065,7 @@ const FeedView: React.FC<FeedViewProps> = ({
                             onDelete={() => onDeleteDiaryEntry(entry.id)}
                             isScheduled={entry.is_scheduled}
                             folders={folders}
-                            currentFolderId={(entry as any).folder_id || null}
+                            currentFolderId={diaryFolderId}
                           />
                         )}
                       </div>

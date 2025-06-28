@@ -32,6 +32,10 @@ interface TaskCardProps {
   onDeleteTask?: (taskId: number) => void;
   allTasks: Task[];
   folders?: FolderType[];
+  // NEW: Folder-related props to eliminate dual logic
+  folderData?: FolderType | null;
+  folderStyle?: React.CSSProperties;
+  className?: string;
 }
 
 // Enhanced Task Action Dropdown Component with Folder Submenu
@@ -636,6 +640,10 @@ const TaskCard: React.FC<TaskCardProps> = ({
   onDeleteTask,
   allTasks = [],
   folders = [],
+  // NEW: Accept pre-computed folder data from parent
+  folderData = null,
+  folderStyle = {},
+  className = "",
 }) => {
   // Hidden subtasks state with localStorage persistence
   const [hiddenSubtasks, setHiddenSubtasks] = useState<Set<number>>(() => {
@@ -751,12 +759,6 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
   const getTaskById = (taskId: number): Task | undefined => {
     return allTasks.find((t) => t.id === taskId);
-  };
-
-  // FIXED: Get current folder using consistent lookup function
-  const getCurrentFolder = (): FolderType | null => {
-    if (!folders || folders.length === 0 || !task.folder_id) return null;
-    return folders.find((folder) => folder.id === task.folder_id) || null;
   };
 
   // Calculate substep progress (traditional substeps)
@@ -994,24 +996,29 @@ const TaskCard: React.FC<TaskCardProps> = ({
     marginLeft: `${task.indent_level * 24}px`,
   };
 
-  // FIXED: Always get the current folder for this task
-  const currentFolder = getCurrentFolder();
+  // FIXED: Apply folder styling using props instead of internal logic
+  const taskCardStyle = {
+    ...indentStyle,
+    ...folderStyle,
+  };
+
+  const taskCardClasses = `bg-gray-800 rounded-lg shadow-sm border-2 border-gray-600 hover:shadow-md transition-all cursor-pointer ${className}`;
 
   return (
-    <div className="rounded-lg transition-all duration-200" style={indentStyle}>
+    <div className={taskCardClasses} style={taskCardStyle}>
       <div className="px-4">
         <div className="flex items-center space-x-2 py-4">
           <AlarmClockCheck className="w-4 h-4 text-sky-400" />
           <span className="text-sm font-medium text-sky-300">Task Entry</span>
-          {/* FIXED: Always show folder indicator if task has folder */}
-          {currentFolder && (
+          {/* FIXED: Always show folder indicator if folderData prop is provided */}
+          {folderData && (
             <div className="flex items-center space-x-2 bg-gray-700/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-600">
               <div
                 className="w-3 h-3 rounded-full border border-gray-500 shadow-sm"
-                style={{ backgroundColor: currentFolder.color }}
+                style={{ backgroundColor: folderData.color }}
               />
               <span className="text-xs text-gray-300 font-medium">
-                {currentFolder.name}
+                {folderData.name}
               </span>
             </div>
           )}

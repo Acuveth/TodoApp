@@ -1,6 +1,6 @@
-// Fixed frontend/src/components/CalendarView.tsx - Date comparison bug fix
+// Fixed frontend/src/components/CalendarView.tsx - Compatible with folder visual indicator fix
 
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -71,11 +71,43 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const [selectedDiary, setSelectedDiary] = useState<DiaryEntry | null>(null);
   const [selectedQuest, setSelectedQuest] = useState<Quest | null>(null);
 
-  // Helper function to get folder by ID
-  const getFolderById = (folderId: number | null | undefined) => {
-    if (!folderId) return null;
-    return folders.find((folder) => folder.id === folderId) || null;
-  };
+  // ADDED: Optimized folder lookup with memoization (same as FeedView fix)
+  const folderMap = useMemo(() => {
+    const map = new Map<number, FolderType>();
+    folders.forEach(folder => map.set(folder.id, folder));
+    return map;
+  }, [folders]);
+
+  const getFolderById = useCallback((id: number | null | undefined): FolderType | null => {
+    if (!id) return null;
+    return folderMap.get(id) || null;
+  }, [folderMap]);
+
+  // ADDED: Unified folder ID accessor (same as FeedView fix)
+  const getFolderId = useCallback((entity: any): number | null => {
+    return entity?.folder_id || null;
+  }, []);
+
+  // ADDED: Folder styling calculator (same as FeedView fix)
+  const getFolderStyling = useCallback((folderId: number | null) => {
+    const folder = getFolderById(folderId);
+    if (!folder) {
+      return {
+        folderData: null,
+        folderStyle: {},
+        className: "",
+      };
+    }
+
+    return {
+      folderData: folder,
+      folderStyle: {
+        borderLeft: `4px solid ${folder.color}`,
+        backgroundColor: `${folder.color}08`,
+      },
+      className: "has-folder",
+    };
+  }, [getFolderById]);
 
   // FIXED: Proper date comparison functions
   const isSameDate = (date1: Date, date2: Date): boolean => {
@@ -322,7 +354,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   }) => {
     if (item.type === "task") {
       const task = item.item as Task;
-      const folder = getFolderById((task as any).folder_id);
+      
+      // FIXED: Use optimized folder styling function
+      const taskFolderId = getFolderId(task);
+      const { folderData } = getFolderStyling(taskFolderId);
 
       return (
         <div
@@ -347,12 +382,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               >
                 {task.title}
               </h4>
-              {folder && (
+              {folderData && (
                 <span
                   className="inline-block px-2 py-1 text-xs font-medium rounded-full text-white"
-                  style={{ backgroundColor: folder.color }}
+                  style={{ backgroundColor: folderData.color }}
                 >
-                  {folder.name}
+                  {folderData.name}
                 </span>
               )}
             </div>
@@ -403,7 +438,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       );
     } else if (item.type === "quest") {
       const quest = item.item as Quest;
-      const folder = getFolderById(quest.folder_id);
+      
+      // FIXED: Use optimized folder styling function
+      const questFolderId = getFolderId(quest);
+      const { folderData } = getFolderStyling(questFolderId);
+      
       // Safe access to quest properties with fallbacks
       const questParagraphs = quest.paragraphs || [];
       const questTitle = quest.title || "Untitled Quest";
@@ -419,12 +458,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           <div className="flex-1">
             <div className="flex items-center space-x-2">
               <h4 className="font-medium text-lg text-white">{questTitle}</h4>
-              {folder && (
+              {folderData && (
                 <span
                   className="inline-block px-2 py-1 text-xs font-medium rounded-full text-white"
-                  style={{ backgroundColor: folder.color }}
+                  style={{ backgroundColor: folderData.color }}
                 >
-                  {folder.name}
+                  {folderData.name}
                 </span>
               )}
             </div>
@@ -444,7 +483,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       );
     } else {
       const entry = item.item as DiaryEntry;
-      const folder = getFolderById((entry as any).folder_id);
+      
+      // FIXED: Use optimized folder styling function
+      const diaryFolderId = getFolderId(entry);
+      const { folderData } = getFolderStyling(diaryFolderId);
 
       return (
         <div
@@ -459,12 +501,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               <h4 className="font-medium text-lg text-white">
                 {entry.title || "Diary Entry"}
               </h4>
-              {folder && (
+              {folderData && (
                 <span
                   className="inline-block px-2 py-1 text-xs font-medium rounded-full text-white"
-                  style={{ backgroundColor: folder.color }}
+                  style={{ backgroundColor: folderData.color }}
                 >
-                  {folder.name}
+                  {folderData.name}
                 </span>
               )}
             </div>
