@@ -48,7 +48,7 @@ const TaskActionDropdown: React.FC<{
   onDelete: () => void;
   folders: FolderType[];
   currentFolderId: number | null;
-  isSubtask: boolean; // Add this prop to control folder menu visibility
+  isSubtask: boolean;
 }> = ({
   isOpen,
   onClose,
@@ -155,6 +155,14 @@ const TaskActionDropdown: React.FC<{
             )}
           </div>
         )}
+        
+        {/* Show note for subtasks about folder inheritance */}
+        {isSubtask && (
+          <div className="px-4 py-2 text-xs text-gray-500 italic">
+            Subtasks inherit parent's folder
+          </div>
+        )}
+        
         <hr className="my-1 border-gray-600" />
 
         <button
@@ -752,6 +760,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
   // Handle folder assignment
   const handleFolderSelect = (folderId: number | null) => {
     if (!task.parent_task_id && onUpdateTask) {
+      // Only allow folder changes for root tasks (not subtasks)
+      // The backend will automatically update all subtasks
       onUpdateTask(task.id, { folder_id: folderId });
     }
     setShowActionDropdown(null);

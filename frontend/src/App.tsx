@@ -506,15 +506,21 @@ function TodoApp() {
         order_index: 0,
         folder_id: selectedFolder?.id || null,
       };
-
+  
       if (dataToUse.due_date) {
         dataToUse.due_date = new Date(dataToUse.due_date).toISOString();
       }
-
+  
       const createdTask = await api.createTask(dataToUse);
-
-      // Optimistically add to UI without full reload
-      setTasks((prev: Task[]) => [...prev, createdTask]);
+  
+      // If this is a subtask creation, reload data to ensure proper inheritance
+      if (dataToUse.parent_task_id) {
+        console.log('Subtask created, reloading data to reflect inheritance...');
+        loadAllData();
+      } else {
+        // Optimistically add to UI for root tasks
+        setTasks((prev: Task[]) => [...prev, createdTask]);
+      }
     } catch (error) {
       console.error("Error creating task:", error);
       loadAllData();
@@ -522,8 +528,32 @@ function TodoApp() {
   };
 
   const handleCreateSubtask = async (parentTaskId: number) => {
-    // This would trigger a modal or inline form for creating subtasks
-    console.log("Create subtask for task:", parentTaskId);
+    try {
+      // Find the parent task to get its folder
+      const parentTask = tasks.find(t => t.id === parentTaskId);
+      const parentFolderId = parentTask?.folder_id || null;
+      
+      console.log(`Creating subtask for parent ${parentTaskId} with inherited folder ${parentFolderId}`);
+      
+      const subtaskData = {
+        title: "New Subtask",
+        description: "",
+        priority: 1,
+        due_date: null,
+        is_calendar_event: false,
+        parent_task_id: parentTaskId,
+        folder_id: parentFolderId, // This will be overridden by backend inheritance
+      };
+  
+      await api.createSubtask(parentTaskId, subtaskData);
+      
+      // Always reload data after creating subtasks to ensure proper inheritance
+      console.log('Subtask created, reloading data...');
+      loadAllData();
+    } catch (error) {
+      console.error("Error creating subtask:", error);
+      loadAllData();
+    }
   };
 
   const handleCreateDiaryEntry = async (entryText: string) => {
@@ -875,12 +905,18 @@ function TodoApp() {
     setTasks((prev: Task[]) =>
       prev.map((t: Task) => (t.id === taskId ? { ...t, ...updates } : t))
     );
-
+  
     try {
       await api.updateTask(taskId, updates);
+      
+      // If folder_id was changed, reload all data to get updated subtasks
+      if ('folder_id' in updates) {
+        console.log('Folder changed, reloading all data to reflect inheritance...');
+        loadAllData();
+      }
     } catch (error) {
       console.error("Error updating task:", error);
-      loadAllData();
+      loadAllData(); // Reload on error to sync state
     }
   };
 
@@ -918,8 +954,9 @@ function TodoApp() {
       // Return all data when no folder is selected
       return { tasks, diaryEntries, quests };
     }
-
+  
     // Filter data by selected folder
+    // Note: Subtasks automatically inherit their parent's folder_id on the backend
     const filteredTasks = tasks.filter(
       (task) => task.folder_id === selectedFolder.id
     );
@@ -929,7 +966,7 @@ function TodoApp() {
     const filteredQuests = quests.filter(
       (quest) => quest.folder_id === selectedFolder.id
     );
-
+  
     return {
       tasks: filteredTasks,
       diaryEntries: filteredDiaryEntries,

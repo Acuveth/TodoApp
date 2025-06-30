@@ -20,7 +20,7 @@ from sqlalchemy.orm import selectinload
 
 # Database setup - MySQL configuration
 # Šiht
-DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:root@127.0.0.1:3306/side_projects")
+DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:pass@127.0.0.1:3306/side_projects")
 
 # Doma
 #DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:root@127.0.0.1:3306/side_projects")
@@ -430,6 +430,26 @@ def task_to_dict_with_progress(task, all_tasks):
     
     return task_dict
 
+def update_subtasks_folder_recursive(db: Session, task_id: int, folder_id: int | None):
+    """Recursively update folder_id for all subtasks of a given task"""
+    try:
+        # Get all direct subtasks
+        direct_subtasks = db.query(Task).filter(Task.parent_task_id == task_id).all()
+        
+        for subtask in direct_subtasks:
+            # Update this subtask's folder_id
+            subtask.folder_id = folder_id
+            subtask.updated_at = datetime.utcnow()
+            
+            # Recursively update this subtask's children
+            update_subtasks_folder_recursive(db, subtask.id, folder_id)
+        
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Error updating subtasks folder: {e}")
+
+
 # Helper function to order tasks hierarchically
 def get_hierarchical_task_order(tasks):
     """Return tasks in hierarchical order where children appear after their parents"""
@@ -468,6 +488,7 @@ def get_hierarchical_task_order(tasks):
 @app.post("/api/tasks", response_model=TaskResponse)
 def create_task(task: TaskCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     # If parent_task_id is provided, verify it exists and belongs to the user
+    parent_folder_id = None
     if task.parent_task_id:
         parent_task = db.query(Task).filter(
             Task.id == task.parent_task_id, 
@@ -478,6 +499,9 @@ def create_task(task: TaskCreate, current_user: User = Depends(get_current_user)
         
         # Set indent level based on parent
         task.indent_level = parent_task.indent_level + 1
+        
+        # INHERIT PARENT'S FOLDER_ID
+        parent_folder_id = parent_task.folder_id
         
         # Set order_index for subtasks
         existing_siblings = db.query(Task).filter(Task.parent_task_id == task.parent_task_id).all()
@@ -492,7 +516,13 @@ def create_task(task: TaskCreate, current_user: User = Depends(get_current_user)
         task.order_index = len(existing_root_tasks)
     
     # Use model_dump instead of dict()
-    db_task = Task(**task.model_dump(), user_id=current_user.id)
+    task_data = task.model_dump()
+    
+    # Override folder_id if this is a subtask (inherit from parent)
+    if parent_folder_id is not None:
+        task_data['folder_id'] = parent_folder_id
+    
+    db_task = Task(**task_data, user_id=current_user.id)
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
@@ -710,6 +740,9 @@ def create_subtask(task_id: int, subtask: TaskCreate, current_user: User = Depen
     # Create subtask with parent reference
     subtask.parent_task_id = task_id
     subtask.indent_level = parent_task.indent_level + 1
+    
+    # INHERIT PARENT'S FOLDER_ID
+    subtask.folder_id = parent_task.folder_id
     
     # Set order_index to appear at the end of parent's children
     existing_children = db.query(Task).filter(Task.parent_task_id == task_id).all()
@@ -997,6 +1030,10 @@ def update_task(task_id: int, updates: dict, current_user: User = Depends(get_cu
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     
+    # Check if folder_id is being updated
+    folder_id_changed = 'folder_id' in updates and updates['folder_id'] != task.folder_id
+    new_folder_id = updates.get('folder_id') if folder_id_changed else None
+    
     # Update task fields
     for field, value in updates.items():
         if hasattr(task, field):
@@ -1004,6 +1041,11 @@ def update_task(task_id: int, updates: dict, current_user: User = Depends(get_cu
     
     task.updated_at = datetime.utcnow()
     db.commit()
+    
+    # If folder_id changed and this is not a subtask, update all subtasks recursively
+    if folder_id_changed and not task.parent_task_id:
+        update_subtasks_folder_recursive(db, task_id, new_folder_id)
+    
     db.refresh(task)
     return task
 

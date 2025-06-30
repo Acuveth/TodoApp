@@ -41,16 +41,44 @@ export const api = {
   },
   // Create subtask under a parent task
   createSubtask: async (parentTaskId: number, taskData: any) => {
+    console.log(`Creating subtask for parent ${parentTaskId}:`, taskData);
+    
     const response = await fetch(
       `${API_BASE_URL}/api/tasks/${parentTaskId}/subtasks`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(taskData),
+        body: JSON.stringify({
+          ...taskData,
+          // Note: folder_id will be inherited from parent on backend
+          // but we can still send it for consistency
+        }),
       }
     );
+    
+    if (!response.ok) {
+      throw new Error("Failed to create subtask");
+    }
+    
     return response.json();
   },
+
+  createTaskWithInheritance: async (taskData: any) => {
+    console.log("Creating task with data:", taskData);
+    
+    const response = await fetch(`${API_BASE_URL}/api/tasks`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(taskData),
+    });
+    
+    if (!response.ok) {
+      throw new Error("Failed to create task");
+    }
+    
+    return response.json();
+  },
+
   getFolders: async () => {
     const response = await fetch(`${API_BASE_URL}/api/folders`);
     return response.json();
