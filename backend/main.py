@@ -8,7 +8,7 @@ from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
 from pydantic import BaseModel, EmailStr
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from typing import List, Optional
 import os
 from google.oauth2.credentials import Credentials
@@ -17,6 +17,11 @@ from jose import jwt
 from passlib.context import CryptContext
 from typing import List, Optional
 from sqlalchemy.orm import selectinload
+
+# Timezone compatibility function
+def utc_now():
+    """Returns timezone-aware UTC datetime compatible with all Python versions"""
+    return datetime.now(timezone.utc)
 
 # Database setup - MySQL configuration
 # Šiht
@@ -59,8 +64,8 @@ class User(Base):
     name = Column(String(255), nullable=False)
     google_calendar_token = Column(Text)
     google_calendar_refresh_token = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
     
     folders = relationship("Folder", back_populates="user", cascade="all, delete-orphan")
     tasks = relationship("Task", back_populates="user", cascade="all, delete-orphan")
@@ -74,8 +79,8 @@ class Folder(Base):
     name = Column(String(255), nullable=False)
     color = Column(String(7), default="#3B82F6")
     parent_folder_id = Column(Integer, ForeignKey("folders.id", ondelete="CASCADE"), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
     
     user = relationship("User", back_populates="folders")
     tasks = relationship("Task", back_populates="folder")
@@ -88,8 +93,8 @@ class Quest(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     folder_id = Column(Integer, ForeignKey("folders.id", ondelete="SET NULL"), nullable=True)
     title = Column(String(200), nullable=False)  # Max 200 characters
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
     
     user = relationship("User", back_populates="quests")
     folder = relationship("Folder", back_populates="quests")
@@ -101,8 +106,8 @@ class QuestParagraph(Base):
     quest_id = Column(Integer, ForeignKey("quests.id", ondelete="CASCADE"), nullable=False)
     content = Column(Text, nullable=False)
     order_index = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
     
     quest = relationship("Quest", back_populates="paragraphs")
 
@@ -121,8 +126,8 @@ class Task(Base):
     google_calendar_event_id = Column(String(255))
     indent_level = Column(Integer, default=0)  # Track indentation level
     order_index = Column(Integer, default=0)  # Track ordering within same level
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
     
     user = relationship("User", back_populates="tasks")
     folder = relationship("Folder", back_populates="tasks")
@@ -139,8 +144,8 @@ class TaskSubstep(Base):
     description = Column(Text)
     is_completed = Column(Boolean, default=False)
     order_index = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
     
     task = relationship("Task", back_populates="substeps")
 
@@ -149,7 +154,7 @@ class TaskNote(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     task_id = Column(Integer, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False)
     content = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
     
     task = relationship("Task", back_populates="notes")
 
@@ -164,8 +169,8 @@ class DiaryEntry(Base):
     scheduled_date = Column(DateTime, nullable=True)  # When diary entry is scheduled for
     is_scheduled = Column(Boolean, default=False)  # Whether entry is scheduled
     google_calendar_event_id = Column(String(255))  # Google Calendar integration
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
     
     user = relationship("User", back_populates="diary_entries")
     folder = relationship("Folder", back_populates="diary_entries")
@@ -422,6 +427,7 @@ def task_to_dict_with_progress(task, all_tasks):
         "indent_level": task.indent_level,
         "order_index": task.order_index,
         "created_at": task.created_at,
+        "folder_id": task.folder_id,
         "progress": progress,
         "substeps": [{"id": s.id, "title": s.title, "is_completed": s.is_completed} for s in task.substeps],
         "notes": [{"id": n.id, "content": n.content, "created_at": n.created_at} for n in task.notes],
@@ -439,7 +445,7 @@ def update_subtasks_folder_recursive(db: Session, task_id: int, folder_id: int |
         for subtask in direct_subtasks:
             # Update this subtask's folder_id
             subtask.folder_id = folder_id
-            subtask.updated_at = datetime.utcnow()
+            subtask.updated_at = utc_now()
             
             # Recursively update this subtask's children
             update_subtasks_folder_recursive(db, subtask.id, folder_id)
@@ -601,7 +607,7 @@ def update_quest(quest_id: int, updates: dict, current_user: User = Depends(get_
         if hasattr(quest, field):
             setattr(quest, field, value)
     
-    quest.updated_at = datetime.utcnow()
+    quest.updated_at = utc_now()
     db.commit()
     
     # IMPORTANT: Re-fetch the quest with eager-loaded paragraphs
@@ -661,7 +667,7 @@ def update_quest_paragraph(quest_id: int, paragraph_id: int, updates: dict, curr
         if hasattr(paragraph, field):
             setattr(paragraph, field, value)
     
-    paragraph.updated_at = datetime.utcnow()
+    paragraph.updated_at = utc_now()
     db.commit()
     db.refresh(paragraph)
     return paragraph
@@ -697,7 +703,7 @@ def update_folder(folder_id: int, updates: dict, current_user: User = Depends(ge
         if not name:
             raise HTTPException(status_code=400, detail="Folder name cannot be empty")
         if len(name) > 16:
-            raise HTTPException(status_code=400, detail="Folder name cannot exceed 12 characters")
+            raise HTTPException(status_code=400, detail="Folder name cannot exceed 16 characters")
         updates['name'] = name
     
     # Update folder fields
@@ -705,7 +711,7 @@ def update_folder(folder_id: int, updates: dict, current_user: User = Depends(ge
         if hasattr(folder, field):
             setattr(folder, field, value)
     
-    folder.updated_at = datetime.utcnow()
+    folder.updated_at = utc_now()
     db.commit()
     db.refresh(folder)
     return folder
@@ -797,7 +803,7 @@ def update_task_indent(task_id: int, update: TaskIndentUpdate, current_user: Use
             task.parent_task_id = potential_parent.id if potential_parent else None
     
     task.indent_level = new_indent_level
-    task.updated_at = datetime.utcnow()
+    task.updated_at = utc_now()
     
     # Update all child tasks' indent levels recursively
     def update_children_indent(parent_id, level_delta):
@@ -1039,7 +1045,7 @@ def update_task(task_id: int, updates: dict, current_user: User = Depends(get_cu
         if hasattr(task, field):
             setattr(task, field, value)
     
-    task.updated_at = datetime.utcnow()
+    task.updated_at = utc_now()
     db.commit()
     
     # If folder_id changed and this is not a subtask, update all subtasks recursively
@@ -1072,7 +1078,7 @@ def update_diary_entry(entry_id: int, updates: dict, current_user: User = Depend
                         pass
             setattr(entry, field, value)
     
-    entry.updated_at = datetime.utcnow()
+    entry.updated_at = utc_now()
     
     # Handle Google Calendar integration for scheduling
     calendar_service = get_google_calendar_service(current_user)
