@@ -353,7 +353,7 @@ const QuestCard: React.FC<QuestCardProps> = ({
               value={newParagraphContent}
               onChange={(e) => setNewParagraphContent(e.target.value)}
               placeholder="Write your new paragraph here..."
-              className="w-full rounded px-3 py-2 border border-gray-600  bg-gray-800 resize-none"
+              className="w-full rounded px-3 py-2 border border-gray-600 bg-gray-800 text-white resize-none focus:outline-none focus:ring-2 focus:ring-orange-500"
               rows={3}
               autoFocus
             />

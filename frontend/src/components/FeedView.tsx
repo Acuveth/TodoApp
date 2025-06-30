@@ -116,15 +116,38 @@ const DiaryActionDropdown: React.FC<{
 
   if (!isOpen) return null;
 
+  // Handle backdrop click with proper event stopping
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onClose();
+  };
+
+  // Handle dropdown container click to prevent event bubbling
+  const handleDropdownClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
   return (
     <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 z-40" onClick={onClose} />
+      {/* Backdrop - prevent event bubbling */}
+      <div
+        className="fixed inset-0 z-40"
+        onClick={handleBackdropClick}
+        onMouseDown={handleBackdropClick}
+      />
 
-      {/* Main Dropdown */}
-      <div className="absolute top-8 right-0 z-50 bg-gray-800 border border-gray-600 rounded-md shadow-xl min-w-[180px] py-1">
+      {/* Main Dropdown - prevent event bubbling */}
+      <div
+        className="absolute top-8 right-0 z-50 bg-gray-800 border border-gray-600 rounded-md shadow-xl min-w-[180px] py-1"
+        onClick={handleDropdownClick}
+        onMouseDown={handleDropdownClick}
+      >
         <button
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
             onEdit();
             onClose();
           }}
@@ -135,7 +158,9 @@ const DiaryActionDropdown: React.FC<{
         </button>
 
         <button
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
             onSchedule();
             onClose();
           }}
@@ -151,7 +176,10 @@ const DiaryActionDropdown: React.FC<{
           onMouseEnter={() => setShowFolderSubmenu(true)}
           onMouseLeave={() => setShowFolderSubmenu(false)}
         >
-          <button className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center justify-between">
+          <button
+            className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center justify-between"
+            onClick={handleDropdownClick}
+          >
             <div className="flex items-center space-x-2">
               <FolderPlus className="w-4 h-4" />
               <span>Change Folder</span>
@@ -161,16 +189,22 @@ const DiaryActionDropdown: React.FC<{
 
           {/* Folder submenu */}
           {showFolderSubmenu && (
-            <div className="absolute top-0 right-full ml-1 z-60 bg-gray-800 border border-gray-600 rounded-md shadow-xl min-w-[200px] py-1">
+            <div
+              className="absolute top-0 right-full ml-1 z-60 bg-gray-800 border border-gray-600 rounded-md shadow-xl min-w-[200px] py-1"
+              onClick={handleDropdownClick}
+              onMouseDown={handleDropdownClick}
+            >
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   onFolderSelect(null);
                   onClose();
                 }}
                 className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-2 ${
                   currentFolderId === null
                     ? "bg-blue-900 text-blue-300"
-                    : "text-gray-700"
+                    : "text-gray-300"
                 }`}
               >
                 <div className="w-3 h-3 rounded bg-gray-500" />
@@ -182,7 +216,9 @@ const DiaryActionDropdown: React.FC<{
               {folders.map((folder) => (
                 <button
                   key={folder.id}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     onFolderSelect(folder.id);
                     onClose();
                   }}
@@ -209,7 +245,9 @@ const DiaryActionDropdown: React.FC<{
         <hr className="my-1 border-gray-600" />
 
         <button
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
             onDelete();
             onClose();
           }}
@@ -516,14 +554,17 @@ const FeedView: React.FC<FeedViewProps> = ({
   // FIXED: Optimized folder lookup with stable function reference and memoization
   const folderMap = useMemo(() => {
     const map = new Map<number, FolderType>();
-    folders.forEach(folder => map.set(folder.id, folder));
+    folders.forEach((folder) => map.set(folder.id, folder));
     return map;
   }, [folders]);
 
-  const getFolderById = useCallback((id: number | null | undefined): FolderType | null => {
-    if (!id) return null;
-    return folderMap.get(id) || null;
-  }, [folderMap]);
+  const getFolderById = useCallback(
+    (id: number | null | undefined): FolderType | null => {
+      if (!id) return null;
+      return folderMap.get(id) || null;
+    },
+    [folderMap]
+  );
 
   // FIXED: Unified folder ID accessor for consistent behavior
   const getFolderId = useCallback((entity: any): number | null => {
@@ -531,25 +572,28 @@ const FeedView: React.FC<FeedViewProps> = ({
   }, []);
 
   // FIXED: Folder styling calculator - returns style and class props for consistency
-  const getFolderStyling = useCallback((folderId: number | null) => {
-    const folder = getFolderById(folderId);
-    if (!folder) {
-      return {
-        folderData: null,
-        folderStyle: {},
-        className: "",
-      };
-    }
+  const getFolderStyling = useCallback(
+    (folderId: number | null) => {
+      const folder = getFolderById(folderId);
+      if (!folder) {
+        return {
+          folderData: null,
+          folderStyle: {},
+          className: "",
+        };
+      }
 
-    return {
-      folderData: folder,
-      folderStyle: {
-        borderLeft: `4px solid ${folder.color}`,
-        backgroundColor: `${folder.color}08`,
-      },
-      className: "has-folder",
-    };
-  }, [getFolderById]);
+      return {
+        folderData: folder,
+        folderStyle: {
+          borderLeft: `4px solid ${folder.color}`,
+          backgroundColor: `${folder.color}08`,
+        },
+        className: "has-folder",
+      };
+    },
+    [getFolderById]
+  );
 
   // Helper functions for sorting only
   const sortTasks = useCallback(
@@ -939,7 +983,8 @@ const FeedView: React.FC<FeedViewProps> = ({
 
       // FIXED: Get folder styling using consolidated function
       const taskFolderId = getFolderId(task);
-      const { folderData, folderStyle, className } = getFolderStyling(taskFolderId);
+      const { folderData, folderStyle, className } =
+        getFolderStyling(taskFolderId);
 
       return (
         <div key={item.id} className="space-y-2">
@@ -973,25 +1018,24 @@ const FeedView: React.FC<FeedViewProps> = ({
     } else if (item.type === "quest") {
       const quest = item.data as Quest;
 
-
       return (
         <div key={item.id} className="space-y-2">
           {/* FIXED: Apply folder styling consistently */}
-            <QuestCard
-              quest={quest}
-              folders={folders}
-              onUpdateQuest={onUpdateQuest}
-              onDeleteQuest={onDeleteQuest}
-              onAddParagraph={onAddQuestParagraph}
-              onUpdateParagraph={onUpdateQuestParagraph}
-              onDeleteParagraph={onDeleteQuestParagraph}
-            />
+          <QuestCard
+            quest={quest}
+            folders={folders}
+            onUpdateQuest={onUpdateQuest}
+            onDeleteQuest={onDeleteQuest}
+            onAddParagraph={onAddQuestParagraph}
+            onUpdateParagraph={onUpdateQuestParagraph}
+            onDeleteParagraph={onDeleteQuestParagraph}
+          />
         </div>
       );
     } else {
       const entry = item.data as DiaryEntry;
 
-      // FIXED: Get folder styling using consolidated function  
+      // FIXED: Get folder styling using consolidated function
       const diaryFolderId = getFolderId(entry);
       const { folderData, folderStyle } = getFolderStyling(diaryFolderId);
 

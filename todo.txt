@@ -1,3 +1,3 @@
-Add OAuth2
+When I click on the + on the task it does not open the add subtask screen and just auto creates a new task with New Subtask name and low priority I don't get a dialog
 
 Make app

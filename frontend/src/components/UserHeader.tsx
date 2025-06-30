@@ -1,14 +1,14 @@
 // Create frontend/src/components/UserHeader.tsx
 
-import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { 
-  User as UserIcon, 
-  LogOut, 
+import React, { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  User as UserIcon,
+  LogOut,
   ChevronDown,
   Settings,
-  HelpCircle
-} from 'lucide-react';
+  HelpCircle,
+} from "lucide-react";
 
 const UserHeader: React.FC = () => {
   const { user, logout } = useAuth();
@@ -23,10 +23,10 @@ const UserHeader: React.FC = () => {
 
   const getInitials = (name: string) => {
     return name
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase())
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase())
       .slice(0, 2)
-      .join('');
+      .join("");
   };
 
   return (
@@ -55,18 +55,22 @@ const UserHeader: React.FC = () => {
         </div>
 
         {/* Dropdown Arrow */}
-        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          className={`w-4 h-4 text-gray-400 transition-transform ${
+            showDropdown ? "rotate-180" : ""
+          }`}
+        />
       </button>
 
       {/* Dropdown Menu */}
       {showDropdown && (
         <>
           {/* Backdrop */}
-          <div 
-            className="fixed inset-0 z-10" 
+          <div
+            className="fixed inset-0 z-10"
             onClick={() => setShowDropdown(false)}
           />
-          
+
           {/* Menu */}
           <div className="absolute top-12 right-0 z-20 bg-gray-800 border border-gray-600 rounded-lg shadow-xl min-w-[220px] py-2">
             {/* User Info Section */}
@@ -76,16 +80,16 @@ const UserHeader: React.FC = () => {
                   <img
                     src={user.avatar_url}
                     alt={user.name}
-                    className="w-10 h-10 rounded-full object-cover"
+                    className="w-8 h-8 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium">
                     {getInitials(user.name)}
                   </div>
                 )}
                 <div>
                   <p className="font-medium text-white">{user.name}</p>
-                  <p className="text-sm text-gray-400">{user.email}</p>
+                  <p className="text-xs text-gray-400">{user.email}</p>
                 </div>
               </div>
             </div>

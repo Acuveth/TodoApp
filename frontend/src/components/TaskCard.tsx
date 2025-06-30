@@ -155,14 +155,14 @@ const TaskActionDropdown: React.FC<{
             )}
           </div>
         )}
-        
+
         {/* Show note for subtasks about folder inheritance */}
         {isSubtask && (
           <div className="px-4 py-2 text-xs text-gray-500 italic">
             Subtasks inherit parent's folder
           </div>
         )}
-        
+
         <hr className="my-1 border-gray-600" />
 
         <button
@@ -1017,21 +1017,103 @@ const TaskCard: React.FC<TaskCardProps> = ({
   return (
     <div className={taskCardClasses} style={taskCardStyle}>
       <div className="px-4">
-        <div className="flex items-center space-x-2 py-4">
-          <AlarmClockCheck className="w-4 h-4 text-sky-400" />
-          <span className="text-sm font-medium text-sky-300">Task Entry</span>
-          {/* FIXED: Always show folder indicator if folderData prop is provided */}
-          {folderData && (
-            <div className="flex items-center space-x-2 bg-gray-700/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-600">
-              <div
-                className="w-3 h-3 rounded-full border border-gray-500 shadow-sm"
-                style={{ backgroundColor: folderData.color }}
-              />
-              <span className="text-xs text-gray-300 font-medium">
-                {folderData.name}
-              </span>
+        <div className="flex items-center space-x-2 py-4 justify-between">
+          <div className="flex flex-row space-x-2">
+            <AlarmClockCheck className="w-4 h-4 text-sky-400" />
+            <span className="text-sm font-medium text-sky-300">Task Entry</span>
+            {/* FIXED: Always show folder indicator if folderData prop is provided */}
+            {folderData && (
+              <div className="flex items-center space-x-2 bg-gray-700/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-600">
+                <div
+                  className="w-3 h-3 rounded-full border border-gray-500 shadow-sm"
+                  style={{ backgroundColor: folderData.color }}
+                />
+                <span className="text-xs text-gray-300 font-medium">
+                  {folderData.name}
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="flex flex-row">
+            {/* Action buttons */}
+            {/* Show calendar icon and date/time if task has due date */}
+            {task.due_date && (
+              <div className="flex items-center space-x-1 text-xs bg-blue-900 text-blue-300 px-2 py-1 rounded-full mr-2">
+                <Clock className="w-3 h-3" />
+                <span>{formatScheduledTime(task.due_date)}</span>
+              </div>
+            )}
+            {/* Action buttons */}
+            <div className="flex items-center space-x-1">
+              {/* Main action dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() =>
+                    setShowActionDropdown(
+                      showActionDropdown === `task-${task.id}`
+                        ? null
+                        : `task-${task.id}`
+                    )
+                  }
+                  className="p-1 text-gray-400 hover:text-gray-300 rounded"
+                  title="More actions"
+                >
+                  <MoreVertical className="w-5 h-5" />
+                </button>
+
+                {showActionDropdown === `task-${task.id}` && (
+                  <TaskActionDropdown
+                    isOpen={true}
+                    onClose={() => setShowActionDropdown(null)}
+                    onEdit={() => handleEditTask(task.id)}
+                    onSchedule={() => handleScheduleTask(task.id)}
+                    onFolderSelect={handleFolderSelect}
+                    onDelete={() => handleDeleteTask(task.id)}
+                    folders={folders}
+                    currentFolderId={task.folder_id || null}
+                    isSubtask={!!task.parent_task_id}
+                  />
+                )}
+              </div>
+
+              {/* Hide/Show subtasks button */}
+              {hasSubtasks && (
+                <button
+                  onClick={() => toggleSubtaskVisibility(task.id)}
+                  className="p-1 text-gray-400 hover:text-gray-300 rounded"
+                  title={areSubtasksHidden ? "Show subtasks" : "Hide subtasks"}
+                >
+                  {areSubtasksHidden ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+              )}
+
+              {/* Add subtask button */}
+              {onCreateSubtask && (
+                <button
+                  onClick={() => onCreateSubtask(task.id)}
+                  className="p-1 text-gray-400 hover:text-blue-400 rounded"
+                  title="Add subtask"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+              )}
+
+              {/* Expand/collapse button - only show if there are traditional substeps */}
+              {totalSubsteps > 0 && (
+                <button onClick={() => onToggleExpansion(task.id)}>
+                  {isExpanded ? (
+                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                  ) : (
+                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                  )}
+                </button>
+              )}
             </div>
-          )}
+          </div>
         </div>
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-3 flex-1">
@@ -1122,83 +1204,6 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 <div className="mt-1">{renderSubtasks(task.id)}</div>
               )}
             </div>
-          </div>
-          {/* Show calendar icon and date/time if task has due date */}
-          {task.due_date && (
-            <div className="flex items-center space-x-1 text-xs bg-blue-900 text-blue-300 px-2 py-1 rounded-full mr-2">
-              <Clock className="w-3 h-3" />
-              <span>{formatScheduledTime(task.due_date)}</span>
-            </div>
-          )}
-          {/* Action buttons */}
-          <div className="flex items-center space-x-1">
-            {/* Main action dropdown */}
-            <div className="relative">
-              <button
-                onClick={() =>
-                  setShowActionDropdown(
-                    showActionDropdown === `task-${task.id}`
-                      ? null
-                      : `task-${task.id}`
-                  )
-                }
-                className="p-1 text-gray-400 hover:text-gray-300 rounded"
-                title="More actions"
-              >
-                <MoreVertical className="w-5 h-5" />
-              </button>
-
-              {showActionDropdown === `task-${task.id}` && (
-                <TaskActionDropdown
-                  isOpen={true}
-                  onClose={() => setShowActionDropdown(null)}
-                  onEdit={() => handleEditTask(task.id)}
-                  onSchedule={() => handleScheduleTask(task.id)}
-                  onFolderSelect={handleFolderSelect}
-                  onDelete={() => handleDeleteTask(task.id)}
-                  folders={folders}
-                  currentFolderId={task.folder_id || null}
-                  isSubtask={!!task.parent_task_id}
-                />
-              )}
-            </div>
-
-            {/* Hide/Show subtasks button */}
-            {hasSubtasks && (
-              <button
-                onClick={() => toggleSubtaskVisibility(task.id)}
-                className="p-1 text-gray-400 hover:text-gray-300 rounded"
-                title={areSubtasksHidden ? "Show subtasks" : "Hide subtasks"}
-              >
-                {areSubtasksHidden ? (
-                  <EyeOff className="w-5 h-5" />
-                ) : (
-                  <Eye className="w-5 h-5" />
-                )}
-              </button>
-            )}
-
-            {/* Add subtask button */}
-            {onCreateSubtask && (
-              <button
-                onClick={() => onCreateSubtask(task.id)}
-                className="p-1 text-gray-400 hover:text-blue-400 rounded"
-                title="Add subtask"
-              >
-                <Plus className="w-5 h-5" />
-              </button>
-            )}
-
-            {/* Expand/collapse button - only show if there are traditional substeps */}
-            {totalSubsteps > 0 && (
-              <button onClick={() => onToggleExpansion(task.id)}>
-                {isExpanded ? (
-                  <ChevronDown className="w-5 h-5 text-gray-400" />
-                ) : (
-                  <ChevronRight className="w-5 h-5 text-gray-400" />
-                )}
-              </button>
-            )}
           </div>
         </div>
       </div>
