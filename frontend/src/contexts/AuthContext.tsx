@@ -1,7 +1,13 @@
 // Create frontend/src/contexts/AuthContext.tsx
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { api } from '../utils/api';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { api } from "../utils/api";
 
 interface User {
   id: number;
@@ -25,7 +31,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
@@ -43,7 +49,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Load token from localStorage on app start
   useEffect(() => {
-    const savedToken = localStorage.getItem('auth_token');
+    const savedToken = localStorage.getItem("auth_token");
     if (savedToken) {
       setToken(savedToken);
       // Verify token and get user info
@@ -56,13 +62,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Handle OAuth callback
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const tokenFromUrl = urlParams.get('token');
-    
+    const tokenFromUrl = urlParams.get("token");
+
     if (tokenFromUrl) {
-      localStorage.setItem('auth_token', tokenFromUrl);
+      localStorage.setItem("auth_token", tokenFromUrl);
       setToken(tokenFromUrl);
       verifyToken(tokenFromUrl);
-      
+
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
@@ -74,33 +80,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(userInfo);
       setLoading(false);
     } catch (error) {
-      console.error('Token verification failed:', error);
+      console.error("Token verification failed:", error);
       logout();
     }
   };
 
   const login = async () => {
     try {
-      const isDevelopment = process.env.NODE_ENV === 'development';
-      
-      if (isDevelopment) {
-        // Development login
-        const response = await api.devLogin();
-        localStorage.setItem('auth_token', response.access_token);
-        setToken(response.access_token);
-        setUser(response.user);
-      } else {
-        // Production OAuth2 flow
-        const { auth_url } = await api.getGoogleAuthUrl();
-        window.location.href = auth_url;
-      }
+      // ALWAYS use Google OAuth (ignore development/production check)
+      console.log("🚀 Using Google OAuth login...");
+      const { auth_url } = await api.getGoogleAuthUrl();
+      console.log("🔗 Redirecting to Google:", auth_url);
+      window.location.href = auth_url;
+
+      /* OLD CODE - Comment out or delete:
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
+    if (isDevelopment) {
+      // Development login
+      const response = await api.devLogin();
+      localStorage.setItem('auth_token', response.access_token);
+      setToken(response.access_token);
+      setUser(response.user);
+    } else {
+      // Production OAuth2 flow
+      const { auth_url } = await api.getGoogleAuthUrl();
+      window.location.href = auth_url;
+    }
+    */
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error("❌ Login failed:", error);
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('auth_token');
+    localStorage.removeItem("auth_token");
     setToken(null);
     setUser(null);
     setLoading(false);
@@ -115,9 +129,5 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

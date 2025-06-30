@@ -20,6 +20,10 @@ from sqlalchemy.orm import selectinload
 import secrets
 import requests
 from fastapi.responses import RedirectResponse
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # OAuth2 Configuration
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
@@ -40,7 +44,7 @@ def utc_now():
 
 # Database setup - MySQL configuration
 # Šiht
-DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:pass@127.0.0.1:3306/side_projects")
+DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:root@127.0.0.1:3306/side_projects")
 
 # Doma
 #DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:root@127.0.0.1:3306/side_projects")
@@ -1377,13 +1381,53 @@ def update_diary_entry(entry_id: int, updates: dict, current_user: User = Depend
     db.commit()
     db.refresh(entry)
     return entry
+def debug_env_variables():
+    """Debug function to check environment variables"""
+    print("=" * 50)
+    print("🔍 ENVIRONMENT VARIABLES DEBUG")
+    print("=" * 50)
+    
+    # Check if .env file exists
+    env_file_path = os.path.join(os.getcwd(), '.env')
+    print(f"📁 Current working directory: {os.getcwd()}")
+    print(f"📄 .env file path: {env_file_path}")
+    print(f"📄 .env file exists: {os.path.exists(env_file_path)}")
+    print()
+    
+    # Check Google OAuth variables
+    google_client_id = os.getenv("GOOGLE_CLIENT_ID")
+    google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
+    
+    print("🔐 Google OAuth Variables:")
+    print(f"GOOGLE_CLIENT_ID: {google_client_id[:20] + '...' if google_client_id else 'NOT SET'}")
+    print(f"GOOGLE_CLIENT_SECRET: {google_client_secret[:20] + '...' if google_client_secret else 'NOT SET'}")
+    print(f"GOOGLE_REDIRECT_URI: {os.getenv('GOOGLE_REDIRECT_URI')}")
+    print()
+    
+    # Check other variables
+    print("🛠️  Other Variables:")
+    print(f"SECRET_KEY: {os.getenv('SECRET_KEY', 'NOT SET')[:20]}...")
+    print(f"NODE_ENV: {os.getenv('NODE_ENV', 'NOT SET')}")
+    print(f"FRONTEND_URL: {os.getenv('FRONTEND_URL', 'NOT SET')}")
+    print()
+    
+    # Check OAuth2 configuration status
+    oauth2_configured = bool(google_client_id and google_client_secret)
+    print(f"✅ OAuth2 configured: {oauth2_configured}")
+    print("=" * 50)
+    
+    return oauth2_configured
 
 # Startup event to create tables
 @app.on_event("startup")
 async def startup_event():
     create_tables()
-    migrate_database()  # existing migration
-    migrate_oauth2_fields()  # new OAuth2 migration
+    migrate_database()
+    migrate_oauth2_fields()
+    
+    # Add this debug call
+    debug_env_variables()
+    
     print("Database tables created and migrated successfully!")
     print(f"OAuth2 configured: {bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)}")
 
