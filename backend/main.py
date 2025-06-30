@@ -8,15 +8,30 @@ from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
 from pydantic import BaseModel, EmailStr
-from datetime import datetime, date, timezone
+from datetime import datetime, date, timezone, timedelta
 from typing import List, Optional
 import os
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
-from jose import jwt
+from jose import jwt, JWTError
 from passlib.context import CryptContext
 from typing import List, Optional
 from sqlalchemy.orm import selectinload
+import secrets
+import requests
+from fastapi.responses import RedirectResponse
+
+# OAuth2 Configuration
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/auth/google/callback")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+# JWT Configuration
+SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
 
 # Timezone compatibility function
 def utc_now():
@@ -47,10 +62,13 @@ security = HTTPBearer(auto_error=False)
 
 app = FastAPI(title="Todo App API", version="1.0.0")
 
+
+
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React dev server
+    allow_origins=[FRONTEND_URL, "http://localhost:3000"],  # React dev server
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -62,6 +80,8 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
     name = Column(String(255), nullable=False)
+    google_id = Column(String(255), unique=True, index=True, nullable=True)  # NEW
+    avatar_url = Column(String(500), nullable=True)  # NEW
     google_calendar_token = Column(Text)
     google_calendar_refresh_token = Column(Text)
     created_at = Column(DateTime, default=utc_now, nullable=False)
@@ -268,6 +288,23 @@ class QuestResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     paragraphs: List[QuestParagraphResponse] = []
+    
+    class Config:
+        from_attributes = True
+
+# NEW: OAuth2 Pydantic models
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    expires_in: int
+    user: dict
+
+class UserResponse(BaseModel):
+    id: int
+    email: str
+    name: str
+    avatar_url: Optional[str]
+    created_at: datetime
     
     class Config:
         from_attributes = True
@@ -489,6 +526,229 @@ def get_hierarchical_task_order(tasks):
         add_task_and_children(root_task)
     
     return result
+
+# OAuth2 utility functions
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security), 
+    db: Session = Depends(get_db)
+):
+    """Get current authenticated user from JWT token"""
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: int = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def migrate_oauth2_fields():
+    """Add OAuth2 fields to existing users table"""
+    try:
+        with engine.connect() as connection:
+            # Check if oauth2 columns exist
+            result = connection.execute(text("SHOW COLUMNS FROM users LIKE 'google_id'"))
+            if not result.fetchone():
+                print("Adding OAuth2 columns to users table...")
+                
+                connection.execute(text("ALTER TABLE users ADD COLUMN google_id VARCHAR(255) NULL"))
+                connection.execute(text("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(500) NULL"))
+                connection.execute(text("ALTER TABLE users ADD UNIQUE INDEX idx_google_id (google_id)"))
+                
+                connection.commit()
+                print("Successfully added OAuth2 columns!")
+            else:
+                print("OAuth2 columns already exist, skipping migration.")
+                
+    except Exception as e:
+        print(f"OAuth2 migration error: {e}")
+
+# Create tables and run migrations
+def create_tables():
+    Base.metadata.create_all(bind=engine)
+
+
+# Development-only route for testing without OAuth2
+@app.post("/auth/dev-login")
+async def dev_login(db: Session = Depends(get_db)):
+    """Development-only login (creates/returns test user)"""
+    if os.getenv("NODE_ENV") == "production":
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    # Get or create test user
+    user = db.query(User).filter(User.email == "test@example.com").first()
+    if not user:
+        user = User(
+            email="test@example.com",
+            name="Test User",
+            google_id="test_user_123"
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    
+    # Create JWT token
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    jwt_token = create_access_token(
+        data={"sub": str(user.id)}, expires_delta=access_token_expires
+    )
+    
+    return {
+        "access_token": jwt_token,
+        "token_type": "bearer",
+        "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "name": user.name,
+            "avatar_url": user.avatar_url
+        }
+    }
+
+@app.get("/auth/google")
+async def google_auth():
+    """Initiate Google OAuth2 flow"""
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=500, detail="Google OAuth2 not configured")
+    
+    google_auth_url = (
+        f"https://accounts.google.com/o/oauth2/auth?"
+        f"client_id={GOOGLE_CLIENT_ID}&"
+        f"redirect_uri={GOOGLE_REDIRECT_URI}&"
+        f"scope=openid email profile https://www.googleapis.com/auth/calendar&"
+        f"response_type=code&"
+        f"access_type=offline&"
+        f"prompt=consent"
+    )
+    
+    return {"auth_url": google_auth_url}
+
+@app.get("/auth/google/callback")
+async def google_callback(code: str, db: Session = Depends(get_db)):
+    """Handle Google OAuth2 callback"""
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        raise HTTPException(status_code=500, detail="Google OAuth2 not configured")
+    
+    # Exchange code for tokens
+    token_url = "https://oauth2.googleapis.com/token"
+    token_data = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "client_secret": GOOGLE_CLIENT_SECRET,
+        "code": code,
+        "grant_type": "authorization_code",
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+    }
+    
+    try:
+        token_response = requests.post(token_url, data=token_data)
+        token_response.raise_for_status()
+        tokens = token_response.json()
+        
+        access_token = tokens.get("access_token")
+        refresh_token = tokens.get("refresh_token")
+        
+        # Get user info from Google
+        user_info_url = f"https://www.googleapis.com/oauth2/v2/userinfo?access_token={access_token}"
+        user_response = requests.get(user_info_url)
+        user_response.raise_for_status()
+        user_data = user_response.json()
+        
+        # Find or create user
+        user = db.query(User).filter(User.google_id == user_data["id"]).first()
+        if not user:
+            # Check if user exists by email
+            user = db.query(User).filter(User.email == user_data["email"]).first()
+            if user:
+                # Update existing user with Google ID
+                user.google_id = user_data["id"]
+                user.avatar_url = user_data.get("picture")
+                user.google_calendar_token = access_token
+                user.google_calendar_refresh_token = refresh_token
+            else:
+                # Create new user
+                user = User(
+                    email=user_data["email"],
+                    name=user_data["name"],
+                    google_id=user_data["id"],
+                    avatar_url=user_data.get("picture"),
+                    google_calendar_token=access_token,
+                    google_calendar_refresh_token=refresh_token
+                )
+                db.add(user)
+        else:
+            # Update existing user tokens
+            user.google_calendar_token = access_token
+            user.google_calendar_refresh_token = refresh_token
+            user.avatar_url = user_data.get("picture")
+        
+        db.commit()
+        db.refresh(user)
+        
+        # Create JWT token
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        jwt_token = create_access_token(
+            data={"sub": str(user.id)}, expires_delta=access_token_expires
+        )
+        
+        # Redirect to frontend with token
+        redirect_url = f"{FRONTEND_URL}/auth/callback?token={jwt_token}"
+        return RedirectResponse(url=redirect_url)
+        
+    except requests.RequestException as e:
+        raise HTTPException(status_code=400, detail=f"Failed to authenticate with Google: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Authentication error: {str(e)}")
+
+@app.post("/auth/logout")
+async def logout():
+    """Logout user (client-side token removal)"""
+    return {"message": "Logged out successfully"}
+
+@app.get("/auth/me", response_model=UserResponse)
+async def get_current_user_info(current_user: User = Depends(get_current_user)):
+    """Get current user information"""
+    return current_user
 
 # API Routes
 @app.post("/api/tasks", response_model=TaskResponse)
@@ -959,12 +1219,11 @@ def delete_task(task_id: int, current_user: User = Depends(get_current_user), db
 # Health check and basic endpoints
 @app.get("/")
 async def root():
-    return {"message": "Todo App API is running!", "status": "healthy"}
+    return {"message": "Todo App API is running!", "status": "healthy", "auth": "OAuth2 enabled"}
 
 @app.get("/health")
 async def health_check(db: Session = Depends(get_db)):
     try:
-        # Test database connection - Using text() wrapper
         result = db.execute(text("SELECT 1 as test"))
         row = result.fetchone()
         user_count = db.query(User).count()
@@ -972,7 +1231,8 @@ async def health_check(db: Session = Depends(get_db)):
             "status": "healthy", 
             "database": "connected",
             "test_query": row[0] if row else None,
-            "user_count": user_count
+            "user_count": user_count,
+            "auth": "OAuth2 enabled"
         }
     except Exception as e:
         return {
@@ -1122,8 +1382,10 @@ def update_diary_entry(entry_id: int, updates: dict, current_user: User = Depend
 @app.on_event("startup")
 async def startup_event():
     create_tables()
-    migrate_database()
+    migrate_database()  # existing migration
+    migrate_oauth2_fields()  # new OAuth2 migration
     print("Database tables created and migrated successfully!")
+    print(f"OAuth2 configured: {bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)}")
 
 if __name__ == "__main__":
     import uvicorn

@@ -7,3 +7,5 @@ export { default as DiaryViewModal } from "./DiaryViewModal";
 export { default as TaskViewModal } from "./TaskViewModal";
 export { default as QuestCard } from "./QuestCard";
 export { default as QuestViewModal } from "./QuestViewModal";
+export { default as LoginPage } from "./LoginPage";
+export { default as UserHeader } from "./UserHeader";

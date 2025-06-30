@@ -1,6 +1,6 @@
-// Fixed frontend/src/App.tsx - Folder filtering bug fix
+// Complete updated frontend/src/App.tsx with OAuth2 authentication
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Calendar as CalendarIcon,
   Plus,
@@ -11,10 +11,16 @@ import {
   Trash2,
   X,
   Save,
+  Loader2,
 } from "lucide-react";
 
 // Component imports
 import { Modal, CalendarView, FeedView } from "./components";
+import LoginPage from "./components/LoginPage";
+import UserHeader from "./components/UserHeader";
+
+// Context imports
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 // Type and API imports
 import {
@@ -122,14 +128,14 @@ const FolderManagementModal: React.FC<{
                 <div>
                   <input
                     type="text"
-                    placeholder="Folder name (max 12 chars)"
+                    placeholder="Folder name (max 16 chars)"
                     value={newFolder.name}
                     onChange={(e) => {
-                      const value = e.target.value.slice(0, 16); // Limit to 12 characters
+                      const value = e.target.value.slice(0, 16);
                       setNewFolder((prev) => ({ ...prev, name: value }));
                     }}
                     className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-2"
-                    maxLength={12}
+                    maxLength={16}
                   />
                   <p className="text-xs text-gray-400 mt-1">
                     {newFolder.name.length}/16 characters
@@ -179,7 +185,7 @@ const FolderManagementModal: React.FC<{
                             );
                           }}
                           className="flex-1 border border-gray-600 bg-gray-700 text-white rounded-md px-2 py-1 text-sm"
-                          maxLength={12}
+                          maxLength={16}
                         />
                         <input
                           type="color"
@@ -220,7 +226,7 @@ const FolderManagementModal: React.FC<{
                             {folder.name}
                           </span>
                           <span className="text-xs text-gray-400">
-                            ({folder.name.length}/12)
+                            ({folder.name.length}/16)
                           </span>
                         </div>
                         <div className="flex items-center space-x-1">
@@ -320,7 +326,9 @@ const FolderManagementModal: React.FC<{
   );
 };
 
+// Main Todo App Component (protected, requires authentication)
 function TodoApp() {
+  const { user, isAuthenticated } = useAuth();
   const [currentView, setCurrentView] = useState("feed");
   const [selectedFolder, setSelectedFolder] = useState<FolderType | null>(null);
   const [folders, setFolders] = useState<FolderType[]>([]);
@@ -347,7 +355,7 @@ function TodoApp() {
       setFolders(Array.isArray(foldersData) ? foldersData : []);
     } catch (error) {
       console.error("Error loading folders:", error);
-      setFolders([]); // Set to empty array on error
+      setFolders([]);
     }
   }, []);
 
@@ -400,31 +408,33 @@ function TodoApp() {
 
   // Initial connection and data loading
   useEffect(() => {
-    const testConnection = async () => {
-      try {
-        await api.healthCheck();
-        setBackendStatus("connected");
-        loadFolders();
-      } catch (error) {
-        setBackendStatus("error");
-        console.error("Backend connection failed:", error);
-      }
-    };
-    testConnection();
-  }, [loadFolders]);
+    if (isAuthenticated) {
+      const testConnection = async () => {
+        try {
+          await api.healthCheck();
+          setBackendStatus("connected");
+          loadFolders();
+        } catch (error) {
+          setBackendStatus("error");
+          console.error("Backend connection failed:", error);
+        }
+      };
+      testConnection();
+    }
+  }, [isAuthenticated, loadFolders]);
 
   useEffect(() => {
-    if (backendStatus === "connected") {
+    if (backendStatus === "connected" && isAuthenticated) {
       // Load folders first, then load other data
       loadFolders().then(() => {
         loadAllData();
       });
     }
-  }, [currentView, selectedDate, backendStatus, loadFolders, loadAllData]); // Remove selectedFolder dependency
+  }, [currentView, selectedDate, backendStatus, isAuthenticated, loadFolders, loadAllData]); // Remove selectedFolder dependency
 
   // Folder handlers with character limit
   const handleFolderNameChange = useCallback((value: string) => {
-    const limitedValue = value.slice(0, 12); // Limit to 12 characters
+    const limitedValue = value.slice(0, 16); // Limit to 16 characters
     setNewFolder((prev: NewFolder) => ({ ...prev, name: limitedValue }));
   }, []);
 
@@ -436,9 +446,9 @@ function TodoApp() {
   const handleCreateFolder = async (folderData?: NewFolder) => {
     try {
       const dataToUse = folderData || newFolder;
-      if (!dataToUse.name.trim() || dataToUse.name.length > 12) {
+      if (!dataToUse.name.trim() || dataToUse.name.length > 16) {
         console.error(
-          "Folder name is required and must be 12 characters or less"
+          "Folder name is required and must be 16 characters or less"
         );
         return;
       }
@@ -463,9 +473,9 @@ function TodoApp() {
     try {
       if (
         updates.name &&
-        (updates.name.length === 0 || updates.name.length > 12)
+        (updates.name.length === 0 || updates.name.length > 16)
       ) {
-        console.error("Folder name must be between 1 and 12 characters");
+        console.error("Folder name must be between 1 and 16 characters");
         return;
       }
 
@@ -759,40 +769,40 @@ function TodoApp() {
     }
   };
 
-  // Task actions
+  // Task actions - FIXED to properly handle subtask uncomplete
   const toggleTaskStatus = async (task: Task) => {
     const newStatus = task.status === "completed" ? "pending" : "completed";
-  
+
     // Optimistically update the UI first (no screen refresh)
     const updateTaskInState = (taskId: number, status: string) => {
       setTasks((prev: Task[]) =>
         prev.map((t: Task) => (t.id === taskId ? { ...t, status } : t))
       );
     };
-  
+
     // Helper function to get all subtask IDs recursively
     const getSubtaskIds = (parentId: number): number[] => {
       const directSubtasks = tasks.filter(
         (t) => t.parent_task_id === parentId
       );
       let allSubtaskIds = directSubtasks.map((t) => t.id);
-  
+
       directSubtasks.forEach((subtask) => {
         allSubtaskIds = allSubtaskIds.concat(getSubtaskIds(subtask.id));
       });
-  
+
       return allSubtaskIds;
     };
-  
+
     // Update the main task immediately in UI
     updateTaskInState(task.id, newStatus);
-  
+
     // FIXED: Update all subtasks in UI for BOTH completing AND uncompleting
     const subtaskIds = getSubtaskIds(task.id);
     subtaskIds.forEach((subtaskId) => {
       updateTaskInState(subtaskId, newStatus);
     });
-  
+
     try {
       // Make API calls in the background
       if (newStatus === "completed") {
@@ -973,9 +983,14 @@ function TodoApp() {
     };
   };
 
-  // Sidebar component
+  // Updated Sidebar component with user header
   const Sidebar = () => (
     <div className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col h-full">
+      {/* User Header */}
+      <div className="p-4 border-b border-gray-700">
+        <UserHeader />
+      </div>
+
       <nav className="flex-1 p-4">
         <div className="space-y-2 mb-6">
           <button
@@ -1161,7 +1176,7 @@ function TodoApp() {
     return (
       <div className="h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-4"></div>
+          <Loader2 className="w-8 h-8 text-blue-400 mx-auto mb-4 animate-spin" />
           <p className="text-gray-300">Connecting to backend...</p>
         </div>
       </div>
@@ -1196,14 +1211,14 @@ function TodoApp() {
           <div>
             <input
               type="text"
-              placeholder="Folder name (max 12 chars)"
+              placeholder="Folder name (max 16 chars)"
               value={newFolder.name}
               onChange={(e) => handleFolderNameChange(e.target.value)}
               className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-2"
-              maxLength={12}
+              maxLength={16}
             />
             <p className="text-xs text-gray-400 mt-1">
-              {newFolder.name.length}/12 characters
+              {newFolder.name.length}/16 characters
             </p>
           </div>
           <input
@@ -1221,7 +1236,7 @@ function TodoApp() {
             </button>
             <button
               onClick={() => handleCreateFolder()}
-              disabled={!newFolder.name.trim() || newFolder.name.length > 12}
+              disabled={!newFolder.name.trim() || newFolder.name.length > 16}
               className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
             >
               Create Folder
@@ -1243,4 +1258,38 @@ function TodoApp() {
   );
 }
 
-export default TodoApp;
+// Loading Component
+const LoadingScreen: React.FC = () => (
+  <div className="h-screen bg-gray-900 flex items-center justify-center">
+    <div className="text-center">
+      <Loader2 className="w-8 h-8 text-blue-400 mx-auto mb-4 animate-spin" />
+      <p className="text-gray-300">Loading...</p>
+    </div>
+  </div>
+);
+
+// App Router Component
+const AppRouter: React.FC = () => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingScreen />;
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
+  return <TodoApp />;
+};
+
+// Main App Component with Auth Provider
+function App() {
+  return (
+    <AuthProvider>
+      <AppRouter />
+    </AuthProvider>
+  );
+}
+
+export default App;
