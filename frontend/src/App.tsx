@@ -762,38 +762,37 @@ function TodoApp() {
   // Task actions
   const toggleTaskStatus = async (task: Task) => {
     const newStatus = task.status === "completed" ? "pending" : "completed";
-
+  
     // Optimistically update the UI first (no screen refresh)
     const updateTaskInState = (taskId: number, status: string) => {
       setTasks((prev: Task[]) =>
         prev.map((t: Task) => (t.id === taskId ? { ...t, status } : t))
       );
     };
-
+  
+    // Helper function to get all subtask IDs recursively
+    const getSubtaskIds = (parentId: number): number[] => {
+      const directSubtasks = tasks.filter(
+        (t) => t.parent_task_id === parentId
+      );
+      let allSubtaskIds = directSubtasks.map((t) => t.id);
+  
+      directSubtasks.forEach((subtask) => {
+        allSubtaskIds = allSubtaskIds.concat(getSubtaskIds(subtask.id));
+      });
+  
+      return allSubtaskIds;
+    };
+  
     // Update the main task immediately in UI
     updateTaskInState(task.id, newStatus);
-
-    // If completing, also update all subtasks to completed in UI
-    if (newStatus === "completed") {
-      const getSubtaskIds = (parentId: number): number[] => {
-        const directSubtasks = tasks.filter(
-          (t) => t.parent_task_id === parentId
-        );
-        let allSubtaskIds = directSubtasks.map((t) => t.id);
-
-        directSubtasks.forEach((subtask) => {
-          allSubtaskIds = allSubtaskIds.concat(getSubtaskIds(subtask.id));
-        });
-
-        return allSubtaskIds;
-      };
-
-      const subtaskIds = getSubtaskIds(task.id);
-      subtaskIds.forEach((subtaskId) => {
-        updateTaskInState(subtaskId, "completed");
-      });
-    }
-
+  
+    // FIXED: Update all subtasks in UI for BOTH completing AND uncompleting
+    const subtaskIds = getSubtaskIds(task.id);
+    subtaskIds.forEach((subtaskId) => {
+      updateTaskInState(subtaskId, newStatus);
+    });
+  
     try {
       // Make API calls in the background
       if (newStatus === "completed") {
