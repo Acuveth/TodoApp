@@ -1,4 +1,4 @@
-// Create frontend/src/components/UserHeader.tsx
+// Fixed frontend/src/components/UserHeader.tsx - Proper sidebar fit
 
 import React, { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
@@ -30,33 +30,33 @@ const UserHeader: React.FC = () => {
   };
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <button
         onClick={() => setShowDropdown(!showDropdown)}
-        className="flex items-center space-x-3 bg-gray-800 hover:bg-gray-700 rounded-lg px-3 py-2 transition-colors"
+        className="w-full flex items-center space-x-2 bg-gray-800 hover:bg-gray-700 rounded-lg px-2 py-2 transition-colors text-left"
       >
         {/* Avatar */}
         {user.avatar_url ? (
           <img
             src={user.avatar_url}
             alt={user.name}
-            className="w-8 h-8 rounded-full object-cover"
+            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
           />
         ) : (
-          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium">
+          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
             {getInitials(user.name)}
           </div>
         )}
 
         {/* User Info */}
-        <div className="text-left hidden sm:block">
-          <p className="text-sm font-medium text-white">{user.name}</p>
-          <p className="text-xs text-gray-400">{user.email}</p>
+        <div className="flex-1 min-w-0 hidden sm:block">
+          <p className="text-sm font-medium text-white truncate">{user.name}</p>
+          <p className="text-xs text-gray-400 truncate">{user.email}</p>
         </div>
 
         {/* Dropdown Arrow */}
         <ChevronDown
-          className={`w-4 h-4 text-gray-400 transition-transform ${
+          className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${
             showDropdown ? "rotate-180" : ""
           }`}
         />
@@ -87,9 +87,9 @@ const UserHeader: React.FC = () => {
                     {getInitials(user.name)}
                   </div>
                 )}
-                <div>
-                  <p className="font-medium text-white">{user.name}</p>
-                  <p className="text-xs text-gray-400">{user.email}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-white truncate">{user.name}</p>
+                  <p className="text-xs text-gray-400 truncate">{user.email}</p>
                 </div>
               </div>
             </div>

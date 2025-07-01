@@ -1,4 +1,4 @@
-// Fixed frontend/src/components/FeedView.tsx - Folder visual indicator bug fix
+// Fixed frontend/src/components/FeedView.tsx - Add proper subtask creation dialog
 
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
@@ -475,6 +475,11 @@ const FeedView: React.FC<FeedViewProps> = ({
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [showNewDiaryModal, setShowNewDiaryModal] = useState(false);
   const [showNewQuestModal, setShowNewQuestModal] = useState(false);
+  
+  // NEW: Subtask creation modal state
+  const [showNewSubtaskModal, setShowNewSubtaskModal] = useState(false);
+  const [parentTaskForSubtask, setParentTaskForSubtask] = useState<number | null>(null);
+  
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [showFolderSelect, setShowFolderSelect] = useState<string | null>(null);
   const [editingDiary, setEditingDiary] = useState<DiaryEntry | null>(null);
@@ -505,6 +510,18 @@ const FeedView: React.FC<FeedViewProps> = ({
 
   // Task creation state
   const [newTask, setNewTask] = useState<NewTask>({
+    title: "",
+    description: "",
+    priority: 1,
+    due_date: "",
+    is_calendar_event: false,
+    parent_task_id: undefined,
+    indent_level: 0,
+    order_index: 0,
+  });
+
+  // NEW: Subtask creation state
+  const [newSubtask, setNewSubtask] = useState<NewTask>({
     title: "",
     description: "",
     priority: 1,
@@ -783,6 +800,27 @@ const FeedView: React.FC<FeedViewProps> = ({
     setNewTask((prev) => ({ ...prev, is_calendar_event: value }));
   }, []);
 
+  // NEW: Subtask handlers
+  const handleSubtaskTitleChange = useCallback((value: string) => {
+    setNewSubtask((prev) => ({ ...prev, title: value }));
+  }, []);
+
+  const handleSubtaskDescriptionChange = useCallback((value: string) => {
+    setNewSubtask((prev) => ({ ...prev, description: value }));
+  }, []);
+
+  const handleSubtaskPriorityChange = useCallback((value: number) => {
+    setNewSubtask((prev) => ({ ...prev, priority: value }));
+  }, []);
+
+  const handleSubtaskDueDateChange = useCallback((value: string) => {
+    setNewSubtask((prev) => ({ ...prev, due_date: value }));
+  }, []);
+
+  const handleSubtaskCalendarEventChange = useCallback((value: boolean) => {
+    setNewSubtask((prev) => ({ ...prev, is_calendar_event: value }));
+  }, []);
+
   const handleCreateTask = async () => {
     try {
       const taskData = {
@@ -808,6 +846,66 @@ const FeedView: React.FC<FeedViewProps> = ({
       setShowNewTaskModal(false);
     } catch (error) {
       console.error("Error creating task:", error);
+    }
+  };
+
+  // NEW: Handle subtask creation with dialog
+  const handleCreateSubtask = async (parentTaskId: number) => {
+    // Open the dialog instead of directly creating
+    setParentTaskForSubtask(parentTaskId);
+    
+    // Reset subtask form
+    setNewSubtask({
+      title: "",
+      description: "",
+      priority: 1,
+      due_date: "",
+      is_calendar_event: false,
+      parent_task_id: parentTaskId,
+      indent_level: 0,
+      order_index: 0,
+    });
+    
+    setShowNewSubtaskModal(true);
+  };
+
+  // NEW: Handle subtask creation submission
+  const handleCreateSubtaskSubmit = async () => {
+    if (!parentTaskForSubtask || !newSubtask.title.trim()) {
+      return;
+    }
+
+    try {
+      // Find the parent task to get its folder
+      const parentTask = tasks.find(t => t.id === parentTaskForSubtask);
+      const parentFolderId = parentTask?.folder_id || null;
+      
+      const subtaskData = {
+        ...newSubtask,
+        parent_task_id: parentTaskForSubtask,
+        folder_id: parentFolderId, // This will be overridden by backend inheritance
+        due_date: newSubtask.due_date
+          ? new Date(newSubtask.due_date).toISOString()
+          : null,
+      };
+
+      await onCreateTask(subtaskData); // Use the same onCreateTask handler
+
+      // Reset form and close modal
+      setNewSubtask({
+        title: "",
+        description: "",
+        priority: 1,
+        due_date: "",
+        is_calendar_event: false,
+        parent_task_id: undefined,
+        indent_level: 0,
+        order_index: 0,
+      });
+      setShowNewSubtaskModal(false);
+      setParentTaskForSubtask(null);
+    } catch (error) {
+      console.error("Error creating subtask:", error);
     }
   };
 
@@ -1003,7 +1101,7 @@ const FeedView: React.FC<FeedViewProps> = ({
               setExpandedItems(newExpanded);
             }}
             onToggleStatus={onToggleTaskStatus}
-            onCreateSubtask={onCreateSubtask}
+            onCreateSubtask={handleCreateSubtask} // Pass the modified handler
             onUpdateTask={onUpdateTask}
             onDeleteTask={onDeleteTask}
             allTasks={tasks}
@@ -1314,7 +1412,7 @@ const FeedView: React.FC<FeedViewProps> = ({
       </div>
 
       {/* Floating action buttons */}
-      <div className="fixed bottom-6 right-6 z-30 flex flex-col space-y-3">
+      <div className="fixed bottom-6 left-6 z-30 flex flex-col space-y-3">
         <button
           onClick={() => setShowNewQuestModal(true)}
           className="w-14 h-14 rounded-full bg-orange-600 hover:bg-orange-700 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110"
@@ -1413,6 +1511,120 @@ const FeedView: React.FC<FeedViewProps> = ({
               className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
             >
               Create Task
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* NEW: Subtask Creation Modal */}
+      <Modal
+        isOpen={showNewSubtaskModal}
+        onClose={() => {
+          setShowNewSubtaskModal(false);
+          setParentTaskForSubtask(null);
+          setNewSubtask({
+            title: "",
+            description: "",
+            priority: 1,
+            due_date: "",
+            is_calendar_event: false,
+            parent_task_id: undefined,
+            indent_level: 0,
+            order_index: 0,
+          });
+        }}
+        title={`Create New Subtask ${parentTaskForSubtask ? `for Task #${parentTaskForSubtask}` : ""}`}
+      >
+        <div className="space-y-4">
+          <input
+            type="text"
+            placeholder="Subtask title"
+            value={newSubtask.title}
+            onChange={(e) => handleSubtaskTitleChange(e.target.value)}
+            className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-2"
+            autoFocus
+          />
+          <textarea
+            placeholder="Description (optional)"
+            value={newSubtask.description}
+            onChange={(e) => handleSubtaskDescriptionChange(e.target.value)}
+            className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-2 h-24"
+          />
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-300">
+              Priority
+            </label>
+            <div className="flex space-x-2">
+              {[1, 2, 3].map((priority) => (
+                <button
+                  key={priority}
+                  type="button"
+                  onClick={() => handleSubtaskPriorityChange(priority)}
+                  className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
+                    newSubtask.priority === priority
+                      ? priority === 1
+                        ? "bg-green-900 border-green-500 text-green-300"
+                        : priority === 2
+                        ? "bg-yellow-900 border-yellow-500 text-yellow-300"
+                        : "bg-red-900 border-red-500 text-red-300"
+                      : "bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700"
+                  }`}
+                >
+                  {priority === 1 ? "Low" : priority === 2 ? "Medium" : "High"}
+                </button>
+              ))}
+            </div>
+          </div>
+          <input
+            type="datetime-local"
+            value={newSubtask.due_date}
+            onChange={(e) => handleSubtaskDueDateChange(e.target.value)}
+            className="w-full border border-gray-600 bg-gray-700 text-white rounded-md px-3 py-2"
+          />
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={newSubtask.is_calendar_event}
+              onChange={(e) => handleSubtaskCalendarEventChange(e.target.checked)}
+              className="rounded border-gray-600 bg-gray-700"
+            />
+            <span className="text-sm text-gray-300">
+              Add to Google Calendar
+            </span>
+          </label>
+
+          <div className="bg-blue-900/20 border border-blue-600/30 rounded-md p-3">
+            <p className="text-sm text-blue-300">
+              💡 This subtask will inherit the parent task's folder automatically.
+            </p>
+          </div>
+
+          <div className="flex space-x-3">
+            <button
+              onClick={() => {
+                setShowNewSubtaskModal(false);
+                setParentTaskForSubtask(null);
+                setNewSubtask({
+                  title: "",
+                  description: "",
+                  priority: 1,
+                  due_date: "",
+                  is_calendar_event: false,
+                  parent_task_id: undefined,
+                  indent_level: 0,
+                  order_index: 0,
+                });
+              }}
+              className="flex-1 border border-gray-600 text-gray-300 py-2 rounded-md hover:bg-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreateSubtaskSubmit}
+              disabled={!newSubtask.title.trim()}
+              className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+            >
+              Create Subtask
             </button>
           </div>
         </div>
